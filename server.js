@@ -16,7 +16,7 @@ app.use(session({
   secret: 'santos-resources-secret-key',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  cookie: { secure: process.env.NODE_ENV === 'production' } // Importante para HTTPS na Vercel
 }));
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -161,7 +161,6 @@ app.post('/admin/toggle/:id', isAdmin, async (req, res) => {
   res.redirect('/admin');
 });
 
-// ------------------------ UTILIZADORES ------------------------
 app.get('/admin/users', isAdmin, async (req, res) => {
   const result = await pool.query('SELECT * FROM users ORDER BY id ASC');
   res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
@@ -174,7 +173,6 @@ app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
   res.redirect('/admin/users');
 });
 
-// ------------------------ DESCONTOS ------------------------
 app.get('/admin/discounts', isAdmin, async (req, res) => {
   const result = await pool.query('SELECT * FROM discounts ORDER BY id ASC');
   res.render('admin/discounts', { discounts: result.rows, activeTab: 'discounts', error: null, user: req.session.user });
@@ -226,7 +224,7 @@ app.post('/admin/settings/update', isAdmin, async (req, res) => {
   res.redirect('/admin/settings');
 });
 
-// Exportação para Vercel ou execução local
+// Exportação para Vercel (MUITO IMPORTANTE!)
 if (require.main === module) {
   app.listen(PORT, () => { console.log(`🚀 Santos Resources rodando em http://localhost:${PORT}`); });
 }
