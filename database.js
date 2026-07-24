@@ -1,11 +1,13 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// A Vercel injeta automaticamente esta variável quando ligas o banco de dados
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
+// Inicializar as tabelas no PostgreSQL
 const initDB = async () => {
   try {
     await pool.query(`
@@ -54,6 +56,7 @@ const initDB = async () => {
         discord_link TEXT
       );
     `);
+    // Insere configuração padrão se não existir
     await pool.query(`
       INSERT INTO settings (id, site_name, discord_link) 
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt' 
