@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
-const db = require('./database');
+const pool = require('./database');
 const config = require('./config');
 
 const app = express();
@@ -16,42 +16,57 @@ app.use(session({
   secret: 'santos-resources-secret-key',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false }
+  cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
 
-// Função para registar logs de atividade
-function logActivity(req, action) {
+async function logActivity(req, action) {
   if (req.session.user) {
-    db.run(`INSERT INTO activity_logs (admin_discord_id, admin_username, action) VALUES (?, ?, ?)`, 
-      [req.session.user.id, req.session.user.username, action]);
+    await pool.query(
+      `INSERT INTO activity_logs (admin_discord_id, admin_username, action) VALUES ($1, $2, $3)`,
+      [req.session.user.id, req.session.user.username, action]
+    );
   }
 }
 
-function isAdmin(req, res, next) {
+async function isAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/');
   if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
-  db.get('SELECT is_admin FROM users WHERE discord_id = ?', [req.session.user.id], (err, row) => {
-    if (err || !row || row.is_admin !== 1) return res.redirect('/');
-    next();
-  });
+  const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+  const row = result.rows[0];
+  if (!row || row.is_admin !== 1) return res.redirect('/');
+  next();
 }
 
-app.get('/', (req, res) => {
-  db.all('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC', (err, products) => {
-    if (err) return res.send('Erro ao carregar produtos.');
-    res.render('home', { products, user: req.session.user || null, isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id) });
-  });
+// --- ROTAS PÚBLICAS ---
+app.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
+    res.render('home', { 
+      products: result.rows, 
+      user: req.session.user || null, 
+      isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id) 
+    });
+  } catch (err) {
+    res.send('Erro ao carregar produtos.');
+  }
 });
 
-app.get('/products', (req, res) => {
-  db.all('SELECT * FROM products ORDER BY id ASC', (err, products) => {
-    if (err) return res.render('products', { products: [], user: req.session.user || null, isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id), error: 'Erro ao carregar produtos: ' + err.message });
-    res.render('products', { products, user: req.session.user || null, isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id), error: null });
-  });
+app.get('/products', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+    res.render('products', { 
+      products: result.rows, 
+      user: req.session.user || null,
+      isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id),
+      error: null
+    });
+  } catch (err) {
+    res.render('products', { products: [], user: req.session.user || null, isAdmin: false, error: 'Erro ao carregar produtos' });
+  }
 });
 
 app.get('/about', (req, res) => {
@@ -74,14 +89,18 @@ app.get('/auth/discord/callback', async (req, res) => {
     const user = userResponse.data;
     req.session.user = user;
     const now = new Date().toISOString();
-    await new Promise((resolve, reject) => {
-      db.run(`INSERT INTO users (discord_id, username, avatar, last_login) VALUES (?, ?, ?, ?) ON CONFLICT(discord_id) DO UPDATE SET username = excluded.username, avatar = excluded.avatar, last_login = excluded.last_login`, [user.id, user.username, user.avatar, now], function(err) { if (err) reject(err); else resolve(); });
-    });
+    
+    await pool.query(
+      `INSERT INTO users (discord_id, username, avatar, last_login) VALUES ($1, $2, $3, $4) 
+       ON CONFLICT (discord_id) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, last_login = EXCLUDED.last_login`,
+      [user.id, user.username, user.avatar, now]
+    );
+
     if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
-    db.get('SELECT is_admin FROM users WHERE discord_id = ?', [user.id], (err, row) => {
-      if (err || !row) return res.redirect('/');
-      if (row.is_admin === 1) res.redirect('/admin'); else res.redirect('/');
-    });
+    const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
+    const row = result.rows[0];
+    if (row && row.is_admin === 1) res.redirect('/admin');
+    else res.redirect('/');
   } catch (error) {
     console.error('Erro no login Discord:', error);
     res.redirect('/?error=auth_failed');
@@ -93,157 +112,122 @@ app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/'));
 // =========================================================================
 // ÁREA ADMINISTRATIVA
 // =========================================================================
-app.get('/admin/dashboard', isAdmin, (req, res) => {
-  // Queries para as novas estatísticas
-  db.get('SELECT COUNT(*) as total_users FROM users', (err, userCount) => {
-    db.get('SELECT COUNT(*) as mta_scripts FROM products WHERE category = "MTA"', (err, mtaCount) => {
-      db.get('SELECT COUNT(*) as discord_bots FROM products WHERE category = "Discord Bot"', (err, botCount) => {
-        db.get('SELECT COUNT(*) as total_discounts FROM discounts', (err, discountCount) => {
-          res.render('admin/dashboard', { 
-            stats: { 
-              total_users: userCount?.total_users || 0,
-              mta_scripts: mtaCount?.mta_scripts || 0,
-              discord_bots: botCount?.discord_bots || 0,
-              total_discounts: discountCount?.total_discounts || 0
-            }, 
-            activeTab: 'dashboard', 
-            user: req.session.user 
-          });
-        });
-      });
-    });
+app.get('/admin/dashboard', isAdmin, async (req, res) => {
+  const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
+  const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
+  const users = await pool.query('SELECT COUNT(*) as total_users FROM users');
+  res.render('admin/dashboard', { 
+    stats: { 
+      total_products: total.rows[0].total_products,
+      active_products: active.rows[0].active_products,
+      total_users: users.rows[0].total_users
+    }, 
+    activeTab: 'dashboard', 
+    user: req.session.user 
   });
 });
 
-// ------------------------ PRODUTOS ------------------------
-app.get('/admin', isAdmin, (req, res) => {
-  db.all('SELECT * FROM products ORDER BY id ASC', (err, products) => {
-    if (err) return res.render('admin/products', { products: [], activeTab: 'products', error: 'Erro: ' + err.message, user: req.session.user });
-    res.render('admin/products', { products, activeTab: 'products', error: null, user: req.session.user });
-  });
+app.get('/admin', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+  res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
 });
 
-app.post('/admin/products/add', isAdmin, (req, res) => {
+app.post('/admin/products/add', isAdmin, async (req, res) => {
   const { name, description, price, category } = req.body;
   if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
-  db.run('INSERT INTO products (name, description, price, category, is_active) VALUES (?, ?, ?, ?, 1)', [name, description, parseFloat(price), category || 'MTA'], (err) => {
-    if (!err) logActivity(req, `Criou o produto: ${name}`);
-    else console.error(err);
-    res.redirect('/admin');
-  });
+  await pool.query('INSERT INTO products (name, description, price, category, is_active) VALUES ($1, $2, $3, $4, 1)', 
+    [name, description, parseFloat(price), category || 'MTA']);
+  await logActivity(req, `Criou o produto: ${name}`);
+  res.redirect('/admin');
 });
 
-app.post('/admin/products/edit/:id', isAdmin, (req, res) => {
+app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
   const { name, description, price, category } = req.body;
-  db.run('UPDATE products SET name = ?, description = ?, price = ?, category = ? WHERE id = ?', [name, description, parseFloat(price), category || 'MTA', req.params.id], (err) => {
-    if (!err) logActivity(req, `Editou o produto: ${name}`);
-    else console.error(err);
-    res.redirect('/admin');
-  });
+  await pool.query('UPDATE products SET name = $1, description = $2, price = $3, category = $4 WHERE id = $5', 
+    [name, description, parseFloat(price), category || 'MTA', req.params.id]);
+  await logActivity(req, `Editou o produto: ${name}`);
+  res.redirect('/admin');
 });
 
-app.post('/admin/products/delete/:id', isAdmin, (req, res) => {
-  db.get('SELECT name FROM products WHERE id = ?', [req.params.id], (err, row) => {
-    db.run('DELETE FROM products WHERE id = ?', [req.params.id], (err) => {
-      if (!err) logActivity(req, `Apagou o produto: ${row?.name || 'ID ' + req.params.id}`);
-      else console.error(err);
-      res.redirect('/admin');
-    });
-  });
+app.post('/admin/products/delete/:id', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT name FROM products WHERE id = $1', [req.params.id]);
+  await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
+  await logActivity(req, `Apagou o produto: ${result.rows[0]?.name || 'ID ' + req.params.id}`);
+  res.redirect('/admin');
 });
 
-app.post('/admin/toggle/:id', isAdmin, (req, res) => {
-  db.run('UPDATE products SET is_active = NOT is_active WHERE id = ?', [req.params.id], (err) => {
-    if (err) console.error(err);
-    res.redirect('/admin');
-  });
+app.post('/admin/toggle/:id', isAdmin, async (req, res) => {
+  await pool.query('UPDATE products SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
+  res.redirect('/admin');
 });
 
 // ------------------------ UTILIZADORES ------------------------
-app.get('/admin/users', isAdmin, (req, res) => {
-  db.all('SELECT * FROM users ORDER BY id ASC', (err, users) => {
-    if (err) return res.render('admin/users', { users: [], activeTab: 'users', error: 'Erro: Apague o "database.db" e reinicie.', user: req.session.user });
-    res.render('admin/users', { users, activeTab: 'users', error: null, user: req.session.user });
-  });
+app.get('/admin/users', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT * FROM users ORDER BY id ASC');
+  res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
 });
 
-app.post('/admin/users/toggle/:id', isAdmin, (req, res) => {
-  db.get('SELECT username FROM users WHERE id = ?', [req.params.id], (err, row) => {
-    db.run('UPDATE users SET is_admin = NOT is_admin WHERE id = ?', [req.params.id], (err) => {
-      if (!err) logActivity(req, `Alterou o status de admin do utilizador: ${row?.username || 'ID ' + req.params.id}`);
-      else console.error(err);
-      res.redirect('/admin/users');
-    });
-  });
+app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
+  await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
+  await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
+  res.redirect('/admin/users');
 });
 
 // ------------------------ DESCONTOS ------------------------
-app.get('/admin/discounts', isAdmin, (req, res) => {
-  db.all('SELECT * FROM discounts ORDER BY id ASC', (err, discounts) => {
-    if (err) return res.render('admin/discounts', { discounts: [], activeTab: 'discounts', error: 'Erro: Apague o "database.db" e reinicie.', user: req.session.user });
-    res.render('admin/discounts', { discounts, activeTab: 'discounts', error: null, user: req.session.user });
-  });
+app.get('/admin/discounts', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT * FROM discounts ORDER BY id ASC');
+  res.render('admin/discounts', { discounts: result.rows, activeTab: 'discounts', error: null, user: req.session.user });
 });
 
-app.post('/admin/discounts/add', isAdmin, (req, res) => {
+app.post('/admin/discounts/add', isAdmin, async (req, res) => {
   const { code, description, percentage } = req.body;
   if (!code || !percentage) return res.redirect('/admin/discounts?error=missing_fields');
-  db.run('INSERT INTO discounts (code, description, percentage, is_active) VALUES (?, ?, ?, 1)', [code, description, parseInt(percentage)], (err) => {
-    if (!err) logActivity(req, `Criou o desconto: ${code}`);
-    else console.error(err);
-    res.redirect('/admin/discounts');
-  });
+  await pool.query('INSERT INTO discounts (code, description, percentage, is_active) VALUES ($1, $2, $3, 1)', 
+    [code, description, parseInt(percentage)]);
+  await logActivity(req, `Criou o desconto: ${code}`);
+  res.redirect('/admin/discounts');
 });
 
-app.post('/admin/discounts/edit/:id', isAdmin, (req, res) => {
+app.post('/admin/discounts/edit/:id', isAdmin, async (req, res) => {
   const { code, description, percentage } = req.body;
-  db.run('UPDATE discounts SET code = ?, description = ?, percentage = ? WHERE id = ?', [code, description, parseInt(percentage), req.params.id], (err) => {
-    if (!err) logActivity(req, `Editou o desconto: ${code}`);
-    else console.error(err);
-    res.redirect('/admin/discounts');
-  });
+  await pool.query('UPDATE discounts SET code = $1, description = $2, percentage = $3 WHERE id = $4', 
+    [code, description, parseInt(percentage), req.params.id]);
+  await logActivity(req, `Editou o desconto: ${code}`);
+  res.redirect('/admin/discounts');
 });
 
-app.post('/admin/discounts/delete/:id', isAdmin, (req, res) => {
-  db.get('SELECT code FROM discounts WHERE id = ?', [req.params.id], (err, row) => {
-    db.run('DELETE FROM discounts WHERE id = ?', [req.params.id], (err) => {
-      if (!err) logActivity(req, `Apagou o desconto: ${row?.code || 'ID ' + req.params.id}`);
-      else console.error(err);
-      res.redirect('/admin/discounts');
-    });
-  });
+app.post('/admin/discounts/delete/:id', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT code FROM discounts WHERE id = $1', [req.params.id]);
+  await pool.query('DELETE FROM discounts WHERE id = $1', [req.params.id]);
+  await logActivity(req, `Apagou o desconto: ${result.rows[0]?.code || 'ID ' + req.params.id}`);
+  res.redirect('/admin/discounts');
 });
 
-app.post('/admin/discounts/toggle/:id', isAdmin, (req, res) => {
-  db.run('UPDATE discounts SET is_active = NOT is_active WHERE id = ?', [req.params.id], (err) => {
-    if (err) console.error(err);
-    res.redirect('/admin/discounts');
-  });
+app.post('/admin/discounts/toggle/:id', isAdmin, async (req, res) => {
+  await pool.query('UPDATE discounts SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
+  res.redirect('/admin/discounts');
 });
 
-// ------------------------ LOGS DE ATIVIDADE ------------------------
-app.get('/admin/logs', isAdmin, (req, res) => {
-  db.all('SELECT * FROM activity_logs ORDER BY id DESC LIMIT 100', (err, logs) => {
-    if (err) return res.render('admin/logs', { logs: [], activeTab: 'logs', error: 'Erro: ' + err.message, user: req.session.user });
-    res.render('admin/logs', { logs, activeTab: 'logs', error: null, user: req.session.user });
-  });
+app.get('/admin/logs', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT * FROM activity_logs ORDER BY id DESC LIMIT 100');
+  res.render('admin/logs', { logs: result.rows, activeTab: 'logs', error: null, user: req.session.user });
 });
 
-// ------------------------ CONFIGURAÇÕES ------------------------
-app.get('/admin/settings', isAdmin, (req, res) => {
-  db.get('SELECT * FROM settings WHERE id = 1', (err, row) => {
-    if (err) return res.render('admin/settings', { settings: {site_name: 'Erro', discord_link: '#'}, activeTab: 'settings', error: 'Erro: ' + err.message, user: req.session.user });
-    res.render('admin/settings', { settings: row || {site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt'}, activeTab: 'settings', error: null, user: req.session.user });
-  });
+app.get('/admin/settings', isAdmin, async (req, res) => {
+  const result = await pool.query('SELECT * FROM settings WHERE id = 1');
+  res.render('admin/settings', { settings: result.rows[0] || {site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt'}, activeTab: 'settings', error: null, user: req.session.user });
 });
 
-app.post('/admin/settings/update', isAdmin, (req, res) => {
+app.post('/admin/settings/update', isAdmin, async (req, res) => {
   const { site_name, discord_link } = req.body;
-  db.run('UPDATE settings SET site_name = ?, discord_link = ? WHERE id = 1', [site_name, discord_link], (err) => {
-    if (!err) logActivity(req, `Atualizou as configurações do site.`);
-    else console.error(err);
-    res.redirect('/admin/settings');
-  });
+  await pool.query('UPDATE settings SET site_name = $1, discord_link = $2 WHERE id = 1', [site_name, discord_link]);
+  await logActivity(req, `Atualizou as configurações do site.`);
+  res.redirect('/admin/settings');
 });
 
-app.listen(PORT, () => { console.log(`🚀 Santos Resources rodando em http://localhost:${PORT}`); });
+// Exportação para Vercel ou execução local
+if (require.main === module) {
+  app.listen(PORT, () => { console.log(`🚀 Santos Resources rodando em http://localhost:${PORT}`); });
+}
+module.exports = app;
