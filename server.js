@@ -4,10 +4,10 @@ const session = require('express-session');
 const axios = require('axios');
 const pool = require('./database');
 const config = require('./config');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const path = require('path');
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -18,7 +18,7 @@ app.use(session({
   secret: 'santos-resources-secret-key',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' } // Importante para HTTPS na Vercel
+  cookie: { secure: process.env.NODE_ENV === 'production' } // Obrigatório para HTTPS na Vercel
 }));
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -80,40 +80,72 @@ app.get('/auth/discord', (req, res) => {
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
 });
 
+// ✅ ROTA DE LOGIN CORRIGIDA COM ERRO VISÍVEL NO NAVEGADOR
 app.get('/auth/discord/callback', async (req, res) => {
   const { code } = req.query;
   if (!code) return res.redirect('/');
+
   try {
+    // 1. Trocar o código por um token de acesso
     const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
-      client_id: CLIENT_ID, client_secret: CLIENT_SECRET, grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI
+      client_id: CLIENT_ID, 
+      client_secret: CLIENT_SECRET, 
+      grant_type: 'authorization_code', 
+      code, 
+      redirect_uri: REDIRECT_URI
     }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+
     const accessToken = tokenResponse.data.access_token;
-    const userResponse = await axios.get('https://discord.com/api/users/@me', { headers: { Authorization: `Bearer ${accessToken}` } });
+
+    // 2. Obter dados do utilizador
+    const userResponse = await axios.get('https://discord.com/api/users/@me', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
     const user = userResponse.data;
     req.session.user = user;
     const now = new Date().toISOString();
-    
+
+    // 3. Guardar ou atualizar no banco de dados PostgreSQL
     await pool.query(
       `INSERT INTO users (discord_id, username, avatar, last_login) VALUES ($1, $2, $3, $4) 
        ON CONFLICT (discord_id) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, last_login = EXCLUDED.last_login`,
       [user.id, user.username, user.avatar, now]
     );
 
+    // 4. Verificar se é admin e redirecionar
     if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
+    
     const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
     const row = result.rows[0];
+
     if (row && row.is_admin === 1) res.redirect('/admin');
     else res.redirect('/');
+
   } catch (error) {
-    console.error('Erro no login Discord:', error);
-    res.redirect('/?error=auth_failed');
+    // ❌ ERRO QUE VAI APARECER NO NAVEGADOR (Para você descobrir o que está a falhar)
+    console.error("❌ ERRO NO LOGIN DO DISCORD:", error.response?.data || error.message);
+    
+    res.status(500).send(`
+      <h2 style="font-family: sans-serif; color: #ef4444;">❌ Erro no Login com Discord</h2>
+      <p><strong>Mensagem do erro:</strong> ${error.message}</p>
+      <p><strong>Detalhes da Vercel (OAuth2):</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
+      <hr>
+      <p><strong>Verifique no seu painel da Vercel:</strong></p>
+      <ul>
+        <li>1. A variável <code>DISCORD_CLIENT_SECRET</code> é o código secreto da aba OAuth2 (não é o token do bot!).</li>
+        <li>2. O <code>REDIRECT_URI</code> é exatamente <code>https://santos-resourcess.vercel.app/auth/discord/callback</code>.</li>
+        <li>3. Este mesmo link está adicionado no Discord Developer Portal > OAuth2 > Redirects.</li>
+      </ul>
+      <a href="/">Voltar para o início</a>
+    `);
   }
 });
 
 app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
 // =========================================================================
-// ÁREA ADMINISTRATIVA
+// ÁREA ADMINISTRATIVA (Apenas rotas existentes, sem alterações)
 // =========================================================================
 app.get('/admin/dashboard', isAdmin, async (req, res) => {
   const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
@@ -227,7 +259,7 @@ app.post('/admin/settings/update', isAdmin, async (req, res) => {
   res.redirect('/admin/settings');
 });
 
-// Exportação para Vercel (MUITO IMPORTANTE!)
+// Exportação para Vercel
 if (require.main === module) {
   app.listen(PORT, () => { console.log(`🚀 Santos Resources rodando em http://localhost:${PORT}`); });
 }
