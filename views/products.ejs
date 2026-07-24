@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtos | Santos Resources</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <style>
+    :root { --primary: #6366f1; --dark-bg: #0b1120; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar-glass {
+      background: rgba(11, 17, 32, 0.8);
+      backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 0.8rem 0;
+    }
+    .navbar-glass .nav-link {
+      color: rgba(255,255,255,0.7);
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .navbar-glass .nav-link:hover,
+    .navbar-glass .nav-link.active { color: #fff; }
+    .page-header {
+      padding: 140px 0 80px;
+      background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 70%, #0b1120 100%);
+      color: white;
+      text-align: center;
+    }
+    .page-header h1 {
+      font-weight: 900;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+    }
+    .product-card {
+      border: none;
+      border-radius: 20px;
+      background: white;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06);
+      height: 100%;
+      overflow: hidden;
+    }
+    .product-card:hover {
+      transform: translateY(-12px);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+      border-bottom: 5px solid var(--primary);
+    }
+    .product-card .price-tag {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .product-card .btn-cart {
+      background: var(--primary);
+      color: white;
+      border-radius: 50px;
+      padding: 6px 18px;
+      font-weight: 600;
+      border: none;
+      transition: all 0.2s;
+    }
+    .product-card .btn-cart:hover {
+      background: #4f46e5;
+      transform: scale(1.05);
+    }
+    .search-input {
+      border-radius: 50px;
+      padding: 12px 20px;
+      border: 1px solid #e2e8f0;
+      transition: 0.2s;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .filter-select {
+      border-radius: 50px;
+      padding: 10px 20px;
+      border: 1px solid #e2e8f0;
+      background: white;
+    }
+    footer {
+      background: #0b1120;
+      color: #94a3b8;
+      padding: 60px 0 30px;
+      margin-top: auto;
+    }
+    footer h5, footer h6 { color: #fff; }
+    footer a { color: #94a3b8; text-decoration: none; transition: 0.2s; }
+    footer a:hover { color: var(--primary); }
+    .footer-divider { border-color: rgba(255,255,255,0.06); }
+    .social-icon {
+      display: inline-flex;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      justify-content: center;
+      align-items: center;
+      transition: 0.3s;
+    }
+    .social-icon:hover { background: var(--primary); transform: translateY(-3px); }
+    .cart-floating-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 999;
+      background: #0f172a;
+      color: white;
+      border-radius: 50px;
+      padding: 16px 28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      border: none;
+      transition: 0.3s;
+    }
+    .cart-floating-btn:hover { transform: scale(1.05); background: #1e293b; }
+    .cart-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <i class="fa-solid fa-cube me-2 text-primary" style="color: #6366f1;"></i> Santos Resources
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/products">Produtos</a></li>
+          <li class="nav-item"><a class="nav-link" href="/about">Sobre Nós</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://discord.gg/8GyNS5vRgt" target="_blank"><i class="fa-brands fa-discord me-1"></i> Discord</a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-3">
+          <% if (user) { %>
+            <span class="text-light small"><i class="fa-regular fa-circle-user me-1"></i> <strong><%= user.username %></strong></span>
+            <% if (isAdmin) { %><a href="/admin/dashboard" class="btn btn-warning btn-sm fw-bold shadow"><i class="fa-solid fa-screwdriver-wrench me-1"></i> Painel</a><% } %>
+            <a href="/logout" class="btn btn-outline-light btn-sm rounded-pill px-3">Sair</a>
+          <% } else { %>
+            <a href="/auth/discord" class="btn btn-primary btn-sm px-4 rounded-pill"><i class="fa-brands fa-discord me-2"></i>Entrar</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-fill">
+    <div class="page-header">
+      <div class="container">
+        <h1 data-aos="fade-down">Todos os Nossos Produtos</h1>
+        <p class="lead text-light opacity-75" data-aos="fade-down" data-aos-delay="100">Conheça todas as soluções disponíveis.</p>
+      </div>
+    </div>
+
+    <div class="container mt-5">
+      <% if (locals.error) { %><div class="alert alert-danger"><%= locals.error %></div><% } %>
+      
+      <!-- Filtros -->
+      <div class="row mb-4 align-items-center g-3" data-aos="fade-up">
+        <div class="col-md-5">
+          <input type="text" id="searchInput" class="search-input w-100" placeholder="Pesquisar por nome...">
+        </div>
+        <div class="col-md-3">
+          <select id="sortPrice" class="filter-select w-100">
+            <option value="default">Preço</option>
+            <option value="low-high">Mais Baratos</option>
+            <option value="high-low">Mais Caros</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select id="sortCategory" class="filter-select w-100">
+            <option value="default">Categoria</option>
+            <option value="MTA">MTA Primeiro</option>
+            <option value="Discord Bot">Discord Primeiro</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="productsGrid" class="row row-cols-1 row-cols-md-3 g-4">
+        <% if (products.length === 0) { %>
+          <div class="col-12 text-center text-muted py-5">
+            <h4><i class="fa-regular fa-circle-question me-2"></i> Nenhum produto cadastrado!</h4>
+            <% if (isAdmin) { %><p class="small">A loja está vazia. Acesse o <a href="/admin" class="text-decoration-underline">Painel Admin</a> para adicionar os seus primeiros produtos!</p><% } else { %><p class="small">Nenhum produto disponível no momento. Volte em breve!</p><% } %>
+          </div>
+        <% } else { %>
+          <% products.forEach((p, index) => { %>
+            <div class="col product-item" data-name="<%= p.name.toLowerCase() %>" data-category="<%= p.category %>" data-price="<%= p.price %>">
+              <div class="card product-card p-4" data-aos="fade-up" data-aos-delay="<%= index * 80 %>">
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title fw-bold"><i class="fa-solid fa-cube text-primary me-2"></i><%= p.name %></h5>
+                  <p class="card-text text-muted small flex-grow-1"><%= p.description %></p>
+                  <span class="badge <%= p.is_active === 1 ? 'bg-success' : 'bg-secondary' %> rounded-pill mt-2 px-3 py-2 align-self-start">
+                    <% if (p.is_active === 1) { %><i class="fa-solid fa-check-circle me-1"></i> Ativo<% } else { %><i class="fa-solid fa-circle-xmark me-1"></i> Inativo<% } %>
+                  </span>
+                  <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
+                    <span class="price-tag">€<%= p.price.toFixed(2) %></span>
+                    <button class="btn-cart" onclick="addToCart(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', <%= p.price %>, event)">
+                      <i class="fa-solid fa-cart-plus me-1"></i> Adicionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer igual ao home -->
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 mb-4">
+          <h5 class="fw-bold"><i class="fa-solid fa-cube text-primary me-2"></i> Santos Resources</h5>
+          <p class="small text-muted">Soluções de alta performance para MTA e Discord.</p>
+        </div>
+        <div class="col-md-4 mb-4 text-center">
+          <h6 class="fw-bold">Links Rápidos</h6>
+          <div class="d-flex flex-column">
+            <a href="/products" class="small mb-1">Produtos</a>
+            <a href="/about" class="small mb-1">Sobre Nós</a>
+            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="small">Discord</a>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4 text-end">
+          <h6 class="fw-bold">Redes Sociais</h6>
+          <div class="d-flex justify-content-end gap-2">
+            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="social-icon"><i class="fa-brands fa-discord"></i></a>
+          </div>
+        </div>
+      </div>
+      <hr class="footer-divider">
+      <p class="mb-0 small text-center">&copy; 2026 Santos Resources. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <button class="cart-floating-btn" data-bs-toggle="modal" data-bs-target="#cartModal">
+    <i class="fa-solid fa-cart-shopping fa-lg"></i>
+    <span class="cart-badge" id="cartCount">0</span>
+  </button>
+
+  <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content" style="border-radius: 24px;">
+        <div class="modal-header border-0 p-4">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-cart-shopping text-primary me-2"></i> Seu Carrinho</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 pt-0">
+          <div id="cartItemsContainer">
+            <p class="text-muted text-center my-4" id="emptyCartMsg">O seu carrinho está vazio.</p>
+            <ul class="list-group list-group-flush mb-3" id="cartItemsList" style="display: none;"></ul>
+          </div>
+          <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3 fw-bold fs-5">
+            <span>Total:</span>
+            <span id="cartTotal">€0.00</span>
+          </div>
+        </div>
+        <div class="modal-footer border-0 p-4 justify-content-between">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Continuar Comprando</button>
+          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold">
+            <i class="fa-brands fa-discord me-2"></i> Processar Pagamento
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>AOS.init({ duration: 800, once: true });</script>
+  <script>
+    // Carrinho (mesmo código)
+    document.addEventListener('DOMContentLoaded', updateCartUI);
+    function addToCart(id, name, price, event) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const existing = cart.find(i => i.id === id);
+      if (existing) existing.quantity += 1;
+      else cart.push({ id, name, price, quantity: 1 });
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+      const btn = event.target.closest('button');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado';
+      btn.classList.add('btn-success');
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.classList.remove('btn-success');
+      }, 2000);
+    }
+    function updateCartUI() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const badge = document.getElementById('cartCount');
+      const list = document.getElementById('cartItemsList');
+      const empty = document.getElementById('emptyCartMsg');
+      const totalSpan = document.getElementById('cartTotal');
+      const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
+      badge.textContent = totalItems;
+      if (cart.length === 0) {
+        list.style.display = 'none';
+        empty.style.display = 'block';
+        totalSpan.textContent = '€0.00';
+        return;
+      }
+      empty.style.display = 'none';
+      list.style.display = 'block';
+      let totalPrice = 0;
+      list.innerHTML = cart.map((item, idx) => {
+        const itemTotal = item.price * item.quantity;
+        totalPrice += itemTotal;
+        return `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
+          <div><span class="fw-semibold">${item.name}</span> <span class="text-muted small ms-2">x${item.quantity}</span></div>
+          <div><span class="fw-bold me-3">€${itemTotal.toFixed(2)}</span>
+            <button class="btn btn-sm btn-outline-danger rounded-circle" onclick="removeFromCart(${idx})"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </li>`;
+      }).join('');
+      totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
+    }
+    function removeFromCart(index) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      cart.splice(index, 1);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    // Filtros
+    const productItems = document.querySelectorAll('.product-item');
+    function filterAndSort() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const priceSort = document.getElementById('sortPrice').value;
+      const categorySort = document.getElementById('sortCategory').value;
+      let visible = Array.from(productItems).filter(item => {
+        const name = item.getAttribute('data-name');
+        return name.includes(searchTerm);
+      });
+      if (categorySort !== 'default') {
+        visible.sort((a,b) => {
+          const catA = a.getAttribute('data-category');
+          const catB = b.getAttribute('data-category');
+          if (categorySort === 'MTA') return (catA === 'MTA' ? 0 : 1) - (catB === 'MTA' ? 0 : 1);
+          if (categorySort === 'Discord Bot') return (catA === 'Discord Bot' ? 0 : 1) - (catB === 'Discord Bot' ? 0 : 1);
+          return 0;
+        });
+      }
+      if (priceSort !== 'default') {
+        visible.sort((a,b) => {
+          const priceA = parseFloat(a.getAttribute('data-price'));
+          const priceB = parseFloat(b.getAttribute('data-price'));
+          return priceSort === 'low-high' ? priceA - priceB : priceB - priceA;
+        });
+      }
+      const grid = document.getElementById('productsGrid');
+      visible.forEach(item => grid.appendChild(item));
+    }
+    document.getElementById('searchInput').addEventListener('input', filterAndSort);
+    document.getElementById('sortPrice').addEventListener('change', filterAndSort);
+    document.getElementById('sortCategory').addEventListener('change', filterAndSort);
+  </script>
+</body>
+</html>

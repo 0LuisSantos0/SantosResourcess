@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santos Resources | MTA & Discord Solutions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --dark-bg: #0b1120;
+      --card-bg: rgba(255,255,255,0.05);
+      --glass-border: rgba(255,255,255,0.1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar Glassmorphism */
+    .navbar-glass {
+      background: rgba(11, 17, 32, 0.8);
+      backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--glass-border);
+      transition: all 0.3s ease;
+      padding: 0.8rem 0;
+    }
+    .navbar-glass .nav-link {
+      color: rgba(255,255,255,0.7);
+      font-weight: 500;
+      transition: color 0.2s;
+      position: relative;
+    }
+    .navbar-glass .nav-link:hover,
+    .navbar-glass .nav-link.active {
+      color: #fff;
+    }
+    .navbar-glass .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 50%;
+      background: var(--primary);
+      transition: all 0.3s;
+      transform: translateX(-50%);
+    }
+    .navbar-glass .nav-link:hover::after,
+    .navbar-glass .nav-link.active::after {
+      width: 80%;
+    }
+
+    /* Hero Section com gradiente e animação */
+    .hero-section {
+      background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 70%, #0b1120 100%);
+      color: white;
+      padding: 180px 0 120px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      left: -20%;
+      width: 80%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 60%);
+      animation: heroGlow 12s infinite alternate ease-in-out;
+    }
+    @keyframes heroGlow {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+      100% { transform: translate(20%, 15%) scale(1.3); opacity: 1; }
+    }
+
+    .hero-title {
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -2px;
+      text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: rgba(255,255,255,0.7);
+      max-width: 600px;
+      margin: 1.5rem auto;
+    }
+
+    .btn-hero {
+      background: white;
+      color: #0f172a;
+      font-weight: 700;
+      border-radius: 50px;
+      padding: 14px 40px;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .btn-hero:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(255,255,255,0.15);
+      color: #0f172a;
+    }
+
+    .hero-stats .stat-box {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 24px;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    .hero-stats .stat-box:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-6px);
+      border-color: var(--primary);
+    }
+    .hero-stats .stat-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .hero-stats .stat-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.9rem;
+    }
+
+    /* Feature Cards */
+    .feature-box {
+      background: white;
+      padding: 2rem;
+      border-radius: 24px;
+      border: 1px solid rgba(0,0,0,0.03);
+      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.06);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      height: 100%;
+      text-align: center;
+    }
+    .feature-box:hover {
+      transform: translateY(-12px);
+      border-bottom: 5px solid var(--primary);
+      box-shadow: 0 20px 60px rgba(99, 102, 241, 0.15);
+    }
+    .feature-icon {
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+
+    /* Product Cards Premium */
+    .product-card {
+      border: none;
+      border-radius: 20px;
+      background: white;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06);
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    .product-card:hover {
+      transform: translateY(-12px);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+      border-bottom: 5px solid var(--primary);
+    }
+    .product-card .price-tag {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .product-card .btn-cart {
+      background: var(--primary);
+      color: white;
+      border-radius: 50px;
+      padding: 6px 18px;
+      font-weight: 600;
+      border: none;
+      transition: all 0.2s;
+    }
+    .product-card .btn-cart:hover {
+      background: var(--primary-dark);
+      transform: scale(1.05);
+    }
+
+    /* Footer Premium */
+    footer {
+      background: #0b1120;
+      color: #94a3b8;
+      padding: 60px 0 30px;
+      margin-top: auto;
+    }
+    footer h5, footer h6 {
+      color: #fff;
+      font-weight: 600;
+    }
+    footer a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    footer a:hover {
+      color: var(--primary);
+    }
+    .footer-divider {
+      border-color: rgba(255,255,255,0.06);
+    }
+    .social-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      transition: all 0.3s;
+    }
+    .social-icon:hover {
+      background: var(--primary);
+      transform: translateY(-3px);
+    }
+
+    .cart-floating-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 999;
+      background: #0f172a;
+      color: white;
+      border-radius: 50px;
+      padding: 16px 28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      border: none;
+      transition: 0.3s;
+    }
+    .cart-floating-btn:hover {
+      transform: scale(1.05);
+      background: #1e293b;
+    }
+    .cart-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <i class="fa-solid fa-cube me-2 text-primary" style="color: #6366f1;"></i> Santos Resources
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item"><a class="nav-link active" href="/">Início</a></li>
+          <li class="nav-item"><a class="nav-link" href="/products">Produtos</a></li>
+          <li class="nav-item"><a class="nav-link" href="/about">Sobre Nós</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://discord.gg/8GyNS5vRgt" target="_blank"><i class="fa-brands fa-discord me-1"></i> Discord</a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-3">
+          <% if (user) { %>
+            <span class="text-light small"><i class="fa-regular fa-circle-user me-1"></i> <strong><%= user.username %></strong></span>
+            <% if (isAdmin) { %><a href="/admin/dashboard" class="btn btn-warning btn-sm fw-bold shadow"><i class="fa-solid fa-screwdriver-wrench me-1"></i> Painel</a><% } %>
+            <a href="/logout" class="btn btn-outline-light btn-sm rounded-pill px-3">Sair</a>
+          <% } else { %>
+            <a href="/auth/discord" class="btn btn-primary btn-sm px-4 rounded-pill"><i class="fa-brands fa-discord me-2"></i>Entrar</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="flex-fill">
+    <!-- Hero -->
+    <section class="hero-section position-relative d-flex align-items-center">
+      <div class="container text-center position-relative" style="z-index: 2;">
+        <div data-aos="fade-down" data-aos-delay="50">
+          <!-- ✅ CORREÇÃO DO EMOJI (Voltamos a usar o emoji nativo colorido 🚀) -->
+          <span class="badge bg-primary bg-opacity-25 text-light mb-3 rounded-pill px-4 py-2">
+            🚀 Sistema de Alta Performance
+          </span>
+        </div>
+        <h1 class="hero-title mb-4" data-aos="fade-up" data-aos-delay="100">
+          Santos Resources
+        </h1>
+        <p class="hero-subtitle" data-aos="fade-up" data-aos-delay="200">
+          Soluções premium para servidores MTA e bots inteligentes para Discord.
+        </p>
+        <div data-aos="fade-up" data-aos-delay="300">
+          <a href="/products" class="btn btn-hero mt-3">
+            Explorar Produtos <i class="fa-solid fa-arrow-right ms-2"></i>
+          </a>
+        </div>
+        <div class="row hero-stats mt-5 pt-3 justify-content-center g-4" data-aos="fade-up" data-aos-delay="400">
+          <div class="col-4 col-md-3">
+            <div class="stat-box">
+              <div class="stat-number" id="productCountDisplay"><%= products.length %></div>
+              <div class="stat-label">Produtos Ativos</div>
+            </div>
+          </div>
+          <div class="col-4 col-md-3">
+            <div class="stat-box">
+              <div class="stat-number">100%</div>
+              <div class="stat-label">Segurança</div>
+            </div>
+          </div>
+          <div class="col-4 col-md-3">
+            <div class="stat-box">
+              <div class="stat-number">24/7</div>
+              <div class="stat-label">Suporte</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="container mt-5 pt-4" data-aos="fade-up">
+      <h2 class="text-center fw-bold mb-5"><i class="fa-solid fa-star text-warning me-2"></i> Por que escolher a Santos Resources?</h2>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="feature-box">
+            <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <h5 class="fw-bold">Segurança Máxima</h5>
+            <p class="text-muted small">Código otimizado e protegido para garantir a integridade do seu servidor.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-box">
+            <div class="feature-icon"><i class="fa-solid fa-headset"></i></div>
+            <h5 class="fw-bold">Suporte 24/7</h5>
+            <p class="text-muted small">Nossa equipa está disponível no Discord para te ajudar sempre que precisares.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-box">
+            <div class="feature-icon"><i class="fa-solid fa-rotate"></i></div>
+            <h5 class="fw-bold">Atualizações Constantes</h5>
+            <p class="text-muted small">Receba sempre as melhores funcionalidades e correções sem custo adicional.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Products Home (Limited to 3) -->
+    <section class="container mt-5 pt-2">
+      <h2 class="text-center fw-bold mb-5" data-aos="fade-up"><i class="fa-solid fa-box-open text-primary me-2"></i> Nossos Produtos Ativos</h2>
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        <% 
+          const limitedProducts = products.slice(0, 3); 
+          const hasMoreProducts = products.length > 3;
+        %>
+        <% if (limitedProducts.length === 0) { %>
+          <div class="col-12 text-center text-muted py-5" data-aos="fade-up">
+            <h4><i class="fa-regular fa-circle-question me-2"></i> Nenhum produto cadastrado!</h4>
+            <% if (isAdmin) { %>
+              <p class="small">A loja está vazia. Acesse o <a href="/admin" class="text-decoration-underline">Painel Admin</a> para adicionar os seus primeiros produtos!</p>
+            <% } else { %>
+              <p class="small">Nenhum produto disponível no momento. Volte em breve para conferir nossas novidades!</p>
+            <% } %>
+          </div>
+        <% } else { %>
+          <% limitedProducts.forEach((p, index) => { %>
+            <div class="col" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
+              <div class="card product-card p-4">
+                <div class="card-body d-flex flex-column">
+                  <div class="d-flex align-items-center mb-3">
+                    <i class="fa-solid fa-cube text-primary fa-2x me-2"></i>
+                    <h5 class="card-title fw-bold mb-0"><%= p.name %></h5>
+                  </div>
+                  <p class="card-text text-muted small flex-grow-1"><%= p.description %></p>
+                  <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
+                    <span class="price-tag">€<%= p.price.toFixed(2) %></span>
+                    <button class="btn-cart" onclick="addToCart(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', <%= p.price %>, event)">
+                      <i class="fa-solid fa-cart-plus me-1"></i> Adicionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+      <% if (hasMoreProducts) { %>
+        <div class="text-center mt-5 mb-4" data-aos="fade-up">
+          <a href="/products" class="btn btn-outline-primary btn-lg rounded-pill px-5 fw-bold shadow-sm">
+            Ver Mais <i class="fa-solid fa-arrow-right ms-2"></i>
+          </a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <!-- Footer Premium -->
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 mb-4">
+          <h5 class="fw-bold"><i class="fa-solid fa-cube text-primary me-2"></i> Santos Resources</h5>
+          <p class="small text-muted">Soluções de alta performance para MTA e Discord. Confiança e qualidade.</p>
+        </div>
+        <div class="col-md-4 mb-4 text-center">
+          <h6 class="fw-bold">Links Rápidos</h6>
+          <div class="d-flex flex-column">
+            <a href="/products" class="small mb-1">Produtos</a>
+            <a href="/about" class="small mb-1">Sobre Nós</a>
+            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="small">Discord</a>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4 text-end">
+          <h6 class="fw-bold">Redes Sociais</h6>
+          <div class="d-flex justify-content-end gap-2">
+            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="social-icon"><i class="fa-brands fa-discord"></i></a>
+          </div>
+        </div>
+      </div>
+      <hr class="footer-divider">
+      <p class="mb-0 small text-center">&copy; 2026 Santos Resources. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- Cart Floating Button -->
+  <button class="cart-floating-btn" data-bs-toggle="modal" data-bs-target="#cartModal">
+    <i class="fa-solid fa-cart-shopping fa-lg"></i>
+    <span class="cart-badge" id="cartCount">0</span>
+  </button>
+
+  <!-- Cart Modal -->
+  <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content" style="border-radius: 24px;">
+        <div class="modal-header border-0 p-4">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-cart-shopping text-primary me-2"></i> Seu Carrinho</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 pt-0">
+          <div id="cartItemsContainer">
+            <p class="text-muted text-center my-4" id="emptyCartMsg">O seu carrinho está vazio.</p>
+            <ul class="list-group list-group-flush mb-3" id="cartItemsList" style="display: none;"></ul>
+          </div>
+          <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3 fw-bold fs-5">
+            <span>Total:</span>
+            <span id="cartTotal">€0.00</span>
+          </div>
+        </div>
+        <div class="modal-footer border-0 p-4 justify-content-between">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Continuar Comprando</button>
+          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold">
+            <i class="fa-brands fa-discord me-2"></i> Processar Pagamento
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 800,
+      once: true,
+      offset: 100
+    });
+  </script>
+  <script>
+    // Carrinho
+    document.addEventListener('DOMContentLoaded', updateCartUI);
+    function addToCart(id, name, price, event) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const existing = cart.find(i => i.id === id);
+      if (existing) existing.quantity += 1;
+      else cart.push({ id, name, price, quantity: 1 });
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+      const btn = event.target.closest('button');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado';
+      btn.classList.add('btn-success');
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.classList.remove('btn-success');
+      }, 2000);
+    }
+    function updateCartUI() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const badge = document.getElementById('cartCount');
+      const list = document.getElementById('cartItemsList');
+      const empty = document.getElementById('emptyCartMsg');
+      const totalSpan = document.getElementById('cartTotal');
+      const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
+      badge.textContent = totalItems;
+      if (cart.length === 0) {
+        list.style.display = 'none';
+        empty.style.display = 'block';
+        totalSpan.textContent = '€0.00';
+        return;
+      }
+      empty.style.display = 'none';
+      list.style.display = 'block';
+      let totalPrice = 0;
+      list.innerHTML = cart.map((item, idx) => {
+        const itemTotal = item.price * item.quantity;
+        totalPrice += itemTotal;
+        return `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
+          <div><span class="fw-semibold">${item.name}</span> <span class="text-muted small ms-2">x${item.quantity}</span></div>
+          <div><span class="fw-bold me-3">€${itemTotal.toFixed(2)}</span>
+            <button class="btn btn-sm btn-outline-danger rounded-circle" onclick="removeFromCart(${idx})"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </li>`;
+      }).join('');
+      totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
+    }
+    function removeFromCart(index) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      cart.splice(index, 1);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+  </script>
+</body>
+</html>
