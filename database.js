@@ -1,15 +1,26 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// A Vercel injeta automaticamente esta variável quando ligas o banco de dados
+console.log('🔍 A tentar ligar ao PostgreSQL...');
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// Inicializar as tabelas no PostgreSQL
+// Evento para apanhar erros inesperados do pool
+pool.on('error', (err) => {
+  console.error('❌ Erro inesperado no pool do banco de dados:', err);
+});
+
 const initDB = async () => {
   try {
+    await pool.query('SELECT NOW()');
+    console.log('✅ Ligação ao PostgreSQL estabelecida com sucesso!');
+    
+    // Cria as tabelas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY, 
@@ -20,6 +31,7 @@ const initDB = async () => {
         is_active INTEGER DEFAULT 1
       );
     `);
+    // ... (o resto das tabelas users, discounts, etc, que já tinha) ...
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY, 
@@ -56,15 +68,16 @@ const initDB = async () => {
         discord_link TEXT
       );
     `);
-    // Insere configuração padrão se não existir
+    // Insere configuração padrão
     await pool.query(`
       INSERT INTO settings (id, site_name, discord_link) 
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt' 
       WHERE NOT EXISTS (SELECT 1 FROM settings WHERE id = 1);
     `);
-    console.log('✅ Tabelas criadas no PostgreSQL com sucesso!');
+    console.log('✅ Tabelas verificadas/criadas com sucesso.');
   } catch (err) {
-    console.error('❌ Erro ao iniciar banco de dados:', err);
+    console.error('❌ ERRO GRAVE AO CONECTAR OU CRIAR TABELAS:');
+    console.error(err);
   }
 };
 

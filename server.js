@@ -7,8 +7,10 @@ const config = require('./config');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const path = require('path');
 
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -51,7 +53,8 @@ app.get('/', async (req, res) => {
       isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id) 
     });
   } catch (err) {
-    res.send('Erro ao carregar produtos.');
+    console.error("❌ ERRO NA ROTA HOME:", err);
+    res.status(500).send('Erro ao carregar produtos: ' + err.message);
   }
 });
 
