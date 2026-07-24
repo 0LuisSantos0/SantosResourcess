@@ -5,6 +5,7 @@ const axios = require('axios');
 const pool = require('./database');
 const config = require('./config');
 const path = require('path');
+const pgSession = require('connect-pg-simple')(session); // 👈 Importante!
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,11 +15,19 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Configuração CORRETA das sessões com Store PostgreSQL
 app.use(session({
+  store: new pgSession({
+    pool: pool,
+    tableName: 'session'
+  }),
   secret: 'santos-resources-secret-key',
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' } // Obrigatório para HTTPS na Vercel
+  saveUninitialized: false, // 👈 Mudar para false ajuda a não criar sessões vazias
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 30 * 24 * 60 * 60 * 1000 // Sessão dura 30 dias
+  }
 }));
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -80,13 +89,12 @@ app.get('/auth/discord', (req, res) => {
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
 });
 
-// ✅ ROTA DE LOGIN CORRIGIDA COM ERRO VISÍVEL NO NAVEGADOR
+// ✅ ROTA DE LOGIN COM SESSÃO PERSISTENTE
 app.get('/auth/discord/callback', async (req, res) => {
   const { code } = req.query;
   if (!code) return res.redirect('/');
 
   try {
-    // 1. Trocar o código por um token de acesso
     const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
       client_id: CLIENT_ID, 
       client_secret: CLIENT_SECRET, 
@@ -96,8 +104,6 @@ app.get('/auth/discord/callback', async (req, res) => {
     }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
 
     const accessToken = tokenResponse.data.access_token;
-
-    // 2. Obter dados do utilizador
     const userResponse = await axios.get('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
@@ -106,14 +112,12 @@ app.get('/auth/discord/callback', async (req, res) => {
     req.session.user = user;
     const now = new Date().toISOString();
 
-    // 3. Guardar ou atualizar no banco de dados PostgreSQL
     await pool.query(
       `INSERT INTO users (discord_id, username, avatar, last_login) VALUES ($1, $2, $3, $4) 
        ON CONFLICT (discord_id) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, last_login = EXCLUDED.last_login`,
       [user.id, user.username, user.avatar, now]
     );
 
-    // 4. Verificar se é admin e redirecionar
     if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
     
     const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
@@ -123,19 +127,17 @@ app.get('/auth/discord/callback', async (req, res) => {
     else res.redirect('/');
 
   } catch (error) {
-    // ❌ ERRO QUE VAI APARECER NO NAVEGADOR (Para você descobrir o que está a falhar)
-    console.error("❌ ERRO NO LOGIN DO DISCORD:", error.response?.data || error.message);
-    
+    console.error("❌ ERRO NO LOGIN DO DISCORD:", error);
     res.status(500).send(`
       <h2 style="font-family: sans-serif; color: #ef4444;">❌ Erro no Login com Discord</h2>
       <p><strong>Mensagem do erro:</strong> ${error.message}</p>
       <p><strong>Detalhes da Vercel (OAuth2):</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
       <hr>
-      <p><strong>Verifique no seu painel da Vercel:</strong></p>
+      <p><strong>Verifique:</strong></p>
       <ul>
-        <li>1. A variável <code>DISCORD_CLIENT_SECRET</code> é o código secreto da aba OAuth2 (não é o token do bot!).</li>
-        <li>2. O <code>REDIRECT_URI</code> é exatamente <code>https://santos-resourcess.vercel.app/auth/discord/callback</code>.</li>
-        <li>3. Este mesmo link está adicionado no Discord Developer Portal > OAuth2 > Redirects.</li>
+        <li>O <code>DISCORD_CLIENT_SECRET</code> na Vercel é o da aba OAuth2 (não o do Bot).</li>
+        <li>O <code>REDIRECT_URI</code> é exatamente <code>https://santos-resourcess.vercel.app/auth/discord/callback</code>.</li>
+        <li>Este link está adicionado no Discord Portal > OAuth2 > Redirects.</li>
       </ul>
       <a href="/">Voltar para o início</a>
     `);
@@ -145,7 +147,7 @@ app.get('/auth/discord/callback', async (req, res) => {
 app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
 // =========================================================================
-// ÁREA ADMINISTRATIVA (Apenas rotas existentes, sem alterações)
+// ÁREA ADMINISTRATIVA
 // =========================================================================
 app.get('/admin/dashboard', isAdmin, async (req, res) => {
   const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
@@ -259,7 +261,6 @@ app.post('/admin/settings/update', isAdmin, async (req, res) => {
   res.redirect('/admin/settings');
 });
 
-// Exportação para Vercel
 if (require.main === module) {
   app.listen(PORT, () => { console.log(`🚀 Santos Resources rodando em http://localhost:${PORT}`); });
 }
