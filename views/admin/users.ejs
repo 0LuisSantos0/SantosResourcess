@@ -69,7 +69,6 @@
                       </td>
                       <td class="text-center small text-muted"><%= new Date(u.last_login).toLocaleDateString() %></td>
                       <td class="text-end pe-4">
-                        <!-- 🔥 FORMULÁRIO CORRIGIDO: Action exata e método POST -->
                         <form action="/admin/users/toggle/<%= u.id %>" method="POST">
                           <% if (u.is_admin === 1) { %>
                             <button type="submit" class="action-btn btn btn-outline-danger" title="Remover Admin">

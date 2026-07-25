@@ -44,13 +44,12 @@
       <div class="col-md-9 col-lg-10 p-4">
         <div class="admin-card shadow-sm mb-4 p-4">
           <h5 class="fw-bold mb-4"><i class="fa-solid fa-plus-circle text-success me-2"></i> Adicionar Novo Produto</h5>
-          <!-- action corrigido para /admin/products/add -->
           <form action="/admin/products/add" method="POST" class="row g-3">
             <div class="col-md-3">
               <label class="form-label small fw-bold text-muted">Nome do Produto</label>
               <input type="text" name="name" class="form-control bg-light border-0" placeholder="Ex: Anti-Cheat" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label small fw-bold text-muted">Descrição</label>
               <input type="text" name="description" class="form-control bg-light border-0" placeholder="Descreva o produto" required>
             </div>
@@ -65,7 +64,7 @@
                 <option value="Discord Bot">Discord Bot</option>
               </select>
             </div>
-            <div class="col-md-1 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
               <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm"><i class="fa-solid fa-check"></i></button>
             </div>
           </form>
@@ -111,7 +110,7 @@
                       </td>
                     </tr>
 
-                    <!-- Modal de Edição (sem campo de imagem) -->
+                    <!-- Modal de Edição -->
                     <div class="modal fade" id="editModal<%= p.id %>" tabindex="-1">
                       <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content p-2">
