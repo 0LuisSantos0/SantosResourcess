@@ -175,7 +175,7 @@ async function getApp() {
 
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
-      // --- ÁREA ADMINISTRATIVA (Sem a rota /orders) ---
+      // --- ÁREA ADMINISTRATIVA ---
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
@@ -230,11 +230,17 @@ async function getApp() {
         res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
       });
 
+      // 🔥 ROTA CORRIGIDA DO BOTÃO ADMIN
       app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
-        await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
-        await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
-        res.redirect('/admin/users');
+        try {
+          const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
+          await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
+          await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
+          return res.redirect('/admin/users');
+        } catch (err) {
+          console.error('Erro ao alterar admin:', err);
+          return res.redirect('/admin/users?error=update_failed');
+        }
       });
 
       app.get('/admin/discounts', isAdmin, async (req, res) => {
