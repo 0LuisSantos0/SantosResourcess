@@ -57,9 +57,6 @@ async function ensureSessionTable() {
   }
 }
 
-// =========================================================================
-//  SINGLETON PARA VERCEL (Garante que só corre uma vez)
-// =========================================================================
 let appPromise = null;
 
 async function getApp() {
@@ -68,10 +65,6 @@ async function getApp() {
       console.log('⏳ A iniciar base de dados e sessão...');
       await initDB();        
       await ensureSessionTable(); 
-
-      console.log('🔍 A verificar variáveis de ambiente...');
-      console.log('✅ CLIENT_ID carregado:', CLIENT_ID ? 'Sim' : 'Não');
-      console.log('✅ REDIRECT_URI configurado como:', REDIRECT_URI);
 
       console.log('✅ A configurar middleware de sessão...');
       app.use(session({
@@ -89,9 +82,7 @@ async function getApp() {
         }
       }));
 
-      // ================================================================
-      //  ROTAS PÚBLICAS
-      // ================================================================
+      // --- ROTAS PÚBLICAS ---
       app.get('/', async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
@@ -149,7 +140,6 @@ async function getApp() {
           const user = userResponse.data;
           req.session.user = user;
 
-          // Guarda a sessão no banco de dados
           await new Promise((resolve, reject) => {
             req.session.save((err) => {
               if (err) reject(err);
@@ -165,21 +155,12 @@ async function getApp() {
             [user.id, user.username, user.avatar, now]
           );
 
-          // Verifica permissões e redireciona
-          if (config.ADMIN_IDS.includes(user.id)) {
-            console.log('🔹 Utilizador é admin. A redirecionar para /admin');
-            return res.redirect('/admin');
-          }
+          if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
 
           const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
           const row = result.rows[0];
-          if (row && row.is_admin === 1) {
-            console.log('🔹 Utilizador é admin pela BD. A redirecionar para /admin');
-            return res.redirect('/admin');
-          }
-
-          console.log('🔹 Utilizador standard. A redirecionar para /');
-          res.redirect('/');
+          if (row && row.is_admin === 1) return res.redirect('/admin');
+          else res.redirect('/');
 
         } catch (error) {
           console.error("❌ ERRO NO LOGIN DO DISCORD:", error);
@@ -194,9 +175,7 @@ async function getApp() {
 
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
-      // ================================================================
-      //  ÁREA ADMINISTRATIVA (Rotas completas)
-      // ================================================================
+      // --- ÁREA ADMINISTRATIVA (Sem a rota /orders) ---
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
@@ -316,9 +295,6 @@ async function getApp() {
   return appPromise;
 }
 
-// =========================================================================
-//  EXPORTAÇÃO PARA A VERCEL
-// =========================================================================
 module.exports = async (req, res) => {
   const readyApp = await getApp();
   return readyApp(req, res);
