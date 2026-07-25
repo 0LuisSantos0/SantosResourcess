@@ -235,12 +235,14 @@ async function getApp() {
         res.redirect(303, '/admin');
       });
 
-      // 🔥 ROTA DE DESTAQUE (Máximo 3)
+      // 🔥 ROTA DE DESTAQUE (CORRIGIDA COM MATEMÁTICA DE INTEIROS)
       app.post('/admin/products/feature/:id', isAdmin, async (req, res) => {
         const id = req.params.id;
+        
         // Verifica quantos produtos já estão em destaque
         const countResult = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_featured = 1');
         const currentCount = parseInt(countResult.rows[0].count);
+        
         // Verifica o estado atual do produto
         const currentResult = await pool.query('SELECT is_featured FROM products WHERE id = $1', [id]);
         const isCurrentlyFeatured = currentResult.rows[0]?.is_featured === 1;
@@ -251,8 +253,9 @@ async function getApp() {
           return res.redirect(303, '/admin?error=max_featured');
         }
 
-        // Inverte o estado (1 -> 0, 0 -> 1)
-        await pool.query('UPDATE products SET is_featured = NOT is_featured WHERE id = $1', [id]);
+        // 🔥 A CORREÇÃO AQUI: Em vez de NOT is_featured, usamos 1 - is_featured (PostgreSQL)
+        await pool.query('UPDATE products SET is_featured = 1 - is_featured WHERE id = $1', [id]);
+        
         await logActivity(req, `Alterou o destaque do produto ID ${id}`);
         await req.session.save();
         res.redirect(303, '/admin');
