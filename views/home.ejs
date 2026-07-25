@@ -195,6 +195,21 @@
       transform: scale(1.05);
     }
 
+    /* 🔥 CORREÇÃO 1: CSS DO SELO DE DESTAQUE ADICIONADO */
+    .featured-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #f59e0b;
+      color: white;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
     /* Footer Premium */
     footer {
       background: #0b1120;
@@ -390,6 +405,11 @@
           <% limitedProducts.forEach((p, index) => { %>
             <div class="col" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
               <div class="card product-card p-4">
+                <!-- 🔥 CORREÇÃO 2: SELO DE DESTAQUE APARECENDO AQUI -->
+                <% if (p.is_featured === 1) { %>
+                  <div class="featured-badge"><i class="fa-solid fa-star me-1"></i> Destaque</div>
+                <% } %>
+                
                 <div class="card-body d-flex flex-column">
                   <div class="d-flex align-items-center mb-3">
                     <i class="fa-solid fa-cube text-primary fa-2x me-2"></i>
