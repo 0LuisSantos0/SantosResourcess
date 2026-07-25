@@ -15,7 +15,6 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 🔥 Diz ao Express que ele está atrás de um proxy confiável (Vercel)
 app.set('trust proxy', 1);
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -195,15 +194,14 @@ async function getApp() {
         res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
       });
 
-      // 🔥 CORREÇÃO DO ERRO DE SESSÃO (COM SAVE EXPLÍCITO E REDIRECT 303)
       app.post('/admin/products/add', isAdmin, async (req, res) => {
         const { name, description, price, category } = req.body;
         if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
         await pool.query('INSERT INTO products (name, description, price, category, is_active) VALUES ($1, $2, $3, $4, 1)',
           [name, description, parseFloat(price), category || 'MTA']);
         await logActivity(req, `Criou o produto: ${name}`);
-        await req.session.save(); // OBRIGATÓRIO
-        res.redirect(303, '/admin'); // 🔥 Força o GET
+        await req.session.save();
+        res.redirect(303, '/admin');
       });
 
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
@@ -234,12 +232,19 @@ async function getApp() {
         res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
       });
 
+      // 🔥 CORREÇÃO DO CARREGAMENTO INFINITO (Removido o session.save())
       app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
-        await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
-        await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
-        await req.session.save();
-        res.redirect(303, '/admin/users'); // 🔥 Força o GET
+        try {
+          const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
+          await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
+          await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
+          
+          // ✅ NÃO bloqueia o redirecionamento com session.save()
+          res.redirect(303, '/admin/users');
+        } catch (err) {
+          console.error("❌ ERRO AO ALTERAR ADMIN:", err);
+          res.status(500).send("Erro interno ao alterar o status de administrador.");
+        }
       });
 
       app.get('/admin/discounts', isAdmin, async (req, res) => {
