@@ -15,12 +15,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// --- Variáveis de ambiente ---
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
 
-// --- Funções auxiliares ---
 async function logActivity(req, action) {
   if (req.session.user) {
     await pool.query(
@@ -39,20 +37,16 @@ async function isAdmin(req, res, next) {
   next();
 }
 
-// ================================================================
-//  INICIALIZAÇÃO DO SERVIDOR COM GARANTIA DE BANCO DE DADOS
-// ================================================================
-const startServer = async () => {
-  console.log('⏳ A inicializar a base de dados...');
-  await initDB(); // Cria todas as tabelas, incluindo a 'session'
-  console.log('✅ Base de dados pronta! A configurar sessão...');
+// 🔥 O SEGREDO DO SERVERLESS: Cria uma promessa que prepara o site antes de qualquer pedido
+const appPromise = initDB().then(() => {
+  console.log('✅ Base de dados pronta! A configurar sessão e rotas...');
 
-  // --- Configuração da sessão ---
+  // --- Configuração da sessão (garantida) ---
   app.use(session({
     store: new pgSession({
       pool: pool,
       tableName: 'session',
-      createTableIfNotExists: true // Cria a tabela caso não exista
+      createTableIfNotExists: true
     }),
     secret: 'santos-resources-secret-key',
     resave: false,
@@ -98,6 +92,7 @@ const startServer = async () => {
     res.render('about', { user: req.session.user || null, isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id) });
   });
 
+  // ✅ ROTA DO LOGIN (A que estava a falhar!)
   app.get('/auth/discord', (req, res) => {
     res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
   });
@@ -123,7 +118,6 @@ const startServer = async () => {
       const user = userResponse.data;
       req.session.user = user;
 
-      // Espera a sessão ser guardada no banco
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
           if (err) reject(err);
@@ -273,16 +267,13 @@ const startServer = async () => {
     res.redirect('/admin/settings');
   });
 
-  // Fim das rotas
+  console.log('🚀 Santos Resources totalmente configurado e aguardando pedidos!');
+}).catch(err => {
+  console.error("❌ ERRO FATAL AO INICIAR O SERVIDOR:", err);
+});
 
-  console.log('🚀 Santos Resources configurado e pronto para receber pedidos!');
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor a rodar em http://localhost:${PORT}`);
-  });
+
+module.exports = async (req, res) => {
+  await appPromise;
+  return app(req, res);
 };
-
-// Inicia o servidor
-startServer();
-
-// Exporta o app para a Vercel (a função startServer corre antes de qualquer pedido)
-module.exports = app;
