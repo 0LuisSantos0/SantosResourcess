@@ -16,7 +16,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(session({
-  store: new pgSession({ pool: pool, tableName: 'session' }),
+  store: new pgSession({ 
+    pool: pool, 
+    tableName: 'session',
+    createTableIfNotExists: true // 🔥 A LINHA MÁGICA FINAL (Cria a tabela se não existir!)
+  }),
   secret: 'santos-resources-secret-key',
   resave: false,
   saveUninitialized: false,
