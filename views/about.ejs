@@ -17,25 +17,13 @@
       --dark-bg: #0b1120;
       --card-bg: rgba(255,255,255,0.05);
       --glass-border: rgba(255,255,255,0.1);
-      --bg-body: #f8fafc;
-      --bg-card: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-    }
-
-    body.dark-mode {
-      --bg-body: #0f172a;
-      --bg-card: #1e293b;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --glass-border: rgba(255,255,255,0.05);
     }
 
     * { box-sizing: border-box; }
     body {
       font-family: 'Inter', sans-serif;
-      background-color: var(--bg-body);
-      color: var(--text-main);
+      background-color: #f8fafc;
+      color: #1e293b;
       overflow-x: hidden;
       min-height: 100vh;
       display: flex;
@@ -86,13 +74,13 @@
     .btn-discord:hover { background-color: #4752c4; color: white; transform: scale(1.05); }
 
     .about-card {
-      border: none; border-radius: 24px; background: var(--bg-card);
+      border: none; border-radius: 24px; background: white;
       box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); transition: 0.3s; height: 100%;
     }
     .about-card:hover { box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
 
     .team-card {
-      border: none; border-radius: 20px; background: var(--bg-card); padding: 30px; text-align: center;
+      border: none; border-radius: 20px; background: white; padding: 30px; text-align: center;
       transition: 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.03); height: 100%;
     }
     .team-card:hover {
@@ -167,10 +155,6 @@
           <% } else { %>
             <a href="/auth/discord" class="btn btn-primary btn-sm px-4 rounded-pill"><i class="fa-brands fa-discord me-2"></i>Entrar</a>
           <% } %>
-          <!-- 🔥 Botão Dark Mode -->
-          <button id="themeToggle" class="btn btn-outline-light btn-sm rounded-circle" style="width: 35px; height: 35px; padding: 0;">
-            <i id="themeIcon" class="fa-solid fa-moon"></i>
-          </button>
         </div>
       </div>
     </div>
@@ -334,27 +318,6 @@
   <script>AOS.init({ duration: 800, once: true });</script>
 
   <script>
-    // 🔥 Lógica do Dark Mode
-    const themeToggle = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-
-    if (localStorage.getItem('theme') === 'dark') {
-      document.body.classList.add('dark-mode');
-      themeIcon.classList.replace('fa-moon', 'fa-sun');
-    }
-
-    themeToggle.addEventListener('click', () => {
-      document.body.classList.toggle('dark-mode');
-      if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark');
-        themeIcon.classList.replace('fa-moon', 'fa-sun');
-      } else {
-        localStorage.setItem('theme', 'light');
-        themeIcon.classList.replace('fa-sun', 'fa-moon');
-      }
-    });
-
-    // 🔥 Carrinho Persistente (com API)
     let cart = [];
 
     async function loadCart() {
