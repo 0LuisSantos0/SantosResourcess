@@ -10,7 +10,6 @@ const pool = new Pool({
   }
 });
 
-// Evento para apanhar erros inesperados do pool
 pool.on('error', (err) => {
   console.error('❌ Erro inesperado no pool do banco de dados:', err);
 });
@@ -19,36 +18,35 @@ const initDB = async () => {
   try {
     await pool.query('SELECT NOW()');
     console.log('✅ Ligação ao PostgreSQL estabelecida com sucesso!');
-    
-    // Cria as tabelas
+
+    // Tabelas da aplicação
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
-        id SERIAL PRIMARY KEY, 
-        name TEXT NOT NULL, 
-        description TEXT NOT NULL, 
-        price REAL NOT NULL DEFAULT 0.00, 
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        price REAL NOT NULL DEFAULT 0.00,
         category TEXT DEFAULT 'MTA',
         is_active INTEGER DEFAULT 1
       );
     `);
-    // ... (o resto das tabelas users, discounts, etc, que já tinha) ...
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY, 
-        discord_id TEXT UNIQUE NOT NULL, 
-        username TEXT NOT NULL, 
-        avatar TEXT, 
-        is_admin INTEGER DEFAULT 0, 
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+        id SERIAL PRIMARY KEY,
+        discord_id TEXT UNIQUE NOT NULL,
+        username TEXT NOT NULL,
+        avatar TEXT,
+        is_admin INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP
       );
     `);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS discounts (
-        id SERIAL PRIMARY KEY, 
-        code TEXT UNIQUE NOT NULL, 
-        description TEXT, 
-        percentage INTEGER NOT NULL, 
+        id SERIAL PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        description TEXT,
+        percentage INTEGER NOT NULL,
         is_active INTEGER DEFAULT 1
       );
     `);
@@ -63,17 +61,28 @@ const initDB = async () => {
     `);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS settings (
-        id SERIAL PRIMARY KEY, 
-        site_name TEXT, 
+        id SERIAL PRIMARY KEY,
+        site_name TEXT,
         discord_link TEXT
       );
     `);
-    // Insere configuração padrão
+
+    // 🛡️ TABELA DE SESSÕES – CRIADA CORRETAMENTE COM PRIMARY KEY
     await pool.query(`
-      INSERT INTO settings (id, site_name, discord_link) 
-      SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt' 
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL PRIMARY KEY,
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL
+      );
+    `);
+
+    // Configuração padrão (insere se não existir)
+    await pool.query(`
+      INSERT INTO settings (id, site_name, discord_link)
+      SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt'
       WHERE NOT EXISTS (SELECT 1 FROM settings WHERE id = 1);
     `);
+
     console.log('✅ Tabelas verificadas/criadas com sucesso.');
   } catch (err) {
     console.error('❌ ERRO GRAVE AO CONECTAR OU CRIAR TABELAS:');
