@@ -378,7 +378,9 @@
           return priceSort === 'low-high' ? priceA - priceB : priceB - priceA;
         });
       }
+      
       const grid = document.getElementById('productsGrid');
+      grid.innerHTML = ''; 
       visible.forEach(item => grid.appendChild(item));
     }
     document.getElementById('searchInput').addEventListener('input', filterAndSort);
