@@ -14,12 +14,13 @@ pool.on('error', (err) => {
   console.error('❌ Erro inesperado no pool do banco de dados:', err);
 });
 
+// Função que cria todas as tabelas
 const initDB = async () => {
   try {
     await pool.query('SELECT NOW()');
     console.log('✅ Ligação ao PostgreSQL estabelecida com sucesso!');
 
-    // Tabelas da aplicação
+    // Tabelas principais
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -67,7 +68,7 @@ const initDB = async () => {
       );
     `);
 
-    // 🛡️ TABELA DE SESSÕES – CRIADA CORRETAMENTE COM PRIMARY KEY
+    // 🛡️ Tabela de sessões (criada explicitamente com chave primária)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS "session" (
         "sid" varchar NOT NULL PRIMARY KEY,
@@ -76,7 +77,7 @@ const initDB = async () => {
       );
     `);
 
-    // Configuração padrão (insere se não existir)
+    // Configuração padrão
     await pool.query(`
       INSERT INTO settings (id, site_name, discord_link)
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt'
@@ -90,5 +91,5 @@ const initDB = async () => {
   }
 };
 
-initDB();
-module.exports = pool;
+// Exporta a função de inicialização e a pool
+module.exports = { pool, initDB };
