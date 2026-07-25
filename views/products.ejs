@@ -28,7 +28,6 @@
       flex-direction: column;
     }
 
-    /* Navbar Glassmorphism */
     .navbar-glass {
       background: rgba(11, 17, 32, 0.8);
       backdrop-filter: blur(16px) saturate(180%);
@@ -43,9 +42,7 @@
       position: relative;
     }
     .navbar-glass .nav-link:hover,
-    .navbar-glass .nav-link.active {
-      color: #fff;
-    }
+    .navbar-glass .nav-link.active { color: #fff; }
     .navbar-glass .nav-link::after {
       content: '';
       position: absolute;
@@ -58,74 +55,43 @@
       transform: translateX(-50%);
     }
     .navbar-glass .nav-link:hover::after,
-    .navbar-glass .nav-link.active::after {
-      width: 80%;
-    }
+    .navbar-glass .nav-link.active::after { width: 80%; }
 
-    /* Page Header */
     .page-header {
       padding: 140px 0 80px;
       background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 70%, #0b1120 100%);
       color: white;
       text-align: center;
     }
-    .page-header h1 {
-      font-weight: 900;
-      font-size: clamp(2.5rem, 5vw, 4rem);
-    }
+    .page-header h1 { font-weight: 900; font-size: clamp(2.5rem, 5vw, 4rem); }
 
-    /* Product Cards Premium (iguais ao Home) */
     .product-card {
-      border: none;
-      border-radius: 20px;
-      background: white;
+      border: none; border-radius: 20px; background: white;
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06);
-      height: 100%;
-      overflow: hidden;
+      height: 100%; overflow: hidden;
     }
     .product-card:hover {
-      transform: translateY(-12px);
-      box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+      transform: translateY(-12px); box-shadow: 0 30px 60px rgba(0,0,0,0.1);
       border-bottom: 5px solid var(--primary);
     }
-    .product-card .price-tag {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #0f172a;
-    }
+    .product-card .price-tag { font-size: 1.2rem; font-weight: 700; color: #0f172a; }
     .product-card .btn-cart {
-      background: var(--primary);
-      color: white;
-      border-radius: 50px;
-      padding: 6px 18px;
-      font-weight: 600;
-      border: none;
-      transition: all 0.2s;
+      background: var(--primary); color: white; border-radius: 50px;
+      padding: 6px 18px; font-weight: 600; border: none; transition: all 0.2s;
     }
-    .product-card .btn-cart:hover {
-      background: var(--primary-dark);
-      transform: scale(1.05);
-    }
+    .product-card .btn-cart:hover { background: var(--primary-dark); transform: scale(1.05); }
 
     .search-input {
-      border-radius: 50px;
-      padding: 12px 20px;
-      border: 1px solid #e2e8f0;
-      transition: 0.2s;
+      border-radius: 50px; padding: 12px 20px; border: 1px solid #e2e8f0; transition: 0.2s;
     }
     .search-input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
     }
     .filter-select {
-      border-radius: 50px;
-      padding: 10px 20px;
-      border: 1px solid #e2e8f0;
-      background: white;
+      border-radius: 50px; padding: 10px 20px; border: 1px solid #e2e8f0; background: white;
     }
 
-    /* Carrinho e Footer */
     .cart-floating-btn {
       position: fixed; bottom: 30px; right: 30px; z-index: 999;
       background: #0f172a; color: white; border-radius: 50px; padding: 16px 28px;
@@ -138,6 +104,16 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 13px; font-weight: bold;
     }
+
+    /* 🔥 Botão Voltar ao Topo */
+    #backToTop {
+      position: fixed; bottom: 100px; right: 30px; z-index: 999;
+      display: none; border-radius: 50px; padding: 12px 16px;
+      border: none; background: var(--primary); color: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.3s;
+      cursor: pointer; font-size: 1.2rem;
+    }
+    #backToTop:hover { background: var(--primary-dark); transform: translateY(-3px); }
 
     footer {
       background: #0b1120; color: #94a3b8; padding: 60px 0 30px; margin-top: auto;
@@ -194,7 +170,6 @@
     <div class="container mt-5">
       <% if (locals.error) { %><div class="alert alert-danger"><%= locals.error %></div><% } %>
       
-      <!-- Filtros -->
       <div class="row mb-4 align-items-center g-3" data-aos="fade-up">
         <div class="col-md-5">
           <input type="text" id="searchInput" class="search-input w-100" placeholder="Pesquisar por nome...">
@@ -233,7 +208,8 @@
                   </span>
                   <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
                     <span class="price-tag">€<%= p.price.toFixed(2) %></span>
-                    <button class="btn-cart" onclick="addToCart(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', <%= p.price %>, event)">
+                    <!-- 🔥 Adicionado category e validação MTA -->
+                    <button class="btn-cart" onclick="addToCart(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', <%= p.price %>, '<%= p.category %>', event)">
                       <i class="fa-solid fa-cart-plus me-1"></i> Adicionar
                     </button>
                   </div>
@@ -281,42 +257,55 @@
   <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content" style="border-radius: 24px;">
-        <div class="modal-header border-0 p-4">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-cart-shopping text-primary me-2"></i> Seu Carrinho</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+        <div class="modal-header border-0 p-4"><h5 class="modal-title fw-bold"><i class="fa-solid fa-cart-shopping text-primary me-2"></i> Seu Carrinho</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body p-4 pt-0">
           <div id="cartItemsContainer">
             <p class="text-muted text-center my-4" id="emptyCartMsg">O seu carrinho está vazio.</p>
             <ul class="list-group list-group-flush mb-3" id="cartItemsList" style="display: none;"></ul>
           </div>
-          <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3 fw-bold fs-5">
-            <span>Total:</span>
-            <span id="cartTotal">€0.00</span>
-          </div>
+          <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3 fw-bold fs-5"><span>Total:</span><span id="cartTotal">€0.00</span></div>
         </div>
         <div class="modal-footer border-0 p-4 justify-content-between">
           <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Continuar Comprando</button>
-          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold">
-            <i class="fa-brands fa-discord me-2"></i> Processar Pagamento
-          </a>
+          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold"><i class="fa-brands fa-discord me-2"></i> Processar Pagamento</a>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- 🔥 Botão Voltar ao Topo -->
+  <button id="backToTop" onclick="window.scrollTo({ top: 0, behavior: 'smooth' });">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script>AOS.init({ duration: 800, once: true });</script>
 
   <script>
-    // Carrinho
+    // 🔥 Lógica do Botão Voltar ao Topo
+    window.addEventListener('scroll', function() {
+      const btn = document.getElementById('backToTop');
+      if (window.scrollY > 300) { btn.style.display = 'block'; } else { btn.style.display = 'none'; }
+    });
+
     document.addEventListener('DOMContentLoaded', updateCartUI);
-    function addToCart(id, name, price, event) {
+
+    // 🔥 addToCart com restrição MTA
+    function addToCart(id, name, price, category, event) {
       let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      
+      if (category === 'MTA') {
+        const hasMTA = cart.some(item => item.category === 'MTA');
+        if (hasMTA) {
+          alert('Apenas um produto MTA pode ser adicionado ao carrinho.');
+          return;
+        }
+      }
+
       const existing = cart.find(i => i.id === id);
       if (existing) existing.quantity += 1;
-      else cart.push({ id, name, price, quantity: 1 });
+      else cart.push({ id, name, price, quantity: 1, category });
       localStorage.setItem('cart', JSON.stringify(cart));
       updateCartUI();
       const btn = event.target.closest('button');
@@ -325,6 +314,7 @@
       btn.classList.add('btn-success');
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); }, 2000);
     }
+
     function updateCartUI() {
       const cart = JSON.parse(localStorage.getItem('cart')) || [];
       const badge = document.getElementById('cartCount');
@@ -345,6 +335,7 @@
       }).join('');
       totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
     }
+
     function removeFromCart(index) {
       let cart = JSON.parse(localStorage.getItem('cart')) || [];
       cart.splice(index, 1);
@@ -352,7 +343,7 @@
       updateCartUI();
     }
 
-    // Filtros e Ordenação (Apenas por nome)
+    // Filtros
     const productItems = document.querySelectorAll('.product-item');
     function filterAndSort() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -378,10 +369,8 @@
           return priceSort === 'low-high' ? priceA - priceB : priceB - priceA;
         });
       }
-      
       const grid = document.getElementById('productsGrid');
-      // 🔥 LINHA CORRIGIDA: Limpa a grelha antes de adicionar os itens filtrados
-      grid.innerHTML = ''; 
+      grid.innerHTML = '';
       visible.forEach(item => grid.appendChild(item));
     }
     document.getElementById('searchInput').addEventListener('input', filterAndSort);
