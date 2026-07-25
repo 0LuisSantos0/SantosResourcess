@@ -5,9 +5,12 @@ console.log('🔍 A tentar ligar ao PostgreSQL...');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
+// Evento para apanhar erros inesperados do pool
 pool.on('error', (err) => {
   console.error('❌ Erro inesperado no pool do banco de dados:', err);
 });
@@ -17,7 +20,7 @@ const initDB = async () => {
     await pool.query('SELECT NOW()');
     console.log('✅ Ligação ao PostgreSQL estabelecida com sucesso!');
     
-    // Cria as tabelas do sistema
+    // Cria as tabelas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY, 
@@ -28,6 +31,7 @@ const initDB = async () => {
         is_active INTEGER DEFAULT 1
       );
     `);
+    // ... (o resto das tabelas users, discounts, etc, que já tinha) ...
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY, 
@@ -64,17 +68,7 @@ const initDB = async () => {
         discord_link TEXT
       );
     `);
-    // ⚠️ CRUCIAL: Tabela para guardar as sessões de login
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "session" (
-        "sid" varchar NOT NULL COLLATE "default",
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL
-      )
-      WITH (OIDS=FALSE);
-    `);
-    await pool.query(`ALTER TABLE "session" ADD PRIMARY KEY ("sid");`);
-
+    // Insere configuração padrão
     await pool.query(`
       INSERT INTO settings (id, site_name, discord_link) 
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt' 

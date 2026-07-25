@@ -85,12 +85,16 @@ app.get('/auth/discord', (req, res) => {
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
 });
 
-// ✅ ROTA DE LOGIN COM GARANTIA DE GUARDO DA SESSÃO
+// ✅ ROTA DE LOGIN COM DIAGNÓSTICO
 app.get('/auth/discord/callback', async (req, res) => {
   const { code } = req.query;
-  if (!code) return res.redirect('/');
+  if (!code) {
+    console.warn('⚠️ Sem código de autorização.');
+    return res.redirect('/');
+  }
 
   try {
+    // 1. Troca o código por token
     const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
       client_id: CLIENT_ID, 
       client_secret: CLIENT_SECRET, 
@@ -105,40 +109,63 @@ app.get('/auth/discord/callback', async (req, res) => {
     });
 
     const user = userResponse.data;
-    
-    // 1. Define o utilizador na sessão
+    console.log('✅ Utilizador obtido:', user.username, 'ID:', user.id);
+
+    // 2. Define o utilizador na sessão
     req.session.user = user;
 
-    // 🚨 A CORREÇÃO MÁGICA AQUI: Espera a sessão ser guardada no PostgreSQL antes de redirecionar
+    // 3. Tenta guardar a sessão e aguarda confirmação
+    console.log('🔄 A guardar sessão no banco...');
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          console.error('❌ ERRO ao guardar sessão:', err);
+          reject(err);
+        } else {
+          console.log('✅ Sessão guardada com sucesso!');
+          resolve();
+        }
       });
     });
 
-    // 2. Atualiza a base de dados com os dados do utilizador
+    // 4. Atualiza o utilizador na base de dados
     const now = new Date().toISOString();
     await pool.query(
       `INSERT INTO users (discord_id, username, avatar, last_login) VALUES ($1, $2, $3, $4) 
        ON CONFLICT (discord_id) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, last_login = EXCLUDED.last_login`,
       [user.id, user.username, user.avatar, now]
     );
+    console.log('✅ Utilizador atualizado na base de dados.');
 
-    // 3. Redireciona (Agora a sessão está garantidamente guardada!)
-    if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
+    // 5. Verifica se é admin e redireciona
+    if (config.ADMIN_IDS.includes(user.id)) {
+      console.log('🔹 Utilizador é admin (config). Redirecionando para /admin');
+      return res.redirect('/admin');
+    }
     
     const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
     const row = result.rows[0];
-    if (row && row.is_admin === 1) res.redirect('/admin');
-    else res.redirect('/');
+    if (row && row.is_admin === 1) {
+      console.log('🔹 Utilizador é admin (BD). Redirecionando para /admin');
+      return res.redirect('/admin');
+    }
+
+    console.log('🔹 Utilizador normal. Redirecionando para /');
+    res.redirect('/');
 
   } catch (error) {
-    console.error("❌ ERRO NO LOGIN DO DISCORD:", error);
+    console.error('❌ ERRO NO LOGIN DO DISCORD:', error.response?.data || error.message);
     res.status(500).send(`
       <h2 style="font-family: sans-serif; color: #ef4444;">❌ Erro no Login com Discord</h2>
       <p><strong>Mensagem:</strong> ${error.message}</p>
-      <p><strong>Detalhe:</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
+      <p><strong>Detalhe da resposta do Discord:</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
+      <hr>
+      <p><strong>Verifique:</strong></p>
+      <ul>
+        <li>O <code>DISCORD_CLIENT_SECRET</code> na Vercel é o da aba OAuth2 (não o do Bot).</li>
+        <li>O <code>REDIRECT_URI</code> é exatamente <code>https://santos-resourcess.vercel.app/auth/discord/callback</code>.</li>
+        <li>Este link está adicionado no Discord Portal > OAuth2 > Redirects.</li>
+      </ul>
       <a href="/">Voltar para o início</a>
     `);
   }
