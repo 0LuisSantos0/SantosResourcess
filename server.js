@@ -15,7 +15,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 🔥 CORREÇÃO MÁGICA: Diz ao Express que ele está atrás de um proxy confiável (Vercel)
+// 🔥 Diz ao Express que ele está atrás de um proxy confiável (Vercel)
 app.set('trust proxy', 1);
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -40,7 +40,6 @@ async function isAdmin(req, res, next) {
   next();
 }
 
-// Verifica e cria a tabela session caso não exista
 async function ensureSessionTable() {
   try {
     await pool.query(`
@@ -196,13 +195,15 @@ async function getApp() {
         res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
       });
 
+      // 🔥 CORREÇÃO DO ERRO DE SESSÃO (COM SAVE EXPLÍCITO E REDIRECT 303)
       app.post('/admin/products/add', isAdmin, async (req, res) => {
         const { name, description, price, category } = req.body;
         if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
         await pool.query('INSERT INTO products (name, description, price, category, is_active) VALUES ($1, $2, $3, $4, 1)',
           [name, description, parseFloat(price), category || 'MTA']);
         await logActivity(req, `Criou o produto: ${name}`);
-        res.redirect('/admin');
+        await req.session.save(); // OBRIGATÓRIO
+        res.redirect(303, '/admin'); // 🔥 Força o GET
       });
 
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
@@ -210,19 +211,22 @@ async function getApp() {
         await pool.query('UPDATE products SET name = $1, description = $2, price = $3, category = $4 WHERE id = $5',
           [name, description, parseFloat(price), category || 'MTA', req.params.id]);
         await logActivity(req, `Editou o produto: ${name}`);
-        res.redirect('/admin');
+        await req.session.save();
+        res.redirect(303, '/admin');
       });
 
       app.post('/admin/products/delete/:id', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT name FROM products WHERE id = $1', [req.params.id]);
         await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
         await logActivity(req, `Apagou o produto: ${result.rows[0]?.name || 'ID ' + req.params.id}`);
-        res.redirect('/admin');
+        await req.session.save();
+        res.redirect(303, '/admin');
       });
 
       app.post('/admin/toggle/:id', isAdmin, async (req, res) => {
         await pool.query('UPDATE products SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
-        res.redirect('/admin');
+        await req.session.save();
+        res.redirect(303, '/admin');
       });
 
       app.get('/admin/users', isAdmin, async (req, res) => {
@@ -230,17 +234,12 @@ async function getApp() {
         res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
       });
 
-      // 🔥 ROTA CORRIGIDA DO BOTÃO ADMIN
       app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
-        try {
-          const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
-          await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
-          await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
-          return res.redirect('/admin/users');
-        } catch (err) {
-          console.error('Erro ao alterar admin:', err);
-          return res.redirect('/admin/users?error=update_failed');
-        }
+        const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
+        await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
+        await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
+        await req.session.save();
+        res.redirect(303, '/admin/users'); // 🔥 Força o GET
       });
 
       app.get('/admin/discounts', isAdmin, async (req, res) => {
@@ -254,7 +253,8 @@ async function getApp() {
         await pool.query('INSERT INTO discounts (code, description, percentage, is_active) VALUES ($1, $2, $3, 1)',
           [code, description, parseInt(percentage)]);
         await logActivity(req, `Criou o desconto: ${code}`);
-        res.redirect('/admin/discounts');
+        await req.session.save();
+        res.redirect(303, '/admin/discounts');
       });
 
       app.post('/admin/discounts/edit/:id', isAdmin, async (req, res) => {
@@ -262,19 +262,22 @@ async function getApp() {
         await pool.query('UPDATE discounts SET code = $1, description = $2, percentage = $3 WHERE id = $4',
           [code, description, parseInt(percentage), req.params.id]);
         await logActivity(req, `Editou o desconto: ${code}`);
-        res.redirect('/admin/discounts');
+        await req.session.save();
+        res.redirect(303, '/admin/discounts');
       });
 
       app.post('/admin/discounts/delete/:id', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT code FROM discounts WHERE id = $1', [req.params.id]);
         await pool.query('DELETE FROM discounts WHERE id = $1', [req.params.id]);
         await logActivity(req, `Apagou o desconto: ${result.rows[0]?.code || 'ID ' + req.params.id}`);
-        res.redirect('/admin/discounts');
+        await req.session.save();
+        res.redirect(303, '/admin/discounts');
       });
 
       app.post('/admin/discounts/toggle/:id', isAdmin, async (req, res) => {
         await pool.query('UPDATE discounts SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
-        res.redirect('/admin/discounts');
+        await req.session.save();
+        res.redirect(303, '/admin/discounts');
       });
 
       app.get('/admin/logs', isAdmin, async (req, res) => {
@@ -291,7 +294,8 @@ async function getApp() {
         const { site_name, discord_link } = req.body;
         await pool.query('UPDATE settings SET site_name = $1, discord_link = $2 WHERE id = 1', [site_name, discord_link]);
         await logActivity(req, `Atualizou as configurações do site.`);
-        res.redirect('/admin/settings');
+        await req.session.save();
+        res.redirect(303, '/admin/settings');
       });
 
       console.log('🚀 Santos Resources configurado e a aguardar pedidos.');
