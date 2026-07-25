@@ -5,7 +5,7 @@ const axios = require('axios');
 const pool = require('./database');
 const config = require('./config');
 const path = require('path');
-const pgSession = require('connect-pg-simple')(session); // 👈 Importante!
+const pgSession = require('connect-pg-simple')(session);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,18 +15,14 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Configuração CORRETA das sessões com Store PostgreSQL
 app.use(session({
-  store: new pgSession({
-    pool: pool,
-    tableName: 'session'
-  }),
+  store: new pgSession({ pool: pool, tableName: 'session' }),
   secret: 'santos-resources-secret-key',
   resave: false,
-  saveUninitialized: false, // 👈 Mudar para false ajuda a não criar sessões vazias
+  saveUninitialized: false,
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 30 * 24 * 60 * 60 * 1000 // Sessão dura 30 dias
+    maxAge: 30 * 24 * 60 * 60 * 1000
   }
 }));
 
@@ -89,7 +85,7 @@ app.get('/auth/discord', (req, res) => {
   res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
 });
 
-// ✅ ROTA DE LOGIN COM SESSÃO PERSISTENTE
+// ✅ ROTA DE LOGIN COM GARANTIA DE GUARDO DA SESSÃO
 app.get('/auth/discord/callback', async (req, res) => {
   const { code } = req.query;
   if (!code) return res.redirect('/');
@@ -109,20 +105,31 @@ app.get('/auth/discord/callback', async (req, res) => {
     });
 
     const user = userResponse.data;
+    
+    // 1. Define o utilizador na sessão
     req.session.user = user;
-    const now = new Date().toISOString();
 
+    // 🚨 A CORREÇÃO MÁGICA AQUI: Espera a sessão ser guardada no PostgreSQL antes de redirecionar
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // 2. Atualiza a base de dados com os dados do utilizador
+    const now = new Date().toISOString();
     await pool.query(
       `INSERT INTO users (discord_id, username, avatar, last_login) VALUES ($1, $2, $3, $4) 
        ON CONFLICT (discord_id) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, last_login = EXCLUDED.last_login`,
       [user.id, user.username, user.avatar, now]
     );
 
+    // 3. Redireciona (Agora a sessão está garantidamente guardada!)
     if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
     
     const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
     const row = result.rows[0];
-
     if (row && row.is_admin === 1) res.redirect('/admin');
     else res.redirect('/');
 
@@ -130,15 +137,8 @@ app.get('/auth/discord/callback', async (req, res) => {
     console.error("❌ ERRO NO LOGIN DO DISCORD:", error);
     res.status(500).send(`
       <h2 style="font-family: sans-serif; color: #ef4444;">❌ Erro no Login com Discord</h2>
-      <p><strong>Mensagem do erro:</strong> ${error.message}</p>
-      <p><strong>Detalhes da Vercel (OAuth2):</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
-      <hr>
-      <p><strong>Verifique:</strong></p>
-      <ul>
-        <li>O <code>DISCORD_CLIENT_SECRET</code> na Vercel é o da aba OAuth2 (não o do Bot).</li>
-        <li>O <code>REDIRECT_URI</code> é exatamente <code>https://santos-resourcess.vercel.app/auth/discord/callback</code>.</li>
-        <li>Este link está adicionado no Discord Portal > OAuth2 > Redirects.</li>
-      </ul>
+      <p><strong>Mensagem:</strong> ${error.message}</p>
+      <p><strong>Detalhe:</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
       <a href="/">Voltar para o início</a>
     `);
   }
