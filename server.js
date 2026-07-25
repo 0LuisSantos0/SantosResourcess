@@ -232,18 +232,38 @@ async function getApp() {
         res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
       });
 
-      // 🔥 CORREÇÃO DO CARREGAMENTO INFINITO (Removido o session.save())
+      // 🔥 CORREÇÃO DA ROTA DE ADMIN COM LOGS DETALHADOS
       app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
         try {
-          const result = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
-          await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
-          await logActivity(req, `Alterou o status de admin do utilizador: ${result.rows[0]?.username || 'ID ' + req.params.id}`);
+          console.log(`⏳ A iniciar alteração de admin para o utilizador ID: ${req.params.id}`);
           
-          // ✅ NÃO bloqueia o redirecionamento com session.save()
-          res.redirect(303, '/admin/users');
+          // 1. Buscar o nome do utilizador antes de alterar
+          const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
+          if (userResult.rows.length === 0) {
+            throw new Error('Utilizador não encontrado');
+          }
+          const username = userResult.rows[0].username;
+
+          // 2. Alterar o status de admin (NOT is_admin)
+          await pool.query('UPDATE users SET is_admin = NOT is_admin WHERE id = $1', [req.params.id]);
+          console.log(`✅ Admin status invertido para: ${username}`);
+
+          // 3. Registar no log de atividades
+          await logActivity(req, `Alterou o status de admin do utilizador: ${username}`);
+          console.log(`📝 Log registado com sucesso.`);
+
+          // 4. Redirecionar (sem esperar pela sessão)
+          return res.redirect(303, '/admin/users');
+
         } catch (err) {
           console.error("❌ ERRO AO ALTERAR ADMIN:", err);
-          res.status(500).send("Erro interno ao alterar o status de administrador.");
+          // Se ocorrer um erro, mostra uma mensagem mais amigável e redireciona para a página de users
+          return res.status(500).send(`
+            <h3 style="font-family: sans-serif; color: #ef4444;">Erro ao alterar o status de administrador.</h3>
+            <p><strong>Detalhe:</strong> ${err.message}</p>
+            <p>Verifique os logs da Vercel para mais informações.</p>
+            <a href="/admin/users">Voltar para a lista de utilizadores</a>
+          `);
         }
       });
 
