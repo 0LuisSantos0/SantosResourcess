@@ -113,10 +113,21 @@ async function getApp() {
       app.get('/products', async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+          let isAdmin = false;
+          if (req.session.user) {
+            if (config.ADMIN_IDS.includes(req.session.user.id)) {
+              isAdmin = true;
+            } else {
+              const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+              if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
+                isAdmin = true;
+              }
+            }
+          }
           res.render('products', {
             products: result.rows,
             user: req.session.user || null,
-            isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id),
+            isAdmin: isAdmin,
             error: null
           });
         } catch (err) {
@@ -124,8 +135,23 @@ async function getApp() {
         }
       });
 
-      app.get('/about', (req, res) => {
-        res.render('about', { user: req.session.user || null, isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id) });
+      app.get('/about', async (req, res) => {
+        let isAdmin = false;
+        if (req.session.user) {
+          if (config.ADMIN_IDS.includes(req.session.user.id)) {
+            isAdmin = true;
+          } else {
+            const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+            if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
+              isAdmin = true;
+            }
+          }
+        }
+
+        res.render('about', { 
+          user: req.session.user || null, 
+          isAdmin: isAdmin
+        });
       });
 
       app.get('/auth/discord', (req, res) => {
