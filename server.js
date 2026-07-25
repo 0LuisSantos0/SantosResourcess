@@ -80,18 +80,34 @@ async function getApp() {
         }
       }));
 
-      // --- ROTAS PÚBLICAS ---
+      // ================================================================
+      // 🔥 ROTAS DA API DO CARRINHO PERSISTENTE
+      // ================================================================
+      app.get('/api/cart', async (req, res) => {
+        if (!req.session.user) return res.json([]);
+        const result = await pool.query('SELECT cart FROM users WHERE discord_id = $1', [req.session.user.id]);
+        res.json(result.rows[0]?.cart || []);
+      });
+
+      app.post('/api/cart', async (req, res) => {
+        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+        const { cart } = req.body;
+        await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', [JSON.stringify(cart), req.session.user.id]);
+        res.json({ success: true });
+      });
+
+      // ================================================================
+      // ROTAS PÚBLICAS
+      // ================================================================
       app.get('/', async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
           
           let isAdmin = false;
           if (req.session.user) {
-            // 1. Verifica a lista fixa do config.js (super admins)
             if (config.ADMIN_IDS.includes(req.session.user.id)) {
               isAdmin = true;
             } else {
-              // 2. Verifica a coluna is_admin na base de dados
               const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
               if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
                 isAdmin = true;
@@ -102,7 +118,7 @@ async function getApp() {
           res.render('home', {
             products: result.rows,
             user: req.session.user || null,
-            isAdmin: isAdmin // ✅ Passa a variável correta com a verificação da base de dados
+            isAdmin: isAdmin
           });
         } catch (err) {
           console.error("❌ ERRO NA ROTA HOME:", err);
@@ -214,9 +230,10 @@ async function getApp() {
 
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
-      // --- ÁREA ADMINISTRATIVA ---
+      // ================================================================
+      // ÁREA ADMINISTRATIVA
+      // ================================================================
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
-        // Buscar todas as estatísticas necessárias para o dashboard
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
         const users = await pool.query('SELECT COUNT(*) as total_users FROM users');
@@ -276,27 +293,19 @@ async function getApp() {
         res.redirect(303, '/admin');
       });
 
-      // 🔥 ROTA DE DESTAQUE (CORRIGIDA COM MATEMÁTICA DE INTEIROS)
       app.post('/admin/products/feature/:id', isAdmin, async (req, res) => {
         const id = req.params.id;
-        
-        // Verifica quantos produtos já estão em destaque
         const countResult = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_featured = 1');
         const currentCount = parseInt(countResult.rows[0].count);
-        
-        // Verifica o estado atual do produto
         const currentResult = await pool.query('SELECT is_featured FROM products WHERE id = $1', [id]);
         const isCurrentlyFeatured = currentResult.rows[0]?.is_featured === 1;
 
         if (!isCurrentlyFeatured && currentCount >= 3) {
-          // Se tentar ativar e já existirem 3, bloqueia
           await req.session.save();
           return res.redirect(303, '/admin?error=max_featured');
         }
 
-        // 🔥 A CORREÇÃO AQUI: Em vez de NOT is_featured, usamos 1 - is_featured (PostgreSQL)
         await pool.query('UPDATE products SET is_featured = 1 - is_featured WHERE id = $1', [id]);
-        
         await logActivity(req, `Alterou o destaque do produto ID ${id}`);
         await req.session.save();
         res.redirect(303, '/admin');
@@ -307,25 +316,18 @@ async function getApp() {
         res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
       });
 
-      // 🔥 CORREÇÃO DA ROTA DE ADMIN NO POSTGRESQL (Usando 1 - is_admin em vez de NOT)
       app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
         try {
           console.log(`⏳ A iniciar alteração de admin para o utilizador ID: ${req.params.id}`);
-          
           const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
           if (userResult.rows.length === 0) {
             throw new Error('Utilizador não encontrado');
           }
           const username = userResult.rows[0].username;
-
-          // 🔥 A CORREÇÃO AQUI: substituímos NOT is_admin por 1 - is_admin
           await pool.query('UPDATE users SET is_admin = 1 - is_admin WHERE id = $1', [req.params.id]);
           console.log(`✅ Admin status invertido para: ${username}`);
-
           await logActivity(req, `Alterou o status de admin do utilizador: ${username}`);
-          
           return res.redirect(303, '/admin/users');
-
         } catch (err) {
           console.error("❌ ERRO AO ALTERAR ADMIN:", err);
           return res.status(500).send(`
