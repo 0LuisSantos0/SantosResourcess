@@ -84,10 +84,25 @@ async function getApp() {
       app.get('/', async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
+          
+          let isAdmin = false;
+          if (req.session.user) {
+            // 1. Verifica a lista fixa do config.js (super admins)
+            if (config.ADMIN_IDS.includes(req.session.user.id)) {
+              isAdmin = true;
+            } else {
+              // 2. Verifica a coluna is_admin na base de dados
+              const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+              if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
+                isAdmin = true;
+              }
+            }
+          }
+
           res.render('home', {
             products: result.rows,
             user: req.session.user || null,
-            isAdmin: req.session.user && config.ADMIN_IDS.includes(req.session.user.id)
+            isAdmin: isAdmin // ✅ Passa a variável correta com a verificação da base de dados
           });
         } catch (err) {
           console.error("❌ ERRO NA ROTA HOME:", err);
