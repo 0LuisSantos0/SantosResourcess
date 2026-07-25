@@ -380,6 +380,7 @@
       }
       
       const grid = document.getElementById('productsGrid');
+      // 🔥 LINHA CORRIGIDA: Limpa a grelha antes de adicionar os itens filtrados
       grid.innerHTML = ''; 
       visible.forEach(item => grid.appendChild(item));
     }
