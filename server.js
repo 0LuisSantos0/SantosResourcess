@@ -15,6 +15,9 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// 🔥 CORREÇÃO MÁGICA: Diz ao Express que ele está atrás de um proxy confiável (Vercel)
+app.set('trust proxy', 1);
+
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
@@ -37,7 +40,7 @@ async function isAdmin(req, res, next) {
   next();
 }
 
-// 🔥 GARANTIA ABSOLUTA: Cria a tabela session antes de qualquer pedido
+// Verifica e cria a tabela session caso não exista
 async function ensureSessionTable() {
   try {
     await pool.query(`
@@ -47,9 +50,9 @@ async function ensureSessionTable() {
         "expire" timestamp(6) NOT NULL
       );
     `);
-    console.log('✅ Tabela "session" verificada/criada com sucesso.');
+    console.log('✅ Tabela "session" garantida.');
   } catch (err) {
-    console.error('❌ ERRO FATAL ao criar a tabela session:', err);
+    console.error('❌ ERRO FATAL na tabela session:', err);
     throw err;
   }
 }
@@ -62,13 +65,15 @@ let appPromise = null;
 async function getApp() {
   if (!appPromise) {
     appPromise = (async () => {
-      console.log('⏳ A iniciar base de dados...');
-      await initDB();        // Cria produtos, users, etc.
-      await ensureSessionTable(); // 🔥 Garante a existência da session
+      console.log('⏳ A iniciar base de dados e sessão...');
+      await initDB();        
+      await ensureSessionTable(); 
 
-      console.log('✅ Base de dados pronta! A configurar sessão...');
+      console.log('🔍 A verificar variáveis de ambiente...');
+      console.log('✅ CLIENT_ID carregado:', CLIENT_ID ? 'Sim' : 'Não');
+      console.log('✅ REDIRECT_URI configurado como:', REDIRECT_URI);
 
-      // --- Middleware de sessão ---
+      console.log('✅ A configurar middleware de sessão...');
       app.use(session({
         store: new pgSession({
           pool: pool,
@@ -144,13 +149,14 @@ async function getApp() {
           const user = userResponse.data;
           req.session.user = user;
 
-          // Guarda a sessão no banco de dados (agora a tabela já existe!)
+          // Guarda a sessão no banco de dados
           await new Promise((resolve, reject) => {
             req.session.save((err) => {
               if (err) reject(err);
               else resolve();
             });
           });
+          console.log('✅ Sessão guardada com sucesso para o utilizador:', user.username);
 
           const now = new Date().toISOString();
           await pool.query(
@@ -159,12 +165,21 @@ async function getApp() {
             [user.id, user.username, user.avatar, now]
           );
 
-          if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
+          // Verifica permissões e redireciona
+          if (config.ADMIN_IDS.includes(user.id)) {
+            console.log('🔹 Utilizador é admin. A redirecionar para /admin');
+            return res.redirect('/admin');
+          }
 
           const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
           const row = result.rows[0];
-          if (row && row.is_admin === 1) res.redirect('/admin');
-          else res.redirect('/');
+          if (row && row.is_admin === 1) {
+            console.log('🔹 Utilizador é admin pela BD. A redirecionar para /admin');
+            return res.redirect('/admin');
+          }
+
+          console.log('🔹 Utilizador standard. A redirecionar para /');
+          res.redirect('/');
 
         } catch (error) {
           console.error("❌ ERRO NO LOGIN DO DISCORD:", error);
@@ -172,7 +187,6 @@ async function getApp() {
             <h2 style="font-family: sans-serif; color: #ef4444;">❌ Erro no Login com Discord</h2>
             <p><strong>Mensagem:</strong> ${error.message}</p>
             <p><strong>Detalhe:</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
-            <p><i>Verifique se o REDIRECT_URI na Vercel é exatamente: https://santos-resourcess.vercel.app/auth/discord/callback</i></p>
             <a href="/">Voltar para o início</a>
           `);
         }
@@ -181,7 +195,7 @@ async function getApp() {
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
       // ================================================================
-      //  ÁREA ADMINISTRATIVA
+      //  ÁREA ADMINISTRATIVA (Rotas completas)
       // ================================================================
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
@@ -295,13 +309,16 @@ async function getApp() {
         res.redirect('/admin/settings');
       });
 
-      console.log('🚀 Santos Resources 100% configurado e pronto para a Vercel!');
+      console.log('🚀 Santos Resources configurado e a aguardar pedidos.');
       return app;
     })();
   }
   return appPromise;
 }
 
+// =========================================================================
+//  EXPORTAÇÃO PARA A VERCEL
+// =========================================================================
 module.exports = async (req, res) => {
   const readyApp = await getApp();
   return readyApp(req, res);
