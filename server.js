@@ -15,20 +15,44 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// --- Variáveis de ambiente ---
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+
+// --- Funções auxiliares ---
+async function logActivity(req, action) {
+  if (req.session.user) {
+    await pool.query(
+      `INSERT INTO activity_logs (admin_discord_id, admin_username, action) VALUES ($1, $2, $3)`,
+      [req.session.user.id, req.session.user.username, action]
+    );
+  }
+}
+
+async function isAdmin(req, res, next) {
+  if (!req.session.user) return res.redirect('/');
+  if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
+  const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+  const row = result.rows[0];
+  if (!row || row.is_admin !== 1) return res.redirect('/');
+  next();
+}
+
 // ================================================================
-// 🔥 CORREÇÃO DEFINITIVA: Inicializa o banco ANTES de ativar a sessão
+//  INICIALIZAÇÃO DO SERVIDOR COM GARANTIA DE BANCO DE DADOS
 // ================================================================
-(async () => {
-  console.log('⏳ A aguardar inicialização da base de dados...');
-  await initDB(); // Garante que a tabela session está criada e pronta
+const startServer = async () => {
+  console.log('⏳ A inicializar a base de dados...');
+  await initDB(); // Cria todas as tabelas, incluindo a 'session'
   console.log('✅ Base de dados pronta! A configurar sessão...');
 
-  // --- Configuração da sessão (agora a tabela já existe) ---
+  // --- Configuração da sessão ---
   app.use(session({
     store: new pgSession({
       pool: pool,
       tableName: 'session',
-      createTableIfNotExists: true // Segurança extra
+      createTableIfNotExists: true // Cria a tabela caso não exista
     }),
     secret: 'santos-resources-secret-key',
     resave: false,
@@ -38,30 +62,6 @@ app.use(express.json());
       maxAge: 30 * 24 * 60 * 60 * 1000
     }
   }));
-
-  // --- Variáveis de ambiente ---
-  const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-  const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-  const REDIRECT_URI = process.env.REDIRECT_URI;
-
-  // --- Funções auxiliares ---
-  async function logActivity(req, action) {
-    if (req.session.user) {
-      await pool.query(
-        `INSERT INTO activity_logs (admin_discord_id, admin_username, action) VALUES ($1, $2, $3)`,
-        [req.session.user.id, req.session.user.username, action]
-      );
-    }
-  }
-
-  async function isAdmin(req, res, next) {
-    if (!req.session.user) return res.redirect('/');
-    if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
-    const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
-    const row = result.rows[0];
-    if (!row || row.is_admin !== 1) return res.redirect('/');
-    next();
-  }
 
   // ================================================================
   //  ROTAS PÚBLICAS
@@ -123,7 +123,7 @@ app.use(express.json());
       const user = userResponse.data;
       req.session.user = user;
 
-      // Força a gravação da sessão antes de continuar
+      // Espera a sessão ser guardada no banco
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
           if (err) reject(err);
@@ -159,9 +159,8 @@ app.use(express.json());
   app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
   // ================================================================
-  //  ÁREA ADMINISTRATIVA (Todas as rotas completas)
+  //  ÁREA ADMINISTRATIVA
   // ================================================================
-  
   app.get('/admin/dashboard', isAdmin, async (req, res) => {
     const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
     const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
@@ -274,11 +273,16 @@ app.use(express.json());
     res.redirect('/admin/settings');
   });
 
-  // ================================================================
-  //  FIM DAS ROTAS - Inicia o servidor
-  // ================================================================
-  console.log('🚀 Santos Resources configurado e pronto para receber pedidos!');
-})();
+  // Fim das rotas
 
-// Exportação obrigatória para a Vercel
+  console.log('🚀 Santos Resources configurado e pronto para receber pedidos!');
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor a rodar em http://localhost:${PORT}`);
+  });
+};
+
+// Inicia o servidor
+startServer();
+
+// Exporta o app para a Vercel (a função startServer corre antes de qualquer pedido)
 module.exports = app;
