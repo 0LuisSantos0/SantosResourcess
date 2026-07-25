@@ -175,14 +175,22 @@ async function getApp() {
 
       // --- ÁREA ADMINISTRATIVA ---
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
+        // Buscar todas as estatísticas necessárias para o dashboard
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
         const users = await pool.query('SELECT COUNT(*) as total_users FROM users');
+        const mta = await pool.query('SELECT COUNT(*) as mta_scripts FROM products WHERE category = $1', ['MTA']);
+        const bots = await pool.query('SELECT COUNT(*) as discord_bots FROM products WHERE category = $1', ['Discord Bot']);
+        const discounts = await pool.query('SELECT COUNT(*) as total_discounts FROM discounts');
+      
         res.render('admin/dashboard', {
           stats: {
             total_products: total.rows[0].total_products,
             active_products: active.rows[0].active_products,
-            total_users: users.rows[0].total_users
+            total_users: users.rows[0].total_users,
+            mta_scripts: mta.rows[0].mta_scripts,
+            discord_bots: bots.rows[0].discord_bots,
+            total_discounts: discounts.rows[0].total_discounts
           },
           activeTab: 'dashboard',
           user: req.session.user
