@@ -230,15 +230,16 @@ async function getApp() {
 
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
-      // ================================================================
       // ÁREA ADMINISTRATIVA
-      // ================================================================
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
+        // Buscar todas as estatísticas
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
         const users = await pool.query('SELECT COUNT(*) as total_users FROM users');
         const mta = await pool.query('SELECT COUNT(*) as mta_scripts FROM products WHERE category = $1', ['MTA']);
         const bots = await pool.query('SELECT COUNT(*) as discord_bots FROM products WHERE category = $1', ['Discord Bot']);
+        // 🔥 NOVA CONSULTA PARA "SITE"
+        const site = await pool.query('SELECT COUNT(*) as site_scripts FROM products WHERE category = $1', ['Site']);
         const discounts = await pool.query('SELECT COUNT(*) as total_discounts FROM discounts');
       
         res.render('admin/dashboard', {
@@ -248,6 +249,7 @@ async function getApp() {
             total_users: users.rows[0].total_users,
             mta_scripts: mta.rows[0].mta_scripts,
             discord_bots: bots.rows[0].discord_bots,
+            site_scripts: site.rows[0].site_scripts, // ✅ Nova estatística
             total_discounts: discounts.rows[0].total_discounts
           },
           activeTab: 'dashboard',
