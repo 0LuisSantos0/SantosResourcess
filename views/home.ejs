@@ -65,21 +65,6 @@
       position: relative;
       overflow: hidden;
     }
-    .hero-section::before {
-      content: '';
-      position: absolute;
-      top: -30%;
-      left: -20%;
-      width: 80%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 60%);
-      animation: heroGlow 12s infinite alternate ease-in-out;
-    }
-    @keyframes heroGlow {
-      0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
-      100% { transform: translate(20%, 15%) scale(1.3); opacity: 1; }
-    }
-
     .hero-title {
       font-size: clamp(3rem, 8vw, 5.5rem);
       font-weight: 900;
@@ -93,7 +78,6 @@
       max-width: 600px;
       margin: 1.5rem auto;
     }
-
     .btn-hero {
       background: white;
       color: #0f172a;
@@ -154,21 +138,22 @@
       margin-bottom: 1rem;
     }
 
-    /* NOVO DESIGN DO CARTÃO (Referência Imagem 3) */
+    /* NOVO DESIGN DOS CARTÕES (Fundo Branco com Borda Preta e Botão Ciano) */
     .product-card-ref {
-      background: #0b1120;
-      border: 1px solid rgba(34, 211, 238, 0.2);
+      background: #ffffff;
+      border: 1px solid #000000; /* Contorno preto */
       border-radius: 16px;
       padding: 0;
       transition: 0.3s ease;
       position: relative;
       overflow: hidden;
       height: 100%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
     .product-card-ref:hover {
       border-color: #22d3ee;
       transform: translateY(-6px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
     .product-card-ref .card-body {
       padding: 20px;
@@ -181,13 +166,13 @@
       width: 100%;
       height: 160px;
       object-fit: contain;
-      background: rgba(255,255,255,0.05);
+      background: rgba(0,0,0,0.03);
       border-radius: 10px;
       padding: 10px;
       margin-bottom: 15px;
     }
     .product-card-ref .product-title {
-      color: #fff;
+      color: #000;
       font-weight: 600;
       font-size: 1.1rem;
       margin-bottom: 10px;
@@ -201,7 +186,7 @@
     }
     .product-card-ref .btn-buy {
       background: #22d3ee;
-      color: #0b1120;
+      color: #000;
       border-radius: 8px;
       width: 100%;
       font-weight: 700;
@@ -217,25 +202,24 @@
       position: absolute;
       top: 15px;
       right: 15px;
-      background: rgba(255,255,255,0.05);
-      color: #94a3b8;
+      background: #f1f5f9;
+      color: #000;
       border-radius: 50%;
       width: 32px;
       height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid #e2e8f0;
       transition: 0.2s;
       z-index: 10;
     }
     .product-card-ref .btn-info:hover {
-      background: #fff;
-      color: #0b1120;
-      border-color: #fff;
+      background: #000;
+      color: #fff;
     }
 
-    /* MODAL ESCURA (Referência Imagem 4) */
+    /* MODAL ESCURA (Tal como nas imagens de referência) */
     .modal-dark {
       background: rgba(0, 0, 0, 0.8) !important;
     }
@@ -276,6 +260,7 @@
       color: #22d3ee;
     }
 
+    /* Footer, Carrinho e resto igual ao seu original */
     footer {
       background: #0b1120;
       color: #94a3b8;
@@ -301,7 +286,6 @@
       background: var(--primary);
       transform: translateY(-3px);
     }
-
     .cart-floating-btn {
       position: fixed;
       bottom: 30px;
@@ -337,7 +321,6 @@
   </style>
 </head>
 <body>
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
     <div class="container">
       <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
@@ -366,51 +349,20 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
   <main class="flex-fill">
-    <!-- Hero -->
     <section class="hero-section position-relative d-flex align-items-center">
       <div class="container text-center position-relative" style="z-index: 2;">
         <div data-aos="fade-down" data-aos-delay="50">
-          <span class="badge bg-primary bg-opacity-25 text-light mb-3 rounded-pill px-4 py-2">
-            🚀 Sistema de Alta Performance
-          </span>
+          <span class="badge bg-primary bg-opacity-25 text-light mb-3 rounded-pill px-4 py-2">🚀 Sistema de Alta Performance</span>
         </div>
-        <h1 class="hero-title mb-4" data-aos="fade-up" data-aos-delay="100">
-          Santos Resources
-        </h1>
-        <p class="hero-subtitle" data-aos="fade-up" data-aos-delay="200">
-          Soluções premium para servidores MTA e bots inteligentes para Discord.
-        </p>
+        <h1 class="hero-title mb-4" data-aos="fade-up" data-aos-delay="100">Santos Resources</h1>
+        <p class="hero-subtitle" data-aos="fade-up" data-aos-delay="200">Soluções premium para servidores MTA e bots inteligentes para Discord.</p>
         <div data-aos="fade-up" data-aos-delay="300">
-          <a href="/products" class="btn btn-hero mt-3">
-            Explorar Produtos <i class="fa-solid fa-arrow-right ms-2"></i>
-          </a>
-        </div>
-        <div class="row hero-stats mt-5 pt-3 justify-content-center g-4" data-aos="fade-up" data-aos-delay="400">
-          <div class="col-4 col-md-3">
-            <div class="stat-box">
-              <div class="stat-number" id="productCountDisplay"><%= products.length %></div>
-              <div class="stat-label">Produtos Ativos</div>
-            </div>
-          </div>
-          <div class="col-4 col-md-3">
-            <div class="stat-box">
-              <div class="stat-number">100%</div>
-              <div class="stat-label">Segurança</div>
-            </div>
-          </div>
-          <div class="col-4 col-md-3">
-            <div class="stat-box">
-              <div class="stat-number">24/7</div>
-              <div class="stat-label">Suporte</div>
-            </div>
-          </div>
+          <a href="/products" class="btn btn-hero mt-3">Explorar Produtos <i class="fa-solid fa-arrow-right ms-2"></i></a>
         </div>
       </div>
     </section>
 
-    <!-- Features -->
     <section class="container mt-5 pt-4" data-aos="fade-up">
       <h2 class="text-center fw-bold mb-5"><i class="fa-solid fa-star text-warning me-2"></i> Por que escolher a Santos Resources?</h2>
       <div class="row g-4">
@@ -438,44 +390,26 @@
       </div>
     </section>
 
-    <!-- Products Home -->
     <section class="container mt-5 pt-2">
       <h2 class="text-center fw-bold mb-5" data-aos="fade-up"><i class="fa-solid fa-box-open text-primary me-2"></i> Nossos Produtos Ativos</h2>
       <div class="row row-cols-1 row-cols-md-3 g-4">
-        <% 
-          const limitedProducts = products.slice(0, 3); 
-          const hasMoreProducts = products.length > 3;
-        %>
+        <% const limitedProducts = products.slice(0, 3); const hasMoreProducts = products.length > 3; %>
         <% if (limitedProducts.length === 0) { %>
           <div class="col-12 text-center text-muted py-5" data-aos="fade-up">
             <h4><i class="fa-regular fa-circle-question me-2"></i> Nenhum produto cadastrado!</h4>
-            <% if (isAdmin) { %>
-              <p class="small">A loja está vazia. Acesse o <a href="/admin" class="text-decoration-underline">Painel Admin</a> para adicionar os seus primeiros produtos!</p>
-            <% } else { %>
-              <p class="small">Nenhum produto disponível no momento. Volte em breve para conferir nossas novidades!</p>
-            <% } %>
           </div>
         <% } else { %>
           <% limitedProducts.forEach((p, index) => { %>
             <div class="col" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
               <div class="card product-card-ref">
                 <div class="card-body">
-                  <!-- Botão Informações (i) -->
                   <button class="btn-info" onclick="openInfoModal(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', '<%= p.video_link || "" %>', `<%= p.features || "" %>`)" title="Ver detalhes">
                     <i class="fa-solid fa-info"></i>
                   </button>
-                  
-                  <!-- Imagem de Capa -->
-                  <img src="<%= p.thumbnail || 'https://via.placeholder.com/300x200/1e293b/94a3b8?text=Sem+Imagem' %>" alt="<%= p.name %>" class="product-img">
-                  
-                  <!-- Título e Preço -->
+                  <img src="<%= p.thumbnail || 'https://via.placeholder.com/300x200/ffffff/000000?text=Sem+Imagem' %>" alt="<%= p.name %>" class="product-img">
                   <h5 class="product-title"><%= p.name %></h5>
                   <div class="product-price">€<%= p.price.toFixed(2) %></div>
-                  
-                  <!-- Botão Comprar -->
-                  <button class="btn-buy" onclick="addToCart(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', <%= p.price %>, '<%= p.category %>', event)">
-                    COMPRAR
-                  </button>
+                  <button class="btn-buy" onclick="addToCart(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', <%= p.price %>, '<%= p.category %>', event)">COMPRAR</button>
                 </div>
               </div>
             </div>
@@ -484,15 +418,12 @@
       </div>
       <% if (hasMoreProducts) { %>
         <div class="text-center mt-5 mb-4" data-aos="fade-up">
-          <a href="/products" class="btn btn-outline-primary btn-lg rounded-pill px-5 fw-bold shadow-sm">
-            Ver Mais <i class="fa-solid fa-arrow-right ms-2"></i>
-          </a>
+          <a href="/products" class="btn btn-outline-primary btn-lg rounded-pill px-5 fw-bold shadow-sm">Ver Mais <i class="fa-solid fa-arrow-right ms-2"></i></a>
         </div>
       <% } %>
     </section>
   </main>
 
-  <!-- Footer Premium -->
   <footer>
     <div class="container">
       <div class="row">
@@ -520,13 +451,11 @@
     </div>
   </footer>
 
-  <!-- Cart Floating Button -->
   <button class="cart-floating-btn" data-bs-toggle="modal" data-bs-target="#cartModal">
     <i class="fa-solid fa-cart-shopping fa-lg"></i>
     <span class="cart-badge" id="cartCount">0</span>
   </button>
 
-  <!-- Cart Modal -->
   <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content" style="border-radius: 24px;">
@@ -540,21 +469,17 @@
             <ul class="list-group list-group-flush mb-3" id="cartItemsList" style="display: none;"></ul>
           </div>
           <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3 fw-bold fs-5">
-            <span>Total:</span>
-            <span id="cartTotal">€0.00</span>
+            <span>Total:</span><span id="cartTotal">€0.00</span>
           </div>
         </div>
         <div class="modal-footer border-0 p-4 justify-content-between">
           <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Continuar Comprando</button>
-          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold">
-            <i class="fa-brands fa-discord me-2"></i> Processar Pagamento
-          </a>
+          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold"><i class="fa-brands fa-discord me-2"></i> Processar Pagamento</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal de Informações Detalhadas (Referência Imagem 4) -->
   <div class="modal fade modal-dark" id="infoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
@@ -563,15 +488,10 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4 pt-0">
-          <!-- Player de Vídeo -->
           <div class="ratio ratio-16x9" id="modalVideoContainer">
             <iframe id="modalVideoIframe" src="" allowfullscreen frameborder="0"></iframe>
           </div>
-          
-          <!-- Título -->
           <h3 id="modalProductTitle">Sistema de Empresas</h3>
-          
-          <!-- Lista de Funcionalidades -->
           <div class="d-flex align-items-start">
             <span class="bg-primary bg-opacity-10 text-white px-3 py-1 rounded-pill mb-3"><i class="fa-solid fa-info-circle me-2"></i> O sistema possui as seguintes funcionalidades:</span>
           </div>
@@ -580,8 +500,6 @@
               <li>Carregando funcionalidades...</li>
             </ul>
           </div>
-          
-          <!-- Botão de Fechar -->
           <div class="text-center mt-4">
             <button type="button" class="btn btn-dark rounded-pill px-5 fw-bold border border-secondary" data-bs-dismiss="modal">FECHAR</button>
           </div>
@@ -593,9 +511,7 @@
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
     <div id="mtaAlertToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
-        <div class="toast-body">
-          <i class="fa-solid fa-circle-exclamation me-2"></i> Apenas um produto MTA pode ser adicionado ao carrinho.
-        </div>
+        <div class="toast-body"><i class="fa-solid fa-circle-exclamation me-2"></i> Apenas um produto MTA pode ser adicionado ao carrinho.</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
@@ -603,65 +519,27 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <script>
-    AOS.init({
-      duration: 800,
-      once: true,
-      offset: 100
-    });
-  </script>
+  <script>AOS.init({ duration: 800, once: true, offset: 100 });</script>
   <script>
     let cart = [];
-
-    async function loadCart() {
-      try {
-        const response = await fetch('/api/cart');
-        if (response.ok) {
-          cart = await response.json();
-          updateCartUI();
-        }
-      } catch (e) {
-        console.error('Erro ao carregar carrinho:', e);
-      }
-    }
-
-    async function saveCart() {
-      try {
-        await fetch('/api/cart', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cart })
-        });
-      } catch (e) {
-        console.error('Erro ao guardar carrinho:', e);
-      }
-    }
-
+    async function loadCart() { try { const response = await fetch('/api/cart'); if (response.ok) { cart = await response.json(); updateCartUI(); } } catch (e) { console.error('Erro ao carregar carrinho:', e); } }
+    async function saveCart() { try { await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart }) }); } catch (e) { console.error('Erro ao guardar carrinho:', e); } }
     document.addEventListener('DOMContentLoaded', loadCart);
-
     function addToCart(id, name, price, category, event) {
       if (category === 'MTA') {
         const hasMTA = cart.some(item => item.category === 'MTA');
-        if (hasMTA) {
-          const toastElement = document.getElementById('mtaAlertToast');
-          const toast = new bootstrap.Toast(toastElement);
-          toast.show();
-          return;
-        }
+        if (hasMTA) { const toastElement = document.getElementById('mtaAlertToast'); const toast = new bootstrap.Toast(toastElement); toast.show(); return; }
       }
-
       const existing = cart.find(i => i.id === id);
       if (existing) existing.quantity += 1;
       else cart.push({ id, name, price, quantity: 1, category });
-      saveCart();
-      updateCartUI();
+      saveCart(); updateCartUI();
       const btn = event.target.closest('button');
       const orig = btn.innerHTML;
       btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado';
       btn.classList.add('btn-success');
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); }, 2000);
     }
-
     function updateCartUI() {
       const badge = document.getElementById('cartCount');
       const list = document.getElementById('cartItemsList');
@@ -669,14 +547,8 @@
       const totalSpan = document.getElementById('cartTotal');
       const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
       badge.textContent = totalItems;
-      if (cart.length === 0) {
-        list.style.display = 'none';
-        empty.style.display = 'block';
-        totalSpan.textContent = '€0.00';
-        return;
-      }
-      empty.style.display = 'none';
-      list.style.display = 'block';
+      if (cart.length === 0) { list.style.display = 'none'; empty.style.display = 'block'; totalSpan.textContent = '€0.00'; return; }
+      empty.style.display = 'none'; list.style.display = 'block';
       let totalPrice = 0;
       list.innerHTML = cart.map((item, idx) => {
         const itemTotal = item.price * item.quantity;
@@ -690,45 +562,19 @@
       }).join('');
       totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
     }
-
-    function removeFromCart(index) {
-      cart.splice(index, 1);
-      saveCart();
-      updateCartUI();
-    }
-
-    // Função para abrir a modal de informações detalhadas
+    function removeFromCart(index) { cart.splice(index, 1); saveCart(); updateCartUI(); }
     function openInfoModal(id, name, videoUrl, featuresText) {
         const modal = new bootstrap.Modal(document.getElementById('infoModal'));
-        
-        // Atualizar Título
         document.getElementById('modalProductTitle').textContent = name;
-        
-        // Atualizar Vídeo
         const iframe = document.getElementById('modalVideoIframe');
         const container = document.getElementById('modalVideoContainer');
-        if (videoUrl && videoUrl.trim() !== '') {
-            container.style.display = 'block';
-            iframe.src = videoUrl;
-        } else {
-            container.style.display = 'none';
-            iframe.src = '';
-        }
-        
-        // Atualizar Lista de Funcionalidades
+        if (videoUrl && videoUrl.trim() !== '') { container.style.display = 'block'; iframe.src = videoUrl; } else { container.style.display = 'none'; iframe.src = ''; }
         const list = document.getElementById('modalFeaturesList');
         list.innerHTML = '';
         if (featuresText && featuresText.trim() !== '') {
             const featuresArray = featuresText.split('\n').filter(f => f.trim() !== '');
-            featuresArray.forEach(f => {
-                const li = document.createElement('li');
-                li.textContent = f.trim();
-                list.appendChild(li);
-            });
-        } else {
-            list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
-        }
-        
+            featuresArray.forEach(f => { const li = document.createElement('li'); li.textContent = f.trim(); list.appendChild(li); });
+        } else { list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>'; }
         modal.show();
     }
   </script>
