@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sobre Nós | Santos Resources</title>
-  <!-- 🔥 Favicon Emoji -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
+  
+  <!-- 🔥 FAVICON DINÂMICO -->
+  <link rel="icon" href="<%= siteSettings.logo_url ? siteSettings.logo_url : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>' %>" />
+  
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -67,67 +69,31 @@
     }
     .page-header h1 { font-weight: 900; font-size: clamp(2.5rem, 5vw, 4rem); }
 
-    .btn-discord {
-      background-color: #5865F2; color: white; font-weight: 600;
-      border-radius: 12px; padding: 12px 30px; transition: 0.3s;
-    }
+    .btn-discord { background-color: #5865F2; color: white; font-weight: 600; border-radius: 12px; padding: 12px 30px; transition: 0.3s; }
     .btn-discord:hover { background-color: #4752c4; color: white; transform: scale(1.05); }
 
-    .about-card {
-      border: none; border-radius: 24px; background: white;
-      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); transition: 0.3s; height: 100%;
-    }
+    .about-card { border: none; border-radius: 24px; background: white; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); transition: 0.3s; height: 100%; }
     .about-card:hover { box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
 
-    .team-card {
-      border: none; border-radius: 20px; background: white; padding: 30px; text-align: center;
-      transition: 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.03); height: 100%;
-    }
-    .team-card:hover {
-      transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-      border-bottom: 4px solid var(--primary);
-    }
-    .team-avatar {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: #e2e8f0; display: flex; align-items: center;
-      justify-content: center; margin: 0 auto 15px; font-size: 2rem; color: var(--primary);
-    }
+    .team-card { border: none; border-radius: 20px; background: white; padding: 30px; text-align: center; transition: 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.03); height: 100%; }
+    .team-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-bottom: 4px solid var(--primary); }
+    .team-avatar { width: 80px; height: 80px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 2rem; color: var(--primary); }
 
-    .accordion-item {
-      border: none; border-radius: 12px !important; margin-bottom: 15px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    }
-    .accordion-button {
-      border-radius: 12px !important; font-weight: 600; color: #1e293b;
-    }
+    .accordion-item { border: none; border-radius: 12px !important; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+    .accordion-button { border-radius: 12px !important; font-weight: 600; color: #1e293b; }
     .accordion-button:not(.collapsed) { background-color: #f8fafc; color: var(--primary); box-shadow: none; }
     .accordion-button:focus { box-shadow: none; border-color: #e2e8f0; }
 
-    .cart-floating-btn {
-      position: fixed; bottom: 30px; right: 30px; z-index: 999;
-      background: #0f172a; color: white; border-radius: 50px; padding: 16px 28px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: none; transition: 0.3s;
-    }
+    .cart-floating-btn { position: fixed; bottom: 30px; right: 30px; z-index: 999; background: #0f172a; color: white; border-radius: 50px; padding: 16px 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: none; transition: 0.3s; }
     .cart-floating-btn:hover { transform: scale(1.05); background: #1e293b; }
-    .cart-badge {
-      position: absolute; top: -6px; right: -6px; background: #ef4444;
-      color: white; border-radius: 50%; width: 26px; height: 26px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: bold;
-    }
+    .cart-badge { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
 
-    footer {
-      background: #0b1120; color: #94a3b8; padding: 60px 0 30px; margin-top: auto;
-    }
+    footer { background: #0b1120; color: #94a3b8; padding: 40px 0 20px; margin-top: auto; }
     footer h5, footer h6 { color: #fff; font-weight: 600; }
     footer a { color: #94a3b8; text-decoration: none; transition: 0.2s; }
     footer a:hover { color: var(--primary); }
     .footer-divider { border-color: rgba(255,255,255,0.06); }
-    .social-icon {
-      display: inline-flex; width: 40px; height: 40px; border-radius: 50%;
-      background: rgba(255,255,255,0.05); color: #fff; justify-content: center;
-      align-items: center; transition: 0.3s;
-    }
+    .social-icon { display: inline-flex; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.05); color: #fff; justify-content: center; align-items: center; transition: 0.3s; }
     .social-icon:hover { background: var(--primary); transform: translateY(-3px); }
   </style>
 </head>
@@ -135,7 +101,12 @@
   <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
     <div class="container">
       <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
-        <i class="fa-solid fa-cube me-2 text-primary" style="color: #6366f1;"></i> Santos Resources
+        <% if (siteSettings.logo_url) { %>
+          <img src="<%= siteSettings.logo_url %>" alt="Logo" class="me-2" style="height: 30px; width: 30px; object-fit: contain;">
+        <% } else { %>
+          <i class="fa-solid fa-cube me-2 text-primary" style="color: #6366f1;"></i>
+        <% } %>
+        Santos Resources
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
@@ -227,9 +198,7 @@
                 </button>
               </h2>
               <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                  Basta adicionar o produto ao carrinho na página <a href="/products">Produtos</a> e clicar em "Processar Pagamento" no ícone do carrinho. Isso te levará diretamente para o nosso Discord, onde poderás finalizar a compra conosco!
-                </div>
+                <div class="accordion-body">Basta adicionar o produto ao carrinho na página <a href="/products">Produtos</a> e clicar em "Processar Pagamento" no ícone do carrinho.</div>
               </div>
             </div>
             <div class="accordion-item">
@@ -239,9 +208,7 @@
                 </button>
               </h2>
               <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                  Sim! Todos os nossos produtos vêm com suporte dedicado 24/7 através do nosso servidor no Discord. Estamos sempre prontos para ajudar.
-                </div>
+                <div class="accordion-body">Sim! Todos os nossos produtos vêm com suporte dedicado 24/7 através do nosso servidor no Discord.</div>
               </div>
             </div>
             <div class="accordion-item">
@@ -251,9 +218,7 @@
                 </button>
               </h2>
               <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body">
-                  Absolutamente! Nós valorizamos a qualidade e estamos constantemente a lançar atualizações com novas funcionalidades e correções de segurança, sempre de forma gratuita para os nossos clientes.
-                </div>
+                <div class="accordion-body">Absolutamente! Nós valorizamos a qualidade e estamos constantemente a lançar atualizações com novas funcionalidades e correções de segurança, sempre de forma gratuita.</div>
               </div>
             </div>
           </div>
@@ -319,90 +284,30 @@
 
   <script>
     let cart = [];
-
-    async function loadCart() {
-      try {
-        const response = await fetch('/api/cart');
-        if (response.ok) {
-          cart = await response.json();
-          updateCartUI();
-        }
-      } catch (e) {
-        console.error('Erro ao carregar carrinho:', e);
-      }
-    }
-
-    async function saveCart() {
-      try {
-        await fetch('/api/cart', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cart })
-        });
-      } catch (e) {
-        console.error('Erro ao guardar carrinho:', e);
-      }
-    }
-
+    async function loadCart() { try { const response = await fetch('/api/cart'); if (response.ok) { cart = await response.json(); updateCartUI(); } } catch (e) { console.error('Erro ao carregar carrinho:', e); } }
+    async function saveCart() { try { await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart }) }); } catch (e) { console.error('Erro ao guardar carrinho:', e); } }
     document.addEventListener('DOMContentLoaded', loadCart);
-
     function addToCart(id, name, price, category, event) {
-      if (category === 'MTA') {
-        const hasMTA = cart.some(item => item.category === 'MTA');
-        if (hasMTA) {
-          const toastElement = document.getElementById('mtaAlertToast');
-          const toast = new bootstrap.Toast(toastElement);
-          toast.show();
-          return;
-        }
-      }
-
-      const existing = cart.find(i => i.id === id);
-      if (existing) existing.quantity += 1;
-      else cart.push({ id, name, price, quantity: 1, category });
-      saveCart();
-      updateCartUI();
-      const btn = event.target.closest('button');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado';
-      btn.classList.add('btn-success');
+      if (category === 'MTA') { const hasMTA = cart.some(item => item.category === 'MTA'); if (hasMTA) { const toastElement = document.getElementById('mtaAlertToast'); const toast = new bootstrap.Toast(toastElement); toast.show(); return; } }
+      const existing = cart.find(i => i.id === id); if (existing) existing.quantity += 1; else cart.push({ id, name, price, quantity: 1, category });
+      saveCart(); updateCartUI(); const btn = event.target.closest('button'); const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado'; btn.classList.add('btn-success');
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); }, 2000);
     }
-
     function updateCartUI() {
-      const badge = document.getElementById('cartCount');
-      const list = document.getElementById('cartItemsList');
-      const empty = document.getElementById('emptyCartMsg');
-      const totalSpan = document.getElementById('cartTotal');
-      const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
-      badge.textContent = totalItems;
-      if (cart.length === 0) {
-        list.style.display = 'none';
-        empty.style.display = 'block';
-        totalSpan.textContent = '€0.00';
-        return;
-      }
-      empty.style.display = 'none';
-      list.style.display = 'block';
-      let totalPrice = 0;
-      list.innerHTML = cart.map((item, idx) => {
-        const itemTotal = item.price * item.quantity;
-        totalPrice += itemTotal;
-        return `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
+      const badge = document.getElementById('cartCount'); const list = document.getElementById('cartItemsList');
+      const empty = document.getElementById('emptyCartMsg'); const totalSpan = document.getElementById('cartTotal');
+      const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0); badge.textContent = totalItems;
+      if (cart.length === 0) { list.style.display = 'none'; empty.style.display = 'block'; totalSpan.textContent = '€0.00'; return; }
+      empty.style.display = 'none'; list.style.display = 'block'; let totalPrice = 0;
+      list.innerHTML = cart.map((item, idx) => { const itemTotal = item.price * item.quantity; totalPrice += itemTotal; return `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
           <div><span class="fw-semibold">${item.name}</span> <span class="text-muted small ms-2">x${item.quantity}</span></div>
           <div><span class="fw-bold me-3">€${itemTotal.toFixed(2)}</span>
             <button class="btn btn-sm btn-outline-danger rounded-circle" onclick="removeFromCart(${idx})"><i class="fa-solid fa-xmark"></i></button>
           </div>
-        </li>`;
-      }).join('');
-      totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
+        </li>`; }).join(''); totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
     }
-
-    function removeFromCart(index) {
-      cart.splice(index, 1);
-      saveCart();
-      updateCartUI();
-    }
+    function removeFromCart(index) { cart.splice(index, 1); saveCart(); updateCartUI(); }
   </script>
 </body>
 </html>
