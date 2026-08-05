@@ -135,6 +135,23 @@
       height: 100%;
     }
     
+    /* 🔥 Etiqueta Badge para Produtos */
+    .product-badge {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: #ef4444; /* Vermelho vibrante */
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      z-index: 10;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+    }
+
     .product-image-area {
       width: 100%;
       height: 180px;
@@ -350,6 +367,12 @@
             <div class="col product-item" data-name="<%= p.name.toLowerCase() %>" data-category="<%= p.category %>" data-price="<%= p.price %>">
               <div class="card product-card-ref">
                 <div class="card-body">
+                  
+                  <!-- 🔥 BADGE DINÂMICO DO PRODUTO -->
+                  <% if (p.badge && p.badge.trim() !== '') { %>
+                    <div class="product-badge"><%= p.badge %></div>
+                  <% } %>
+
                   <button class="btn-info" onclick="openInfoModal(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', '<%= p.video_link || "" %>', `<%= p.features || "" %>`)" title="Ver detalhes">
                     <i class="fa-solid fa-info"></i>
                   </button>
