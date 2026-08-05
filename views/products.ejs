@@ -97,7 +97,6 @@
     .dropdown-toggle::after {
       display: none; 
     }
-    /* Permite abrir o menu tanto ao clicar como ao passar o rato */
     .navbar .dropdown:hover .dropdown-menu {
       display: block;
       margin-top: 0;
@@ -135,22 +134,30 @@
       height: 100%;
     }
     
-    /* 🔥 Etiqueta Badge para Produtos */
+    /* 🔥 Etiqueta Badge - Estilo da Imagem (Canto Direito, Fundo Preto, Borda Colorida) */
     .product-badge {
       position: absolute;
-      top: 15px;
-      left: 15px;
-      background: #ef4444; /* Vermelho vibrante */
-      color: #ffffff;
-      padding: 6px 14px;
-      border-radius: 50px;
-      font-size: 0.75rem;
+      top: 12px;
+      right: 12px;
+      background: #0b1120;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.7rem;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
       z-index: 10;
-      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+      border: 2px solid #94a3b8;
+      color: #94a3b8;
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
+    .product-badge.badge-green { border-color: #10b981; color: #10b981; }
+    .product-badge.badge-yellow { border-color: #facc15; color: #facc15; }
+    .product-badge.badge-orange { border-color: #f97316; color: #f97316; }
+    .product-badge.badge-red { border-color: #ef4444; color: #ef4444; }
+    .product-badge.badge-blue { border-color: #3b82f6; color: #3b82f6; }
+    .product-badge.badge-white { border-color: #475569; color: #94a3b8; }
 
     .product-image-area {
       width: 100%;
@@ -214,11 +221,12 @@
       font-weight: 700;
       padding: 12px;
       border: none;
-      transition: 0.3s;
+      transition: all 0.3s ease;
     }
     .product-card-ref .btn-buy:hover {
       background: #67e8f9;
-      transform: scale(1.02);
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(34, 211, 238, 0.6);
     }
     .product-card-ref .btn-info {
       position: absolute;
@@ -241,21 +249,19 @@
       color: #fff;
     }
 
-    .modal-dark { background: rgba(0, 0, 0, 0.8) !important; }
-    .modal-dark .modal-content { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 20px; }
-    .modal-dark .modal-header { border-bottom: none; }
-    .modal-dark .modal-body h3 { color: white; font-weight: 700; margin-top: 15px; }
-    .features-code-block { background: #020617; border-radius: 12px; padding: 20px; margin-top: 10px; border: 1px solid #1e293b; font-family: 'Inter', sans-serif; }
-    .features-code-block ul { list-style: none; padding-left: 0; margin: 0; }
-    .features-code-block li { padding: 6px 0; font-size: 0.95rem; color: #cbd5e1; }
-    .features-code-block li::before { content: '⚙️ '; color: #22d3ee; }
+    /* 🔥 GLOW EFFECTS GERAIS */
+    .btn-glow { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; }
+    .btn-glow:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 25px rgba(34, 211, 238, 0.5); }
+    .btn-primary.btn-glow:hover, .navbar .btn-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5); transform: translateY(-2px) scale(1.02); }
+    .btn-outline-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); transform: translateY(-2px); }
+    .btn-discord:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5); }
 
     .search-input { border-radius: 50px; padding: 12px 20px; border: 1px solid #e2e8f0; transition: 0.2s; }
     .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
     .filter-select { border-radius: 50px; padding: 10px 20px; border: 1px solid #e2e8f0; background: white; }
 
-    .cart-floating-btn { position: fixed; bottom: 30px; right: 30px; z-index: 999; background: #0f172a; color: white; border-radius: 50px; padding: 16px 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: none; transition: 0.3s; }
-    .cart-floating-btn:hover { transform: scale(1.05); background: #1e293b; }
+    .cart-floating-btn { position: fixed; bottom: 30px; right: 30px; z-index: 999; background: #0f172a; color: white; border-radius: 50px; padding: 16px 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: none; transition: all 0.3s ease; }
+    .cart-floating-btn:hover { transform: scale(1.05); background: #1e293b; box-shadow: 0 8px 30px rgba(15, 23, 42, 0.6); }
     .cart-badge { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
 
     #backToTop { position: fixed; bottom: 100px; right: 30px; z-index: 999; display: none; border-radius: 50px; padding: 12px 16px; border: none; background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.3s; cursor: pointer; font-size: 1.2rem; }
@@ -268,6 +274,15 @@
     .footer-divider { border-color: rgba(255,255,255,0.06); }
     .social-icon { display: inline-flex; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.05); color: #fff; justify-content: center; align-items: center; transition: 0.3s; }
     .social-icon:hover { background: var(--primary); transform: translateY(-3px); }
+
+    .modal-dark { background: rgba(0, 0, 0, 0.8) !important; }
+    .modal-dark .modal-content { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 20px; }
+    .modal-dark .modal-header { border-bottom: none; }
+    .modal-dark .modal-body h3 { color: white; font-weight: 700; margin-top: 15px; }
+    .features-code-block { background: #020617; border-radius: 12px; padding: 20px; margin-top: 10px; border: 1px solid #1e293b; font-family: 'Inter', sans-serif; }
+    .features-code-block ul { list-style: none; padding-left: 0; margin: 0; }
+    .features-code-block li { padding: 6px 0; font-size: 0.95rem; color: #cbd5e1; }
+    .features-code-block li::before { content: '⚙️ '; color: #22d3ee; }
   </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -293,31 +308,21 @@
         </ul>
         <div class="d-flex align-items-center gap-3">
           <% if (user) { %>
-            <!-- Menu Dropdown da Conta -->
             <div class="dropdown">
               <span class="text-light small dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
                 <i class="fa-regular fa-circle-user fa-lg"></i>
                 <strong class="d-none d-md-inline"><%= user.username %></strong>
               </span>
               <ul class="dropdown-menu dropdown-menu-end">
-                <!-- Mostra o Painel Admin Apenas se for Admin -->
                 <% if (isAdmin) { %>
-                  <li>
-                    <a class="dropdown-item" href="/admin/dashboard">
-                      <i class="fa-solid fa-screwdriver-wrench text-warning"></i> Painel Admin
-                    </a>
-                  </li>
+                  <li><a class="dropdown-item" href="/admin/dashboard"><i class="fa-solid fa-screwdriver-wrench text-warning"></i> Painel Admin</a></li>
                   <li><hr class="dropdown-divider"></li>
                 <% } %>
-                <li>
-                  <a class="dropdown-item" href="/logout">
-                    <i class="fa-solid fa-right-from-bracket text-danger"></i> Sair
-                  </a>
-                </li>
+                <li><a class="dropdown-item" href="/logout"><i class="fa-solid fa-right-from-bracket text-danger"></i> Sair</a></li>
               </ul>
             </div>
           <% } else { %>
-            <a href="/auth/discord" class="btn btn-primary btn-sm px-4 rounded-pill"><i class="fa-brands fa-discord me-2"></i>Entrar</a>
+            <a href="/auth/discord" class="btn btn-primary btn-sm px-4 rounded-pill btn-glow"><i class="fa-brands fa-discord me-2"></i>Entrar</a>
           <% } %>
         </div>
       </div>
@@ -336,54 +341,42 @@
       <% if (locals.error) { %><div class="alert alert-danger"><%= locals.error %></div><% } %>
       
       <div class="row mb-4 align-items-center g-3" data-aos="fade-up">
-        <div class="col-md-5">
-          <input type="text" id="searchInput" class="search-input w-100" placeholder="Pesquisar por nome...">
-        </div>
-        <div class="col-md-3">
-          <select id="sortPrice" class="filter-select w-100">
-            <option value="default">Preço</option>
-            <option value="low-high">Mais Baratos</option>
-            <option value="high-low">Mais Caros</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <select id="sortCategory" class="filter-select w-100">
-            <option value="default">Categoria</option>
-            <option value="MTA">MTA</option>
-            <option value="Discord Bot">Discord</option>
-            <option value="Site">Site</option>
-          </select>
-        </div>
+        <div class="col-md-5"><input type="text" id="searchInput" class="search-input w-100" placeholder="Pesquisar por nome..."></div>
+        <div class="col-md-3"><select id="sortPrice" class="filter-select w-100"><option value="default">Preço</option><option value="low-high">Mais Baratos</option><option value="high-low">Mais Caros</option></select></div>
+        <div class="col-md-4"><select id="sortCategory" class="filter-select w-100"><option value="default">Categoria</option><option value="MTA">MTA</option><option value="Discord Bot">Discord</option><option value="Site">Site</option></select></div>
       </div>
 
       <div id="productsGrid" class="row row-cols-1 row-cols-md-3 g-4">
         <% if (products.length === 0) { %>
-          <div class="col-12 text-center text-muted py-5">
-            <h4><i class="fa-regular fa-circle-question me-2"></i> Nenhum produto cadastrado!</h4>
-            <% if (isAdmin) { %><p class="small">A loja está vazia. Acesse o <a href="/admin" class="text-decoration-underline">Painel Admin</a> para adicionar os seus primeiros produtos!</p><% } else { %><p class="small">Nenhum produto disponível no momento. Volte em breve!</p><% } %>
-          </div>
+          <div class="col-12 text-center text-muted py-5"><h4><i class="fa-regular fa-circle-question me-2"></i> Nenhum produto cadastrado!</h4></div>
         <% } else { %>
           <% products.forEach((p, index) => { %>
             <div class="col product-item" data-name="<%= p.name.toLowerCase() %>" data-category="<%= p.category %>" data-price="<%= p.price %>">
               <div class="card product-card-ref">
                 <div class="card-body">
-                  
-                  <!-- 🔥 BADGE DINÂMICO DO PRODUTO -->
+                  <% 
+                    let badgeClass = 'badge-white';
+                    if (p.badge && p.badge.trim() !== '') {
+                      const text = p.badge.toLowerCase();
+                      if (text.includes('pré') || text.includes('pre-venda')) badgeClass = 'badge-green';
+                      else if (text.includes('lançamento') || text.includes('lancamento')) badgeClass = 'badge-yellow';
+                      else if (text.includes('plano')) badgeClass = 'badge-orange';
+                      else if (text.includes('todos') || text.includes('oferta')) badgeClass = 'badge-red';
+                      else if (text.includes('novo')) badgeClass = 'badge-blue';
+                    }
+                  %>
                   <% if (p.badge && p.badge.trim() !== '') { %>
-                    <div class="product-badge"><%= p.badge %></div>
+                    <div class="product-badge <%= badgeClass %>"><%= p.badge %></div>
                   <% } %>
 
-                  <button class="btn-info" onclick="openInfoModal(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', '<%= p.video_link || "" %>', `<%= p.features || "" %>`)" title="Ver detalhes">
-                    <i class="fa-solid fa-info"></i>
-                  </button>
+                  <button class="btn-info" onclick="openInfoModal(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', '<%= p.video_link || "" %>', `<%= p.features || "" %>`)" title="Ver detalhes"><i class="fa-solid fa-info"></i></button>
                   
                   <div class="product-image-area">
                     <% if (p.thumbnail && p.thumbnail.trim() !== '') { %>
                       <img src="<%= p.thumbnail %>" alt="<%= p.name %>" onerror="this.style.display='none'; this.parentElement.querySelector('.img-placeholder').style.display='flex'">
                     <% } %>
                     <div class="img-placeholder" style="<%= (p.thumbnail && p.thumbnail.trim() !== '') ? 'display: none;' : 'display: flex;' %>">
-                      <i class="fa-solid fa-image"></i>
-                      <span>Sem Imagem</span>
+                      <i class="fa-solid fa-image"></i><span>Sem Imagem</span>
                     </div>
                   </div>
 
@@ -402,34 +395,16 @@
   <footer>
     <div class="container">
       <div class="row">
-        <div class="col-md-4 mb-4">
-          <h5 class="fw-bold"><i class="fa-solid fa-cube text-primary me-2"></i> Santos Resources</h5>
-          <p class="small text-muted">Soluções de alta performance para MTA e Discord. Confiança e qualidade.</p>
-        </div>
-        <div class="col-md-4 mb-4 text-center">
-          <h6 class="fw-bold">Links Rápidos</h6>
-          <div class="d-flex flex-column">
-            <a href="/products" class="small mb-1">Produtos</a>
-            <a href="/about" class="small mb-1">Sobre Nós</a>
-            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="small">Discord</a>
-          </div>
-        </div>
-        <div class="col-md-4 mb-4 text-end">
-          <h6 class="fw-bold">Redes Sociais</h6>
-          <div class="d-flex justify-content-end gap-2">
-            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="social-icon"><i class="fa-brands fa-discord"></i></a>
-          </div>
-        </div>
+        <div class="col-md-4 mb-4"><h5 class="fw-bold"><i class="fa-solid fa-cube text-primary me-2"></i> Santos Resources</h5><p class="small text-muted">Soluções de alta performance para MTA e Discord. Confiança e qualidade.</p></div>
+        <div class="col-md-4 mb-4 text-center"><h6 class="fw-bold">Links Rápidos</h6><div class="d-flex flex-column"><a href="/products" class="small mb-1">Produtos</a><a href="/about" class="small mb-1">Sobre Nós</a><a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="small">Discord</a></div></div>
+        <div class="col-md-4 mb-4 text-end"><h6 class="fw-bold">Redes Sociais</h6><div class="d-flex justify-content-end gap-2"><a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="social-icon"><i class="fa-brands fa-discord"></i></a></div></div>
       </div>
       <hr class="footer-divider">
       <p class="mb-0 small text-center">&copy; 2026 Santos Resources. Todos os direitos reservados.</p>
     </div>
   </footer>
 
-  <button class="cart-floating-btn" data-bs-toggle="modal" data-bs-target="#cartModal">
-    <i class="fa-solid fa-cart-shopping fa-lg"></i>
-    <span class="cart-badge" id="cartCount">0</span>
-  </button>
+  <button class="cart-floating-btn" data-bs-toggle="modal" data-bs-target="#cartModal"><i class="fa-solid fa-cart-shopping fa-lg"></i><span class="cart-badge" id="cartCount">0</span></button>
 
   <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -450,9 +425,7 @@
     </div>
   </div>
 
-  <button id="backToTop" onclick="window.scrollTo({ top: 0, behavior: 'smooth' });">
-    <i class="fa-solid fa-arrow-up"></i>
-  </button>
+  <button id="backToTop" onclick="window.scrollTo({ top: 0, behavior: 'smooth' });"><i class="fa-solid fa-arrow-up"></i></button>
 
   <div class="modal fade modal-dark" id="infoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -486,44 +459,124 @@
   <script>AOS.init({ duration: 800, once: true });</script>
 
   <script>
-    window.addEventListener('scroll', function() { const btn = document.getElementById('backToTop'); if (window.scrollY > 300) { btn.style.display = 'block'; } else { btn.style.display = 'none'; } });
+    window.addEventListener('scroll', function() {
+      const btn = document.getElementById('backToTop');
+      if (window.scrollY > 300) { btn.style.display = 'block'; } else { btn.style.display = 'none'; }
+    });
+
     let cart = [];
-    async function loadCart() { try { const response = await fetch('/api/cart'); if (response.ok) { cart = await response.json(); updateCartUI(); } } catch (e) { console.error('Erro ao carregar carrinho:', e); } }
-    async function saveCart() { try { await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart }) }); } catch (e) { console.error('Erro ao guardar carrinho:', e); } }
+
+    async function loadCart() {
+      try {
+        const response = await fetch('/api/cart');
+        if (response.ok) {
+          cart = await response.json();
+          updateCartUI();
+        }
+      } catch (e) {
+        console.error('Erro ao carregar carrinho:', e);
+      }
+    }
+
+    async function saveCart() {
+      try {
+        await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cart })
+        });
+      } catch (e) {
+        console.error('Erro ao guardar carrinho:', e);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', loadCart);
+
     function addToCart(id, name, price, category, event) {
-      if (category === 'MTA') { const hasMTA = cart.some(item => item.category === 'MTA'); if (hasMTA) { const toastElement = document.getElementById('mtaAlertToast'); const toast = new bootstrap.Toast(toastElement); toast.show(); return; } }
-      const existing = cart.find(i => i.id === id); if (existing) existing.quantity += 1; else cart.push({ id, name, price, quantity: 1, category });
-      saveCart(); updateCartUI(); const btn = event.target.closest('button'); const orig = btn.innerHTML;
-      btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado'; btn.classList.add('btn-success');
+      if (category === 'MTA') {
+        const hasMTA = cart.some(item => item.category === 'MTA');
+        if (hasMTA) {
+          const toastElement = document.getElementById('mtaAlertToast');
+          const toast = new bootstrap.Toast(toastElement);
+          toast.show();
+          return;
+        }
+      }
+
+      const existing = cart.find(i => i.id === id);
+      if (existing) existing.quantity += 1;
+      else cart.push({ id, name, price, quantity: 1, category });
+      saveCart();
+      updateCartUI();
+      const btn = event.target.closest('button');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado';
+      btn.classList.add('btn-success');
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); }, 2000);
     }
+
     function updateCartUI() {
-      const badge = document.getElementById('cartCount'); const list = document.getElementById('cartItemsList');
-      const empty = document.getElementById('emptyCartMsg'); const totalSpan = document.getElementById('cartTotal');
-      const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0); badge.textContent = totalItems;
-      if (cart.length === 0) { list.style.display = 'none'; empty.style.display = 'block'; totalSpan.textContent = '€0.00'; return; }
-      empty.style.display = 'none'; list.style.display = 'block'; let totalPrice = 0;
-      list.innerHTML = cart.map((item, idx) => { const itemTotal = item.price * item.quantity; totalPrice += itemTotal; return `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
+      const badge = document.getElementById('cartCount');
+      const list = document.getElementById('cartItemsList');
+      const empty = document.getElementById('emptyCartMsg');
+      const totalSpan = document.getElementById('cartTotal');
+      const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
+      badge.textContent = totalItems;
+      if (cart.length === 0) {
+        list.style.display = 'none';
+        empty.style.display = 'block';
+        totalSpan.textContent = '€0.00';
+        return;
+      }
+      empty.style.display = 'none';
+      list.style.display = 'block';
+      let totalPrice = 0;
+      list.innerHTML = cart.map((item, idx) => {
+        const itemTotal = item.price * item.quantity;
+        totalPrice += itemTotal;
+        return `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
           <div><span class="fw-semibold">${item.name}</span> <span class="text-muted small ms-2">x${item.quantity}</span></div>
           <div><span class="fw-bold me-3">€${itemTotal.toFixed(2)}</span>
             <button class="btn btn-sm btn-outline-danger rounded-circle" onclick="removeFromCart(${idx})"><i class="fa-solid fa-xmark"></i></button>
           </div>
-        </li>`; }).join(''); totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
+        </li>`;
+      }).join('');
+      totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
     }
-    function removeFromCart(index) { cart.splice(index, 1); saveCart(); updateCartUI(); }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      saveCart();
+      updateCartUI();
+    }
+
     function openInfoModal(id, name, videoUrl, featuresText) {
         const modal = new bootstrap.Modal(document.getElementById('infoModal'));
         document.getElementById('modalProductTitle').textContent = name;
-        const iframe = document.getElementById('modalVideoIframe'); const container = document.getElementById('modalVideoContainer');
-        if (videoUrl && videoUrl.trim() !== '') { container.style.display = 'block'; iframe.src = videoUrl; } else { container.style.display = 'none'; iframe.src = ''; }
-        const list = document.getElementById('modalFeaturesList'); list.innerHTML = '';
+        const iframe = document.getElementById('modalVideoIframe');
+        const container = document.getElementById('modalVideoContainer');
+        if (videoUrl && videoUrl.trim() !== '') {
+          container.style.display = 'block';
+          iframe.src = videoUrl;
+        } else {
+          container.style.display = 'none';
+          iframe.src = '';
+        }
+        const list = document.getElementById('modalFeaturesList');
+        list.innerHTML = '';
         if (featuresText && featuresText.trim() !== '') {
             const featuresArray = featuresText.split('\n').filter(f => f.trim() !== '');
-            featuresArray.forEach(f => { const li = document.createElement('li'); li.textContent = f.trim(); list.appendChild(li); });
-        } else { list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>'; }
+            featuresArray.forEach(f => {
+              const li = document.createElement('li');
+              li.textContent = f.trim();
+              list.appendChild(li);
+            });
+        } else {
+          list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
+        }
         modal.show();
     }
+
     const productItems = document.querySelectorAll('.product-item');
     function filterAndSort() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
