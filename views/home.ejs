@@ -61,6 +61,48 @@
     .navbar-glass .nav-link:hover::after,
     .navbar-glass .nav-link.active::after { width: 80%; }
 
+    /* 🔥 Menu Dropdown do Utilizador (Estilo Escuro) */
+    .navbar .dropdown-menu {
+      background-color: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 8px;
+      min-width: 200px;
+      margin-top: 12px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+    .navbar .dropdown-item {
+      color: #94a3b8;
+      border-radius: 8px;
+      padding: 10px 15px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar .dropdown-item:hover, 
+    .navbar .dropdown-item:focus {
+      background: rgba(255,255,255,0.1);
+      color: #ffffff;
+      transform: translateX(3px);
+    }
+    .navbar .dropdown-divider {
+      border-color: rgba(255,255,255,0.06);
+      margin: 4px 0;
+    }
+    .dropdown-toggle {
+      cursor: pointer;
+      user-select: none;
+    }
+    .dropdown-toggle::after {
+      display: none; 
+    }
+    /* Permite abrir o menu tanto ao clicar como ao passar o rato */
+    .navbar .dropdown:hover .dropdown-menu {
+      display: block;
+      margin-top: 0;
+    }
+
     .hero-section {
       background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 70%, #0b1120 100%);
       color: white;
@@ -296,9 +338,29 @@
         </ul>
         <div class="d-flex align-items-center gap-3">
           <% if (user) { %>
-            <span class="text-light small"><i class="fa-regular fa-circle-user me-1"></i> <strong><%= user.username %></strong></span>
-            <% if (isAdmin) { %><a href="/admin/dashboard" class="btn btn-warning btn-sm fw-bold shadow"><i class="fa-solid fa-screwdriver-wrench me-1"></i> Painel</a><% } %>
-            <a href="/logout" class="btn btn-outline-light btn-sm rounded-pill px-3">Sair</a>
+            <!-- Menu Dropdown da Conta -->
+            <div class="dropdown">
+              <span class="text-light small dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                <i class="fa-regular fa-circle-user fa-lg"></i>
+                <strong class="d-none d-md-inline"><%= user.username %></strong>
+              </span>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <!-- Mostra o Painel Admin Apenas se for Admin -->
+                <% if (isAdmin) { %>
+                  <li>
+                    <a class="dropdown-item" href="/admin/dashboard">
+                      <i class="fa-solid fa-screwdriver-wrench text-warning"></i> Painel Admin
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                <% } %>
+                <li>
+                  <a class="dropdown-item" href="/logout">
+                    <i class="fa-solid fa-right-from-bracket text-danger"></i> Sair
+                  </a>
+                </li>
+              </ul>
+            </div>
           <% } else { %>
             <a href="/auth/discord" class="btn btn-primary btn-sm px-4 rounded-pill"><i class="fa-brands fa-discord me-2"></i>Entrar</a>
           <% } %>
