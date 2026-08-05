@@ -74,7 +74,7 @@
               <label class="form-label small fw-bold text-muted">Link do Vídeo (YouTube Embed)</label>
               <input type="text" name="video_link" class="form-control bg-light border-0" placeholder="https://www.youtube.com/embed/ID_VIDEO">
             </div>
-            <!-- 🔥 NOVO CAMPO: BADGE -->
+            <!-- 🔥 CAMPO BADGE -->
             <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Etiqueta (Badge)</label>
               <input type="text" name="badge" class="form-control bg-light border-0" placeholder="Ex: Novo, Promoção, Top">
@@ -100,7 +100,8 @@
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
-                  <tr><th class="ps-4">ID</th><th>Nome</th><th>Descrição</th><th class="text-center">Categoria</th><th class="text-center">Preço</th><th class="text-center">Status</th><th class="text-center">Destaque</th><th class="text-center">Badge</th><th class="text-end pe-4">Ações</th></tr>
+                  <!-- 🔥 REMOVIDA A COLUNA "DESTAQUE" -->
+                  <tr><th class="ps-4">ID</th><th>Nome</th><th>Descrição</th><th class="text-center">Categoria</th><th class="text-center">Preço</th><th class="text-center">Status</th><th class="text-center">Badge</th><th class="text-end pe-4">Ações</th></tr>
                 </thead>
                 <tbody>
                   <% products.forEach(p => { %>
@@ -112,16 +113,6 @@
                       <td class="text-center fw-bold">€<%= p.price.toFixed(2) %></td>
                       <td class="text-center">
                         <% if (p.is_active === 1) { %><span class="badge bg-success rounded-pill px-3">Ativo</span><% } else { %><span class="badge bg-danger rounded-pill px-3">Inativo</span><% } %>
-                      </td>
-                      <td class="text-center">
-                        <% if (p.is_featured === 1) { %>
-                          <span class="badge bg-warning text-dark px-3">⭐ Destaque</span>
-                        <% } else { %>
-                          <span class="badge bg-secondary px-3">Normal</span>
-                        <% } %>
-                        <button class="btn btn-sm <%= p.is_featured === 1 ? 'btn-outline-warning' : 'btn-warning' %> ms-1" onclick="openFeatureModal('/admin/products/feature/<%= p.id %>')">
-                          <%= p.is_featured === 1 ? 'Remover' : 'Destacar' %>
-                        </button>
                       </td>
                       <td class="text-center">
                         <% if (p.badge && p.badge.trim() !== '') { %>
@@ -191,7 +182,7 @@
     </div>
   </div>
 
-  <!-- Modais de Confirmação -->
+  <!-- Modais de Confirmação (Mantidas iguais) -->
   <div class="modal fade" id="editConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content p-3">
@@ -201,9 +192,36 @@
       </div>
     </div>
   </div>
-  <div class="modal fade" id="toggleConfirmModal" tabindex="-1" aria-hidden="true"> ... </div>
-  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true"> ... </div>
-  <div class="modal fade" id="featureConfirmModal" tabindex="-1" aria-hidden="true"> ... </div>
+  <div class="modal fade" id="toggleConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-toggle-on me-2"></i> Confirmar Alteração de Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="toggleModalMessage">Tem certeza que deseja alterar o status deste produto?</div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold" id="confirmToggleBtn">Sim, Alterar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Confirmar Exclusão</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="deleteModalMessage">Tem certeza que deseja apagar este item? <br><span class="text-danger fw-bold">Esta ação é irreversível!</span></div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" id="confirmDeleteBtn">Sim, Apagar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
@@ -216,6 +234,7 @@
         myModal.show();
     }
     document.getElementById('confirmEditBtn').addEventListener('click', function() { if(currentEditForm) currentEditForm.submit(); });
+
     let currentToggleForm = document.getElementById('toggleForm');
     if(!currentToggleForm) { currentToggleForm = document.createElement('form'); currentToggleForm.id = 'toggleForm'; currentToggleForm.method = 'POST'; document.body.appendChild(currentToggleForm); }
     function openToggleModal(action, statusAction, itemName) {
@@ -225,6 +244,7 @@
         myModal.show();
     }
     document.getElementById('confirmToggleBtn').addEventListener('click', function() { currentToggleForm.submit(); });
+
     let currentDeleteForm = document.getElementById('deleteForm');
     if(!currentDeleteForm) { currentDeleteForm = document.createElement('form'); currentDeleteForm.id = 'deleteForm'; currentDeleteForm.method = 'POST'; document.body.appendChild(currentDeleteForm); }
     function openDeleteModal(action, itemName) {
@@ -234,15 +254,6 @@
         myModal.show();
     }
     document.getElementById('confirmDeleteBtn').addEventListener('click', function() { currentDeleteForm.submit(); });
-    let currentFeatureForm = document.getElementById('featureForm');
-    if(!currentFeatureForm) { currentFeatureForm = document.createElement('form'); currentFeatureForm.id = 'featureForm'; currentFeatureForm.method = 'POST'; document.body.appendChild(currentFeatureForm); }
-    function openFeatureModal(action) {
-        document.getElementById('featureConfirmModalMessage').innerHTML = `Tem certeza que deseja alterar o destaque deste produto?`;
-        currentFeatureForm.action = action;
-        const myModal = new bootstrap.Modal(document.getElementById('featureConfirmModal'));
-        myModal.show();
-    }
-    document.getElementById('confirmFeatureBtn').addEventListener('click', function() { currentFeatureForm.submit(); });
   </script>
 </body>
 </html>
