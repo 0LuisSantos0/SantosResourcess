@@ -242,7 +242,9 @@ async function getApp() {
 
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
-      // ÁREA ADMINISTRATIVA
+      // ================================================================
+      // ROTAS DO ADMIN
+      // ================================================================
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
@@ -272,40 +274,48 @@ async function getApp() {
         res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
       });
 
+      // 🔥 ROTA ADICIONAR COM TRATAMENTO DE ERRO
       app.post('/admin/products/add', isAdmin, async (req, res) => {
-        const { name, description, price, category, thumbnail, video_link, features } = req.body;
-        if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
-        await pool.query(
-          'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features) VALUES ($1, $2, $3, $4, 1, $5, $6, $7)',
-          [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features]
-        );
-        await logActivity(req, `Criou o produto: ${name}`);
-        await req.session.save();
-        res.redirect(303, '/admin');
+        try {
+          const { name, description, price, category, thumbnail, video_link, features } = req.body;
+          if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
+          await pool.query(
+            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features) VALUES ($1, $2, $3, $4, 1, $5, $6, $7)',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features]
+          );
+          await logActivity(req, `Criou o produto: ${name}`);
+          res.redirect(303, '/admin');
+        } catch (err) {
+          console.error('❌ Erro ao adicionar produto:', err);
+          res.status(500).send(`<h3>Erro ao adicionar</h3><p>${err.message}</p><a href="/admin">Voltar</a>`);
+        }
       });
 
+      // 🔥 ROTA EDITAR COM TRATAMENTO DE ERRO (CORRIGE O CARREGAMENTO INFINITO)
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
-        const { name, description, price, category, thumbnail, video_link, features } = req.body;
-        await pool.query(
-          'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7 WHERE id = $8',
-          [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, req.params.id]
-        );
-        await logActivity(req, `Editou o produto: ${name}`);
-        await req.session.save();
-        res.redirect(303, '/admin');
+        try {
+          const { name, description, price, category, thumbnail, video_link, features } = req.body;
+          await pool.query(
+            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7 WHERE id = $8',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, req.params.id]
+          );
+          await logActivity(req, `Editou o produto: ${name}`);
+          res.redirect(303, '/admin'); 
+        } catch (err) {
+          console.error('❌ Erro ao editar produto:', err);
+          res.status(500).send(`<h3>Erro ao salvar as alterações</h3><p><strong>Detalhe:</strong> ${err.message}</p><p>Verifique se a coluna 'thumbnail' existe na base de dados.</p><a href="/admin">Voltar</a>`);
+        }
       });
 
       app.post('/admin/products/delete/:id', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT name FROM products WHERE id = $1', [req.params.id]);
         await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
         await logActivity(req, `Apagou o produto: ${result.rows[0]?.name || 'ID ' + req.params.id}`);
-        await req.session.save();
         res.redirect(303, '/admin');
       });
 
       app.post('/admin/toggle/:id', isAdmin, async (req, res) => {
         await pool.query('UPDATE products SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
-        await req.session.save();
         res.redirect(303, '/admin');
       });
 
@@ -317,13 +327,11 @@ async function getApp() {
         const isCurrentlyFeatured = currentResult.rows[0]?.is_featured === 1;
 
         if (!isCurrentlyFeatured && currentCount >= 3) {
-          await req.session.save();
           return res.redirect(303, '/admin?error=max_featured');
         }
 
         await pool.query('UPDATE products SET is_featured = 1 - is_featured WHERE id = $1', [id]);
         await logActivity(req, `Alterou o destaque do produto ID ${id}`);
-        await req.session.save();
         res.redirect(303, '/admin');
       });
 
@@ -366,7 +374,6 @@ async function getApp() {
         await pool.query('INSERT INTO discounts (code, description, percentage, is_active) VALUES ($1, $2, $3, 1)',
           [code, description, parseInt(percentage)]);
         await logActivity(req, `Criou o desconto: ${code}`);
-        await req.session.save();
         res.redirect(303, '/admin/discounts');
       });
 
@@ -375,7 +382,6 @@ async function getApp() {
         await pool.query('UPDATE discounts SET code = $1, description = $2, percentage = $3 WHERE id = $4',
           [code, description, parseInt(percentage), req.params.id]);
         await logActivity(req, `Editou o desconto: ${code}`);
-        await req.session.save();
         res.redirect(303, '/admin/discounts');
       });
 
@@ -383,13 +389,11 @@ async function getApp() {
         const result = await pool.query('SELECT code FROM discounts WHERE id = $1', [req.params.id]);
         await pool.query('DELETE FROM discounts WHERE id = $1', [req.params.id]);
         await logActivity(req, `Apagou o desconto: ${result.rows[0]?.code || 'ID ' + req.params.id}`);
-        await req.session.save();
         res.redirect(303, '/admin/discounts');
       });
 
       app.post('/admin/discounts/toggle/:id', isAdmin, async (req, res) => {
         await pool.query('UPDATE discounts SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
-        await req.session.save();
         res.redirect(303, '/admin/discounts');
       });
 
@@ -398,6 +402,7 @@ async function getApp() {
         res.render('admin/logs', { logs: result.rows, activeTab: 'logs', error: null, user: req.session.user });
       });
 
+      // 🔥 ROTA DE CONFIGURAÇÕES COM TRATAMENTO DE ERRO
       app.get('/admin/settings', isAdmin, async (req, res) => {
         res.render('admin/settings', { 
           settings: res.locals.siteSettings, 
@@ -408,11 +413,15 @@ async function getApp() {
       });
 
       app.post('/admin/settings/update', isAdmin, async (req, res) => {
-        const { site_name, discord_link, logo_url } = req.body;
-        await pool.query('UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3 WHERE id = 1', [site_name, discord_link, logo_url]);
-        await logActivity(req, `Atualizou as configurações do site.`);
-        await req.session.save();
-        res.redirect(303, '/admin/settings');
+        try {
+          const { site_name, discord_link, logo_url } = req.body;
+          await pool.query('UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3 WHERE id = 1', [site_name, discord_link, logo_url]);
+          await logActivity(req, `Atualizou as configurações do site.`);
+          res.redirect(303, '/admin/settings');
+        } catch (err) {
+          console.error('❌ Erro ao atualizar configurações:', err);
+          res.status(500).send(`<h3>Erro ao salvar configurações</h3><p>${err.message}</p><a href="/admin/settings">Voltar</a>`);
+        }
       });
 
       console.log('🚀 Santos Resources configurado e a aguardar pedidos.');
