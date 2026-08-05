@@ -45,13 +45,14 @@
         <div class="admin-card shadow-sm mb-4 p-4">
           <h5 class="fw-bold mb-4"><i class="fa-solid fa-plus-circle text-success me-2"></i> Adicionar Novo Produto</h5>
           <form action="/admin/products/add" method="POST" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Nome do Produto</label>
               <input type="text" name="name" class="form-control bg-light border-0" placeholder="Ex: Anti-Cheat" required>
             </div>
-            <div class="col-md-3">
-              <label class="form-label small fw-bold text-muted">Descrição</label>
-              <input type="text" name="description" class="form-control bg-light border-0" placeholder="Descreva o produto" required>
+            <!-- 🔥 CAMPO DE DESCRIÇÃO ALTERADO PARA TEXTAREA (ACEITA HTML) -->
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted">Descrição (Aceita HTML)</label>
+              <textarea name="description" class="form-control bg-light border-0" rows="5" placeholder="Cole aqui o iframe do YouTube, listas HTML, etc." required></textarea>
             </div>
             <div class="col-md-2">
               <label class="form-label small fw-bold text-muted">Preço (€)</label>
@@ -65,8 +66,8 @@
                 <option value="Site">Site</option>
               </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
-              <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm"><i class="fa-solid fa-check"></i></button>
+            <div class="col-12 d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm"><i class="fa-solid fa-check"></i> Criar</button>
             </div>
           </form>
         </div>
@@ -133,7 +134,8 @@
                           <form id="editForm_<%= p.id %>" action="/admin/products/edit/<%= p.id %>" method="POST">
                             <div class="modal-body">
                               <div class="mb-3"><label class="form-label small">Nome</label><input type="text" name="name" class="form-control" value="<%= p.name %>" required></div>
-                              <div class="mb-3"><label class="form-label small">Descrição</label><input type="text" name="description" class="form-control" value="<%= p.description %>" required></div>
+                              <!-- 🔥 EDITAR DESCRIÇÃO COM TEXTAREA -->
+                              <div class="mb-3"><label class="form-label small">Descrição (Aceita HTML)</label><textarea class="form-control" name="description" rows="5" required><%= p.description %></textarea></div>
                               <div class="mb-3"><label class="form-label small">Preço (€)</label><input type="number" step="0.01" name="price" class="form-control" value="<%= p.price %>" required></div>
                               <div class="mb-3"><label class="form-label small">Categoria</label>
                                 <select name="category" class="form-select">
