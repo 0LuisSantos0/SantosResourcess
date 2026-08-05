@@ -47,12 +47,11 @@
           <form action="/admin/products/add" method="POST" class="row g-3">
             <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Nome do Produto</label>
-              <input type="text" name="name" class="form-control bg-light border-0" placeholder="Ex: Anti-Cheat" required>
+              <input type="text" name="name" class="form-control bg-light border-0" placeholder="Ex: Sistema de Empresas" required>
             </div>
-            <!-- 🔥 CAMPO DE DESCRIÇÃO ALTERADO PARA TEXTAREA (ACEITA HTML) -->
             <div class="col-md-4">
-              <label class="form-label small fw-bold text-muted">Descrição (Aceita HTML)</label>
-              <textarea name="description" class="form-control bg-light border-0" rows="5" placeholder="Cole aqui o iframe do YouTube, listas HTML, etc." required></textarea>
+              <label class="form-label small fw-bold text-muted">Descrição Curta</label>
+              <input type="text" name="description" class="form-control bg-light border-0" placeholder="Descreva o produto" required>
             </div>
             <div class="col-md-2">
               <label class="form-label small fw-bold text-muted">Preço (€)</label>
@@ -66,8 +65,23 @@
                 <option value="Site">Site</option>
               </select>
             </div>
-            <div class="col-12 d-flex justify-content-end">
-              <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm"><i class="fa-solid fa-check"></i> Criar</button>
+
+            <!-- NOVOS CAMPOS -->
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted">Imagem de Capa (URL)</label>
+              <input type="text" name="thumbnail" class="form-control bg-light border-0" placeholder="https://i.imgur.com/minha-imagem.png">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted">Link do Vídeo (YouTube Embed)</label>
+              <input type="text" name="video_link" class="form-control bg-light border-0" placeholder="https://www.youtube.com/embed/ID_VIDEO">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted">Funcionalidades (Uma por linha)</label>
+              <textarea name="features" class="form-control bg-light border-0" rows="2" placeholder="Design minimalista.&#10;Crie quantas empresas desejar.&#10;Estoque de itens."></textarea>
+            </div>
+
+            <div class="col-12 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm"><i class="fa-solid fa-check me-2"></i> Adicionar Produto</button>
             </div>
           </form>
         </div>
@@ -94,7 +108,6 @@
                       <td class="text-center">
                         <% if (p.is_active === 1) { %><span class="badge bg-success rounded-pill px-3">Ativo</span><% } else { %><span class="badge bg-danger rounded-pill px-3">Inativo</span><% } %>
                       </td>
-                      <!-- 🔥 Coluna Destaque -->
                       <td class="text-center">
                         <% if (p.is_featured === 1) { %>
                           <span class="badge bg-warning text-dark px-3">⭐ Destaque</span>
@@ -107,15 +120,12 @@
                       </td>
                       <td class="text-end pe-4">
                         <div class="d-flex justify-content-end gap-2">
-                          <!-- Ativar/Desativar -->
                           <button type="button" class="action-btn <%= p.is_active === 1 ? 'btn btn-outline-danger' : 'btn btn-success' %>" title="<%= p.is_active === 1 ? 'Desativar' : 'Ativar' %>" onclick="openToggleModal('/admin/toggle/<%= p.id %>', '<%= p.is_active === 1 ? 'Desativar' : 'Ativar' %>', '<%= p.name.replace(/'/g, "\\'") %>')">
                             <% if (p.is_active === 1) { %><i class="fa-solid fa-eye-slash"></i><% } else { %><i class="fa-solid fa-eye"></i><% } %>
                           </button>
                           
-                          <!-- Editar -->
                           <button type="button" class="action-btn btn btn-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#editModal<%= p.id %>"><i class="fa-solid fa-pen-to-square"></i></button>
                           
-                          <!-- Apagar -->
                           <button type="button" class="action-btn btn btn-danger" title="Apagar" onclick="openDeleteModal('/admin/products/delete/<%= p.id %>', '<%= p.name.replace(/'/g, "\\'") %>')">
                             <i class="fa-solid fa-trash-can"></i>
                           </button>
@@ -125,7 +135,7 @@
 
                     <!-- Modal de Edição -->
                     <div class="modal fade" id="editModal<%= p.id %>" tabindex="-1">
-                      <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-dialog modal-dialog-centered modal-lg">
                         <div class="modal-content p-2">
                           <div class="modal-header border-0">
                             <h5 class="modal-title fw-bold">Editar: <%= p.name %></h5>
@@ -133,16 +143,20 @@
                           </div>
                           <form id="editForm_<%= p.id %>" action="/admin/products/edit/<%= p.id %>" method="POST">
                             <div class="modal-body">
-                              <div class="mb-3"><label class="form-label small">Nome</label><input type="text" name="name" class="form-control" value="<%= p.name %>" required></div>
-                              <!-- 🔥 EDITAR DESCRIÇÃO COM TEXTAREA -->
-                              <div class="mb-3"><label class="form-label small">Descrição (Aceita HTML)</label><textarea class="form-control" name="description" rows="5" required><%= p.description %></textarea></div>
-                              <div class="mb-3"><label class="form-label small">Preço (€)</label><input type="number" step="0.01" name="price" class="form-control" value="<%= p.price %>" required></div>
-                              <div class="mb-3"><label class="form-label small">Categoria</label>
-                                <select name="category" class="form-select">
-                                  <option value="MTA" <%= p.category === 'MTA' ? 'selected' : '' %>>MTA</option>
-                                  <option value="Discord Bot" <%= p.category === 'Discord Bot' ? 'selected' : '' %>>Discord Bot</option>
-                                  <option value="Site" <%= p.category === 'Site' ? 'selected' : '' %>>Site</option>
-                                </select>
+                              <div class="row g-3">
+                                <div class="col-md-6"><label class="form-label small">Nome</label><input type="text" name="name" class="form-control" value="<%= p.name %>" required></div>
+                                <div class="col-md-6"><label class="form-label small">Descrição</label><input type="text" name="description" class="form-control" value="<%= p.description %>" required></div>
+                                <div class="col-md-6"><label class="form-label small">Preço (€)</label><input type="number" step="0.01" name="price" class="form-control" value="<%= p.price %>" required></div>
+                                <div class="col-md-6"><label class="form-label small">Categoria</label>
+                                  <select name="category" class="form-select">
+                                    <option value="MTA" <%= p.category === 'MTA' ? 'selected' : '' %>>MTA</option>
+                                    <option value="Discord Bot" <%= p.category === 'Discord Bot' ? 'selected' : '' %>>Discord Bot</option>
+                                    <option value="Site" <%= p.category === 'Site' ? 'selected' : '' %>>Site</option>
+                                  </select>
+                                </div>
+                                <div class="col-md-6"><label class="form-label small">Imagem de Capa (URL)</label><input type="text" name="thumbnail" class="form-control" value="<%= p.thumbnail || '' %>" placeholder="https://..."></div>
+                                <div class="col-md-6"><label class="form-label small">Link Vídeo (YouTube Embed)</label><input type="text" name="video_link" class="form-control" value="<%= p.video_link || '' %>" placeholder="https://www.youtube.com/embed/..."></div>
+                                <div class="col-12"><label class="form-label small">Funcionalidades (Uma por linha)</label><textarea name="features" class="form-control" rows="4"><%= p.features || '' %></textarea></div>
                               </div>
                             </div>
                             <div class="modal-footer border-0">
@@ -210,7 +224,7 @@
     </div>
   </div>
 
-  <!-- 🔥 Modal de confirmação para Destaque -->
+  <!-- Modal de confirmação para Destaque -->
   <div class="modal fade" id="featureConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content p-3">
@@ -229,7 +243,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Lógica de Confirmação de EDIÇÃO
     let currentEditForm = null;
     function openEditConfirmModal(form) {
         currentEditForm = form;
@@ -274,7 +287,6 @@
         currentDeleteForm.submit();
     });
 
-    // 🔥 Lógica do Modal de Destaque
     let currentFeatureForm = document.getElementById('featureForm');
     if(!currentFeatureForm) {
         currentFeatureForm = document.createElement('form');
