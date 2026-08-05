@@ -11,8 +11,8 @@
     body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
     .sidebar { min-height: 100vh; background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%); color: white; position: sticky; top: 0; height: 100vh; }
     .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; border-radius: 12px; margin: 4px 10px; transition: 0.3s; }
-    .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.1); color: white; transform: translateX(5px); }
-    .admin-card { border: none; border-radius: 20px; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; transform: translateX(5px); border-left: 4px solid #22d3ee; } /* 🔥 Borda lateral ciano */
+    .admin-card { border: none; border-radius: 20px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
   </style>
 </head>
 <body>
@@ -41,16 +41,31 @@
       <div class="col-md-9 col-lg-10 p-4">
         <div class="card admin-card shadow-sm p-4">
           <h5 class="fw-bold mb-4"><i class="fa-solid fa-gear text-primary me-2"></i> Configurações do Site</h5>
+          <p class="small text-muted mb-4">Personalize o nome, link do discord e a imagem do logótipo. A imagem que colocares aparecerá ao lado do nome no topo e como ícone do site (favicon).</p>
+          
           <form action="/admin/settings/update" method="POST">
             <div class="mb-3">
               <label class="form-label fw-bold">Nome do Site</label>
-              <input type="text" name="site_name" class="form-control" value="<%= settings.site_name %>" required>
+              <input type="text" name="site_name" class="form-control bg-light border-0" value="<%= settings.site_name %>" required>
             </div>
             <div class="mb-3">
               <label class="form-label fw-bold">Link do Discord (Convite)</label>
-              <input type="url" name="discord_link" class="form-control" value="<%= settings.discord_link %>" required>
+              <input type="url" name="discord_link" class="form-control bg-light border-0" value="<%= settings.discord_link %>" required>
             </div>
-            <button type="submit" class="btn btn-primary fw-bold px-5 rounded-pill">Guardar Alterações</button>
+            <!-- 🔥 NOVO CAMPO: LOGO URL -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">Logótipo / Favicon (URL da Imagem)</label>
+              <input type="url" name="logo_url" class="form-control bg-light border-0" placeholder="https://i.imgur.com/teu-logotipo.png" value="<%= settings.logo_url || '' %>">
+              <div class="form-text text-muted small">Insere um link direto para a imagem (PNG, JPG). Ela substituirá o cubo azul e o carrinho de compras.</div>
+              <% if (settings.logo_url) { %>
+                <div class="mt-2">
+                  <span class="small fw-bold text-muted">Pré-visualização:</span><br>
+                  <img src="<%= settings.logo_url %>" alt="Logo Preview" style="height: 40px; width: 40px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0;">
+                </div>
+              <% } %>
+            </div>
+            
+            <button type="submit" class="btn btn-primary fw-bold px-5 rounded-pill shadow-sm">Guardar Alterações</button>
           </form>
         </div>
       </div>
