@@ -262,20 +262,26 @@ async function getApp() {
         res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
       });
 
+      // 🔥 ROTA ADICIONAR CORRIGIDA (AGORA GUARDA THUMBNAIL, VIDEO E FEATURES)
       app.post('/admin/products/add', isAdmin, async (req, res) => {
-        const { name, description, price, category } = req.body;
+        const { name, description, price, category, thumbnail, video_link, features } = req.body;
         if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
-        await pool.query('INSERT INTO products (name, description, price, category, is_active) VALUES ($1, $2, $3, $4, 1)',
-          [name, description, parseFloat(price), category || 'MTA']);
+        await pool.query(
+          'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features) VALUES ($1, $2, $3, $4, 1, $5, $6, $7)',
+          [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features]
+        );
         await logActivity(req, `Criou o produto: ${name}`);
         await req.session.save();
         res.redirect(303, '/admin');
       });
 
+      // 🔥 ROTA EDITAR CORRIGIDA (AGORA GUARDA THUMBNAIL, VIDEO E FEATURES)
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
-        const { name, description, price, category } = req.body;
-        await pool.query('UPDATE products SET name = $1, description = $2, price = $3, category = $4 WHERE id = $5',
-          [name, description, parseFloat(price), category || 'MTA', req.params.id]);
+        const { name, description, price, category, thumbnail, video_link, features } = req.body;
+        await pool.query(
+          'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7 WHERE id = $8',
+          [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, req.params.id]
+        );
         await logActivity(req, `Editou o produto: ${name}`);
         await req.session.save();
         res.redirect(303, '/admin');
