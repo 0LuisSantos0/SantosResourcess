@@ -66,21 +66,22 @@
     }
     .page-header h1 { font-weight: 900; font-size: clamp(2.5rem, 5vw, 4rem); }
 
-    /* NOVO DESIGN DO CARTÃO (Referência Imagem 3) */
+    /* NOVO DESIGNE CLARO COM BORDA PRETA */
     .product-card-ref {
-      background: #0b1120;
-      border: 1px solid rgba(34, 211, 238, 0.2);
+      background: #ffffff;
+      border: 1px solid #000000; /* Borda preta */
       border-radius: 16px;
       padding: 0;
       transition: 0.3s ease;
       position: relative;
       overflow: hidden;
       height: 100%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
     .product-card-ref:hover {
       border-color: #22d3ee;
       transform: translateY(-6px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
     .product-card-ref .card-body {
       padding: 20px;
@@ -93,27 +94,27 @@
       width: 100%;
       height: 160px;
       object-fit: contain;
-      background: rgba(255,255,255,0.05);
+      background: rgba(0,0,0,0.03);
       border-radius: 10px;
       padding: 10px;
       margin-bottom: 15px;
     }
     .product-card-ref .product-title {
-      color: #fff;
+      color: #000;
       font-weight: 600;
       font-size: 1.1rem;
       margin-bottom: 10px;
       flex-grow: 1;
     }
     .product-card-ref .product-price {
-      color: #22d3ee; /* Ciano */
+      color: #22d3ee;
       font-weight: 700;
       font-size: 1.4rem;
       margin-bottom: 15px;
     }
     .product-card-ref .btn-buy {
       background: #22d3ee;
-      color: #0b1120;
+      color: #000;
       border-radius: 8px;
       width: 100%;
       font-weight: 700;
@@ -129,22 +130,21 @@
       position: absolute;
       top: 15px;
       right: 15px;
-      background: rgba(255,255,255,0.05);
-      color: #94a3b8;
+      background: #f1f5f9;
+      color: #000;
       border-radius: 50%;
       width: 32px;
       height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid #e2e8f0;
       transition: 0.2s;
       z-index: 10;
     }
     .product-card-ref .btn-info:hover {
-      background: #fff;
-      color: #0b1120;
-      border-color: #fff;
+      background: #000;
+      color: #fff;
     }
 
     /* MODAL ESCURA (Referência Imagem 4) */
@@ -157,14 +157,8 @@
       color: white;
       border-radius: 20px;
     }
-    .modal-dark .modal-header {
-      border-bottom: none;
-    }
-    .modal-dark .modal-body h3 {
-      color: white;
-      font-weight: 700;
-      margin-top: 15px;
-    }
+    .modal-dark .modal-header { border-bottom: none; }
+    .modal-dark .modal-body h3 { color: white; font-weight: 700; margin-top: 15px; }
     .features-code-block {
       background: #020617;
       border-radius: 12px;
@@ -173,20 +167,9 @@
       border: 1px solid #1e293b;
       font-family: 'Inter', sans-serif;
     }
-    .features-code-block ul {
-      list-style: none;
-      padding-left: 0;
-      margin: 0;
-    }
-    .features-code-block li {
-      padding: 6px 0;
-      font-size: 0.95rem;
-      color: #cbd5e1;
-    }
-    .features-code-block li::before {
-      content: '⚙️ ';
-      color: #22d3ee;
-    }
+    .features-code-block ul { list-style: none; padding-left: 0; margin: 0; }
+    .features-code-block li { padding: 6px 0; font-size: 0.95rem; color: #cbd5e1; }
+    .features-code-block li::before { content: '⚙️ '; color: #22d3ee; }
 
     .search-input {
       border-radius: 50px; padding: 12px 20px; border: 1px solid #e2e8f0; transition: 0.2s;
@@ -307,19 +290,12 @@
             <div class="col product-item" data-name="<%= p.name.toLowerCase() %>" data-category="<%= p.category %>" data-price="<%= p.price %>">
               <div class="card product-card-ref">
                 <div class="card-body">
-                  <!-- Botão Informações (i) -->
                   <button class="btn-info" onclick="openInfoModal(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', '<%= p.video_link || "" %>', `<%= p.features || "" %>`)" title="Ver detalhes">
                     <i class="fa-solid fa-info"></i>
                   </button>
-                  
-                  <!-- Imagem de Capa -->
-                  <img src="<%= p.thumbnail || 'https://via.placeholder.com/300x200/1e293b/94a3b8?text=Sem+Imagem' %>" alt="<%= p.name %>" class="product-img">
-                  
-                  <!-- Título e Preço -->
+                  <img src="<%= p.thumbnail || 'https://via.placeholder.com/300x200/ffffff/000000?text=Sem+Imagem' %>" alt="<%= p.name %>" class="product-img">
                   <h5 class="product-title"><%= p.name %></h5>
                   <div class="product-price">€<%= p.price.toFixed(2) %></div>
-                  
-                  <!-- Botão Comprar -->
                   <button class="btn-buy" onclick="addToCart(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', <%= p.price %>, '<%= p.category %>', event)">
                     COMPRAR
                   </button>
@@ -387,7 +363,6 @@
     <i class="fa-solid fa-arrow-up"></i>
   </button>
 
-  <!-- Modal de Informações Detalhadas (Referência Imagem 4) -->
   <div class="modal fade modal-dark" id="infoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
@@ -396,15 +371,10 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4 pt-0">
-          <!-- Player de Vídeo -->
           <div class="ratio ratio-16x9" id="modalVideoContainer">
             <iframe id="modalVideoIframe" src="" allowfullscreen frameborder="0"></iframe>
           </div>
-          
-          <!-- Título -->
           <h3 id="modalProductTitle">Sistema de Empresas</h3>
-          
-          <!-- Lista de Funcionalidades -->
           <div class="d-flex align-items-start">
             <span class="bg-primary bg-opacity-10 text-white px-3 py-1 rounded-pill mb-3"><i class="fa-solid fa-info-circle me-2"></i> O sistema possui as seguintes funcionalidades:</span>
           </div>
@@ -413,8 +383,6 @@
               <li>Carregando funcionalidades...</li>
             </ul>
           </div>
-          
-          <!-- Botão de Fechar -->
           <div class="text-center mt-4">
             <button type="button" class="btn btn-dark rounded-pill px-5 fw-bold border border-secondary" data-bs-dismiss="modal">FECHAR</button>
           </div>
@@ -445,56 +413,24 @@
     });
 
     let cart = [];
-
-    async function loadCart() {
-      try {
-        const response = await fetch('/api/cart');
-        if (response.ok) {
-          cart = await response.json();
-          updateCartUI();
-        }
-      } catch (e) {
-        console.error('Erro ao carregar carrinho:', e);
-      }
-    }
-
-    async function saveCart() {
-      try {
-        await fetch('/api/cart', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cart })
-        });
-      } catch (e) {
-        console.error('Erro ao guardar carrinho:', e);
-      }
-    }
-
+    async function loadCart() { try { const response = await fetch('/api/cart'); if (response.ok) { cart = await response.json(); updateCartUI(); } } catch (e) { console.error('Erro ao carregar carrinho:', e); } }
+    async function saveCart() { try { await fetch('/api/cart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart }) }); } catch (e) { console.error('Erro ao guardar carrinho:', e); } }
     document.addEventListener('DOMContentLoaded', loadCart);
-
     function addToCart(id, name, price, category, event) {
       if (category === 'MTA') {
         const hasMTA = cart.some(item => item.category === 'MTA');
-        if (hasMTA) {
-          const toastElement = document.getElementById('mtaAlertToast');
-          const toast = new bootstrap.Toast(toastElement);
-          toast.show();
-          return;
-        }
+        if (hasMTA) { const toastElement = document.getElementById('mtaAlertToast'); const toast = new bootstrap.Toast(toastElement); toast.show(); return; }
       }
-
       const existing = cart.find(i => i.id === id);
       if (existing) existing.quantity += 1;
       else cart.push({ id, name, price, quantity: 1, category });
-      saveCart();
-      updateCartUI();
+      saveCart(); updateCartUI();
       const btn = event.target.closest('button');
       const orig = btn.innerHTML;
       btn.innerHTML = '<i class="fa-solid fa-check"></i> Adicionado';
       btn.classList.add('btn-success');
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); }, 2000);
     }
-
     function updateCartUI() {
       const badge = document.getElementById('cartCount');
       const list = document.getElementById('cartItemsList');
@@ -502,14 +438,8 @@
       const totalSpan = document.getElementById('cartTotal');
       const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
       badge.textContent = totalItems;
-      if (cart.length === 0) {
-        list.style.display = 'none';
-        empty.style.display = 'block';
-        totalSpan.textContent = '€0.00';
-        return;
-      }
-      empty.style.display = 'none';
-      list.style.display = 'block';
+      if (cart.length === 0) { list.style.display = 'none'; empty.style.display = 'block'; totalSpan.textContent = '€0.00'; return; }
+      empty.style.display = 'none'; list.style.display = 'block';
       let totalPrice = 0;
       list.innerHTML = cart.map((item, idx) => {
         const itemTotal = item.price * item.quantity;
@@ -523,49 +453,22 @@
       }).join('');
       totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
     }
-
-    function removeFromCart(index) {
-      cart.splice(index, 1);
-      saveCart();
-      updateCartUI();
-    }
-
-    // Função para abrir a modal de informações detalhadas
+    function removeFromCart(index) { cart.splice(index, 1); saveCart(); updateCartUI(); }
     function openInfoModal(id, name, videoUrl, featuresText) {
         const modal = new bootstrap.Modal(document.getElementById('infoModal'));
-        
-        // Atualizar Título
         document.getElementById('modalProductTitle').textContent = name;
-        
-        // Atualizar Vídeo
         const iframe = document.getElementById('modalVideoIframe');
         const container = document.getElementById('modalVideoContainer');
-        if (videoUrl && videoUrl.trim() !== '') {
-            container.style.display = 'block';
-            iframe.src = videoUrl;
-        } else {
-            container.style.display = 'none';
-            iframe.src = '';
-        }
-        
-        // Atualizar Lista de Funcionalidades
+        if (videoUrl && videoUrl.trim() !== '') { container.style.display = 'block'; iframe.src = videoUrl; } else { container.style.display = 'none'; iframe.src = ''; }
         const list = document.getElementById('modalFeaturesList');
         list.innerHTML = '';
         if (featuresText && featuresText.trim() !== '') {
             const featuresArray = featuresText.split('\n').filter(f => f.trim() !== '');
-            featuresArray.forEach(f => {
-                const li = document.createElement('li');
-                li.textContent = f.trim();
-                list.appendChild(li);
-            });
-        } else {
-            list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
-        }
-        
+            featuresArray.forEach(f => { const li = document.createElement('li'); li.textContent = f.trim(); list.appendChild(li); });
+        } else { list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>'; }
         modal.show();
     }
 
-    // Filtros
     const productItems = document.querySelectorAll('.product-item');
     function filterAndSort() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
