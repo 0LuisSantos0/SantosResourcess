@@ -45,11 +45,11 @@
         <div class="admin-card shadow-sm mb-4 p-4">
           <h5 class="fw-bold mb-4"><i class="fa-solid fa-plus-circle text-success me-2"></i> Adicionar Novo Produto</h5>
           <form action="/admin/products/add" method="POST" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label small fw-bold text-muted">Nome do Produto</label>
               <input type="text" name="name" class="form-control bg-light border-0" placeholder="Ex: Sistema de Empresas" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label small fw-bold text-muted">Descrição Curta</label>
               <input type="text" name="description" class="form-control bg-light border-0" placeholder="Descreva o produto" required>
             </div>
@@ -74,6 +74,12 @@
               <label class="form-label small fw-bold text-muted">Link do Vídeo (YouTube Embed)</label>
               <input type="text" name="video_link" class="form-control bg-light border-0" placeholder="https://www.youtube.com/embed/ID_VIDEO">
             </div>
+            <!-- 🔥 NOVO CAMPO: BADGE -->
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted">Etiqueta (Badge)</label>
+              <input type="text" name="badge" class="form-control bg-light border-0" placeholder="Ex: Novo, Promoção, Top">
+            </div>
+
             <div class="col-md-12">
               <label class="form-label small fw-bold text-muted">Funcionalidades (Uma por linha)</label>
               <textarea name="features" class="form-control bg-light border-0" rows="3" placeholder="Design minimalista.&#10;Crie quantas empresas desejar.&#10;Estoque de itens."></textarea>
@@ -94,7 +100,7 @@
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
-                  <tr><th class="ps-4">ID</th><th>Nome</th><th>Descrição</th><th class="text-center">Categoria</th><th class="text-center">Preço</th><th class="text-center">Status</th><th class="text-center">Destaque</th><th class="text-end pe-4">Ações</th></tr>
+                  <tr><th class="ps-4">ID</th><th>Nome</th><th>Descrição</th><th class="text-center">Categoria</th><th class="text-center">Preço</th><th class="text-center">Status</th><th class="text-center">Destaque</th><th class="text-center">Badge</th><th class="text-end pe-4">Ações</th></tr>
                 </thead>
                 <tbody>
                   <% products.forEach(p => { %>
@@ -117,6 +123,13 @@
                           <%= p.is_featured === 1 ? 'Remover' : 'Destacar' %>
                         </button>
                       </td>
+                      <td class="text-center">
+                        <% if (p.badge && p.badge.trim() !== '') { %>
+                          <span class="badge bg-danger text-white px-3"><%= p.badge %></span>
+                        <% } else { %>
+                          <span class="badge bg-secondary px-3">—</span>
+                        <% } %>
+                      </td>
                       <td class="text-end pe-4">
                         <div class="d-flex justify-content-end gap-2">
                           <button type="button" class="action-btn <%= p.is_active === 1 ? 'btn btn-outline-danger' : 'btn btn-success' %>" title="<%= p.is_active === 1 ? 'Desativar' : 'Ativar' %>" onclick="openToggleModal('/admin/toggle/<%= p.id %>', '<%= p.is_active === 1 ? 'Desativar' : 'Ativar' %>', '<%= p.name.replace(/'/g, "\\'") %>')">
@@ -132,7 +145,7 @@
                       </td>
                     </tr>
 
-                    <!-- Modal de Edição Corrigida (Apenas texto) -->
+                    <!-- Modal de Edição -->
                     <div class="modal fade" id="editModal<%= p.id %>" tabindex="-1">
                       <div class="modal-dialog modal-dialog-centered modal-lg">
                         <div class="modal-content p-2">
@@ -155,6 +168,8 @@
                                 </div>
                                 <div class="col-md-6"><label class="form-label small">Link da Imagem (URL)</label><input type="text" name="thumbnail" class="form-control" value="<%= p.thumbnail || '' %>" placeholder="https://..."></div>
                                 <div class="col-md-6"><label class="form-label small">Link Vídeo (YouTube Embed)</label><input type="text" name="video_link" class="form-control" value="<%= p.video_link || '' %>" placeholder="https://www.youtube.com/embed/..."></div>
+                                <!-- 🔥 CAMPO DE EDIÇÃO DO BADGE -->
+                                <div class="col-md-6"><label class="form-label small">Etiqueta (Badge)</label><input type="text" name="badge" class="form-control" value="<%= p.badge || '' %>" placeholder="Ex: Novo, Promoção"></div>
                                 <div class="col-12"><label class="form-label small">Funcionalidades (Uma por linha)</label><textarea name="features" class="form-control" rows="4"><%= p.features || '' %></textarea></div>
                               </div>
                             </div>
@@ -176,7 +191,7 @@
     </div>
   </div>
 
-  <!-- Modais de Confirmação (Mesmo código anterior) -->
+  <!-- Modais de Confirmação -->
   <div class="modal fade" id="editConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content p-3">
