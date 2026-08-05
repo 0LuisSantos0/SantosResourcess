@@ -44,7 +44,6 @@
       <div class="col-md-9 col-lg-10 p-4">
         <div class="admin-card shadow-sm mb-4 p-4">
           <h5 class="fw-bold mb-4"><i class="fa-solid fa-plus-circle text-success me-2"></i> Adicionar Novo Produto</h5>
-          <!-- Removido enctype="multipart/form-data" e o input de ficheiro -->
           <form action="/admin/products/add" method="POST" class="row g-3">
             <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Nome do Produto</label>
@@ -67,12 +66,10 @@
               </select>
             </div>
 
-            <!-- CAMPOS DE IMAGEM E VÍDEO (Apenas Link) -->
             <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Link da Imagem (URL)</label>
               <input type="text" name="thumbnail" class="form-control bg-light border-0" placeholder="https://i.imgur.com/minha-imagem.png">
             </div>
-            
             <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Link do Vídeo (YouTube Embed)</label>
               <input type="text" name="video_link" class="form-control bg-light border-0" placeholder="https://www.youtube.com/embed/ID_VIDEO">
@@ -135,7 +132,7 @@
                       </td>
                     </tr>
 
-                    <!-- Modal de Edição (Apenas Link de Imagem, removido o upload) -->
+                    <!-- Modal de Edição Corrigida (Apenas texto, sem input de ficheiro) -->
                     <div class="modal fade" id="editModal<%= p.id %>" tabindex="-1">
                       <div class="modal-dialog modal-dialog-centered modal-lg">
                         <div class="modal-content p-2">
@@ -156,6 +153,7 @@
                                     <option value="Site" <%= p.category === 'Site' ? 'selected' : '' %>>Site</option>
                                   </select>
                                 </div>
+                                <!-- Apenas URL, sem upload que causa travamento -->
                                 <div class="col-md-6"><label class="form-label small">Link da Imagem (URL)</label><input type="text" name="thumbnail" class="form-control" value="<%= p.thumbnail || '' %>" placeholder="https://..."></div>
                                 <div class="col-md-6"><label class="form-label small">Link Vídeo (YouTube Embed)</label><input type="text" name="video_link" class="form-control" value="<%= p.video_link || '' %>" placeholder="https://www.youtube.com/embed/..."></div>
                                 <div class="col-12"><label class="form-label small">Funcionalidades (Uma por linha)</label><textarea name="features" class="form-control" rows="4"><%= p.features || '' %></textarea></div>
@@ -179,7 +177,7 @@
     </div>
   </div>
 
-  <!-- ================== MODAIS DE CONFIRMAÇÃO ================== -->
+  <!-- Modais de Confirmação (Mantidas) -->
   <div class="modal fade" id="editConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content p-3">
@@ -225,7 +223,6 @@
       </div>
     </div>
   </div>
-
   <div class="modal fade" id="featureConfirmModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content p-3">
@@ -255,6 +252,7 @@
     document.getElementById('confirmEditBtn').addEventListener('click', function() {
         if(currentEditForm) currentEditForm.submit();
     });
+
     let currentToggleForm = document.getElementById('toggleForm');
     if(!currentToggleForm) {
         currentToggleForm = document.createElement('form');
@@ -271,6 +269,7 @@
     document.getElementById('confirmToggleBtn').addEventListener('click', function() {
         currentToggleForm.submit();
     });
+
     let currentDeleteForm = document.getElementById('deleteForm');
     if(!currentDeleteForm) {
         currentDeleteForm = document.createElement('form');
