@@ -80,7 +80,7 @@ async function getApp() {
         }
       }));
 
-      // 🔥 MIDDLEWARE GLOBAL: Carrega as configurações (incluindo logo_url) para todas as páginas
+      // 🔥 MIDDLEWARE GLOBAL: Carrega as configurações
       app.use(async (req, res, next) => {
         try {
           const result = await pool.query('SELECT * FROM settings WHERE id = 1');
@@ -98,7 +98,7 @@ async function getApp() {
       });
 
       // ================================================================
-      // 🔥 ROTAS DA API DO CARRINHO PERSISTENTE
+      // ROTAS DA API DO CARRINHO
       // ================================================================
       app.get('/api/cart', async (req, res) => {
         if (!req.session.user) return res.json([]);
@@ -243,7 +243,7 @@ async function getApp() {
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
       // ================================================================
-      // ROTAS DO ADMIN
+      // ÁREA ADMINISTRATIVA
       // ================================================================
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
@@ -274,14 +274,14 @@ async function getApp() {
         res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
       });
 
-      // 🔥 ROTA ADICIONAR COM TRATAMENTO DE ERRO
+      // 🔥 ROTA ADICIONAR PRODUTO (ATUALIZADA COM BADGE)
       app.post('/admin/products/add', isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features } = req.body;
+          const { name, description, price, category, thumbnail, video_link, features, badge } = req.body;
           if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
           await pool.query(
-            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features) VALUES ($1, $2, $3, $4, 1, $5, $6, $7)',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features]
+            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features, badge) VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8)',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge]
           );
           await logActivity(req, `Criou o produto: ${name}`);
           res.redirect(303, '/admin');
@@ -291,19 +291,19 @@ async function getApp() {
         }
       });
 
-      // 🔥 ROTA EDITAR COM TRATAMENTO DE ERRO (CORRIGE O CARREGAMENTO INFINITO)
+      // 🔥 ROTA EDITAR PRODUTO (ATUALIZADA COM BADGE)
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features } = req.body;
+          const { name, description, price, category, thumbnail, video_link, features, badge } = req.body;
           await pool.query(
-            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7 WHERE id = $8',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, req.params.id]
+            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7, badge = $8 WHERE id = $9',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, req.params.id]
           );
           await logActivity(req, `Editou o produto: ${name}`);
           res.redirect(303, '/admin'); 
         } catch (err) {
           console.error('❌ Erro ao editar produto:', err);
-          res.status(500).send(`<h3>Erro ao salvar as alterações</h3><p><strong>Detalhe:</strong> ${err.message}</p><p>Verifique se a coluna 'thumbnail' existe na base de dados.</p><a href="/admin">Voltar</a>`);
+          res.status(500).send(`<h3>Erro ao salvar as alterações</h3><p><strong>Detalhe:</strong> ${err.message}</p><a href="/admin">Voltar</a>`);
         }
       });
 
@@ -402,7 +402,6 @@ async function getApp() {
         res.render('admin/logs', { logs: result.rows, activeTab: 'logs', error: null, user: req.session.user });
       });
 
-      // 🔥 ROTA DE CONFIGURAÇÕES COM TRATAMENTO DE ERRO
       app.get('/admin/settings', isAdmin, async (req, res) => {
         res.render('admin/settings', { 
           settings: res.locals.siteSettings, 
