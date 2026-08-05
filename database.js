@@ -19,6 +19,17 @@ const initDB = async () => {
     await pool.query('SELECT NOW()');
     console.log('✅ Ligação ao PostgreSQL estabelecida com sucesso!');
 
+    // 🔥 ADICIONADA A COLUNA logo_url NA TABELA settings
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id SERIAL PRIMARY KEY,
+        site_name TEXT,
+        discord_link TEXT,
+        logo_url TEXT
+      );
+    `);
+
+    // Adiciona as outras tabelas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -26,7 +37,11 @@ const initDB = async () => {
         description TEXT NOT NULL,
         price REAL NOT NULL DEFAULT 0.00,
         category TEXT DEFAULT 'MTA',
-        is_active INTEGER DEFAULT 1
+        is_active INTEGER DEFAULT 1,
+        is_featured INTEGER DEFAULT 0,
+        thumbnail TEXT,
+        video_link TEXT,
+        features TEXT
       );
     `);
     await pool.query(`
@@ -37,7 +52,8 @@ const initDB = async () => {
         avatar TEXT,
         is_admin INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_login TIMESTAMP
+        last_login TIMESTAMP,
+        cart JSONB DEFAULT '[]'::jsonb
       );
     `);
     await pool.query(`
@@ -58,14 +74,6 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS settings (
-        id SERIAL PRIMARY KEY,
-        site_name TEXT,
-        discord_link TEXT
-      );
-    `);
-
     await pool.query(`
       CREATE TABLE IF NOT EXISTS "session" (
         "sid" varchar NOT NULL PRIMARY KEY,

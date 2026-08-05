@@ -80,6 +80,23 @@ async function getApp() {
         }
       }));
 
+      // 🔥 MIDDLEWARE GLOBAL: Carrega as configurações (incluindo logo_url) para todas as páginas
+      app.use(async (req, res, next) => {
+        try {
+          const result = await pool.query('SELECT * FROM settings WHERE id = 1');
+          let settings = result.rows[0];
+          if (!settings) {
+            settings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '' };
+          }
+          res.locals.siteSettings = settings;
+          next();
+        } catch (err) {
+          console.error("⚠️ Erro ao carregar configurações:", err);
+          res.locals.siteSettings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '' };
+          next();
+        }
+      });
+
       // ================================================================
       // 🔥 ROTAS DA API DO CARRINHO PERSISTENTE
       // ================================================================
@@ -102,7 +119,6 @@ async function getApp() {
       app.get('/', async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
-          
           let isAdmin = false;
           if (req.session.user) {
             if (config.ADMIN_IDS.includes(req.session.user.id)) {
@@ -163,11 +179,7 @@ async function getApp() {
             }
           }
         }
-
-        res.render('about', { 
-          user: req.session.user || null, 
-          isAdmin: isAdmin
-        });
+        res.render('about', { user: req.session.user || null, isAdmin: isAdmin });
       });
 
       app.get('/auth/discord', (req, res) => {
@@ -232,13 +244,11 @@ async function getApp() {
 
       // ÁREA ADMINISTRATIVA
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
-        // Buscar todas as estatísticas
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
         const users = await pool.query('SELECT COUNT(*) as total_users FROM users');
         const mta = await pool.query('SELECT COUNT(*) as mta_scripts FROM products WHERE category = $1', ['MTA']);
         const bots = await pool.query('SELECT COUNT(*) as discord_bots FROM products WHERE category = $1', ['Discord Bot']);
-        // 🔥 NOVA CONSULTA PARA "SITE"
         const site = await pool.query('SELECT COUNT(*) as site_scripts FROM products WHERE category = $1', ['Site']);
         const discounts = await pool.query('SELECT COUNT(*) as total_discounts FROM discounts');
       
@@ -249,7 +259,7 @@ async function getApp() {
             total_users: users.rows[0].total_users,
             mta_scripts: mta.rows[0].mta_scripts,
             discord_bots: bots.rows[0].discord_bots,
-            site_scripts: site.rows[0].site_scripts, // ✅ Nova estatística
+            site_scripts: site.rows[0].site_scripts,
             total_discounts: discounts.rows[0].total_discounts
           },
           activeTab: 'dashboard',
@@ -262,7 +272,6 @@ async function getApp() {
         res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
       });
 
-      // 🔥 ROTA ADICIONAR CORRIGIDA (AGORA GUARDA THUMBNAIL, VIDEO E FEATURES)
       app.post('/admin/products/add', isAdmin, async (req, res) => {
         const { name, description, price, category, thumbnail, video_link, features } = req.body;
         if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
@@ -275,7 +284,6 @@ async function getApp() {
         res.redirect(303, '/admin');
       });
 
-      // 🔥 ROTA EDITAR CORRIGIDA (AGORA GUARDA THUMBNAIL, VIDEO E FEATURES)
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
         const { name, description, price, category, thumbnail, video_link, features } = req.body;
         await pool.query(
@@ -391,13 +399,17 @@ async function getApp() {
       });
 
       app.get('/admin/settings', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT * FROM settings WHERE id = 1');
-        res.render('admin/settings', { settings: result.rows[0] || {site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt'}, activeTab: 'settings', error: null, user: req.session.user });
+        res.render('admin/settings', { 
+          settings: res.locals.siteSettings, 
+          activeTab: 'settings', 
+          error: null, 
+          user: req.session.user 
+        });
       });
 
       app.post('/admin/settings/update', isAdmin, async (req, res) => {
-        const { site_name, discord_link } = req.body;
-        await pool.query('UPDATE settings SET site_name = $1, discord_link = $2 WHERE id = 1', [site_name, discord_link]);
+        const { site_name, discord_link, logo_url } = req.body;
+        await pool.query('UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3 WHERE id = 1', [site_name, discord_link, logo_url]);
         await logActivity(req, `Atualizou as configurações do site.`);
         await req.session.save();
         res.redirect(303, '/admin/settings');
