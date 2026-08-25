@@ -74,10 +74,22 @@
               <label class="form-label small fw-bold text-muted">Link do Vídeo (YouTube Embed)</label>
               <input type="text" name="video_link" class="form-control bg-light border-0" placeholder="https://www.youtube.com/embed/ID_VIDEO">
             </div>
-            <!-- 🔥 CAMPO BADGE -->
             <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Etiqueta (Badge)</label>
               <input type="text" name="badge" class="form-control bg-light border-0" placeholder="Ex: Novo, Promoção, Top">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted">Cor da Badge</label>
+              <select name="badge_color" class="form-select bg-light border-0">
+                <option value="#94a3b8">Cinza</option>
+                <option value="#10b981">Verde</option>
+                <option value="#facc15">Amarelo</option>
+                <option value="#f97316">Laranja</option>
+                <option value="#ef4444">Vermelho</option>
+                <option value="#3b82f6">Azul</option>
+                <option value="#a855f7">Roxo</option>
+                <option value="#22d3ee">Ciano</option>
+              </select>
             </div>
 
             <div class="col-md-12">
@@ -159,8 +171,20 @@
                                 </div>
                                 <div class="col-md-6"><label class="form-label small">Link da Imagem (URL)</label><input type="text" name="thumbnail" class="form-control" value="<%= p.thumbnail || '' %>" placeholder="https://..."></div>
                                 <div class="col-md-6"><label class="form-label small">Link Vídeo (YouTube Embed)</label><input type="text" name="video_link" class="form-control" value="<%= p.video_link || '' %>" placeholder="https://www.youtube.com/embed/..."></div>
-                                <!-- 🔥 CAMPO DE EDIÇÃO DO BADGE -->
                                 <div class="col-md-6"><label class="form-label small">Etiqueta (Badge)</label><input type="text" name="badge" class="form-control" value="<%= p.badge || '' %>" placeholder="Ex: Novo, Promoção"></div>
+                                <div class="col-md-6">
+                                  <label class="form-label small">Cor da Badge</label>
+                                  <select name="badge_color" class="form-select">
+                                    <option value="#94a3b8" <%= p.badge_color === '#94a3b8' ? 'selected' : '' %>>Cinza</option>
+                                    <option value="#10b981" <%= p.badge_color === '#10b981' ? 'selected' : '' %>>Verde</option>
+                                    <option value="#facc15" <%= p.badge_color === '#facc15' ? 'selected' : '' %>>Amarelo</option>
+                                    <option value="#f97316" <%= p.badge_color === '#f97316' ? 'selected' : '' %>>Laranja</option>
+                                    <option value="#ef4444" <%= p.badge_color === '#ef4444' ? 'selected' : '' %>>Vermelho</option>
+                                    <option value="#3b82f6" <%= p.badge_color === '#3b82f6' ? 'selected' : '' %>>Azul</option>
+                                    <option value="#a855f7" <%= p.badge_color === '#a855f7' ? 'selected' : '' %>>Roxo</option>
+                                    <option value="#22d3ee" <%= p.badge_color === '#22d3ee' ? 'selected' : '' %>>Ciano</option>
+                                  </select>
+                                </div>
                                 <div class="col-12"><label class="form-label small">Funcionalidades (Uma por linha)</label><textarea name="features" class="form-control" rows="4"><%= p.features || '' %></textarea></div>
                               </div>
                             </div>
