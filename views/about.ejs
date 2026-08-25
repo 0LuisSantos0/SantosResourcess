@@ -63,13 +63,14 @@
       width: 80%; 
     }
 
+    /* 🔥 Menu Dropdown do Utilizador (Abre no Hover) */
     .navbar .dropdown-menu {
       background-color: #1e293b;
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       padding: 0.5rem;
       min-width: 180px;
-      margin-top: 0.5rem; /* Espaço mínimo apenas para não colar */
+      margin-top: 0.5rem;
       box-shadow: 0 15px 40px rgba(0,0,0,0.4);
       position: absolute;
       top: 100%;
@@ -104,7 +105,7 @@
     }
     .navbar .dropdown:hover .dropdown-menu {
       display: block;
-      margin-top: 0.25rem; /* Ainda mais pequeno para ficar colado */
+      margin-top: 0.25rem;
     }
 
     /* 🔥 GLOW EFFECTS GERAIS */
@@ -124,6 +125,10 @@
         transform: scale(1.05);
         box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5);
     }
+
+    /* 🔥 LINHA DIVISÓRIA COM GLOW */
+    .section-glow { position: relative; box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.5); }
+    .section-glow::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, #6366f1, transparent); box-shadow: 0 0 15px rgba(34, 211, 238, 0.8); z-index: 10; }
 
     .page-header {
       padding: 140px 0 80px;
@@ -288,7 +293,8 @@
   </nav>
 
   <main class="flex-fill">
-    <div class="page-header">
+    <!-- 🔥 GLOW APLICADO AO HEADER -->
+    <div class="page-header section-glow">
       <div class="container">
         <h1 data-aos="fade-down">Sobre a Santos Resources</h1>
         <p class="lead text-light opacity-75" data-aos="fade-down" data-aos-delay="100">Conheça quem está por trás das melhores soluções para MTA e Discord.</p>
@@ -549,4 +555,4 @@
     }
   </script>
 </body>
-</html> 
+</html>

@@ -61,7 +61,7 @@
     .navbar-glass .nav-link:hover::after,
     .navbar-glass .nav-link.active::after { width: 80%; }
 
-    /* 🔥 Menu Dropdown do Utilizador (Estilo Escuro) */
+    /* 🔥 Menu Dropdown do Utilizador (Estilo Escuro e Hover) */
     .navbar .dropdown-menu {
       background-color: #1e293b;
       border: 1px solid rgba(255,255,255,0.1);
@@ -187,6 +187,7 @@
       height: 100%;
     }
 
+    /* 🔥 BADGE DINÂMICA (Canto Esquerdo) */
     .product-badge {
       position: absolute;
       top: 12px;
@@ -204,12 +205,6 @@
       font-family: 'Inter', sans-serif;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
-    .product-badge.badge-green { border-color: #10b981; color: #10b981; }
-    .product-badge.badge-yellow { border-color: #facc15; color: #facc15; }
-    .product-badge.badge-orange { border-color: #f97316; color: #f97316; }
-    .product-badge.badge-red { border-color: #ef4444; color: #ef4444; }
-    .product-badge.badge-blue { border-color: #3b82f6; color: #3b82f6; }
-    .product-badge.badge-white { border-color: #475569; color: #94a3b8; }
 
     .product-image-area {
       width: 100%;
@@ -280,6 +275,8 @@
       transform: translateY(-3px) scale(1.02);
       box-shadow: 0 8px 25px rgba(34, 211, 238, 0.6);
     }
+
+    /* 🔥 BOTÃO INFO - SÓ APARECE NO HOVER */
     .product-card-ref .btn-info {
       position: absolute;
       top: 15px;
@@ -298,7 +295,6 @@
       opacity: 0;
       pointer-events: none;
     }
-
     .product-card-ref:hover .btn-info {
       opacity: 1;              /* Aparece */
       pointer-events: auto;    /* Fica clicável */
@@ -310,6 +306,10 @@
     .btn-primary.btn-glow:hover, .navbar .btn-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5); transform: translateY(-2px) scale(1.02); }
     .btn-outline-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); transform: translateY(-2px); }
     .btn-discord:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5); }
+
+    /* 🔥 LINHA DIVISÓRIA COM GLOW */
+    .section-glow { position: relative; box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.5); }
+    .section-glow::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, #6366f1, transparent); box-shadow: 0 0 15px rgba(34, 211, 238, 0.8); z-index: 10; }
 
     /* MODAL ESCURA */
     .modal-dark { background: rgba(0, 0, 0, 0.8) !important; }
@@ -448,7 +448,7 @@
   </nav>
 
   <main class="flex-fill">
-    <section class="hero-section position-relative d-flex align-items-center">
+    <section class="hero-section position-relative d-flex align-items-center section-glow">
       <div class="container text-center position-relative" style="z-index: 2;">
         <div data-aos="fade-down" data-aos-delay="50"><span class="badge bg-primary bg-opacity-25 text-light mb-3 rounded-pill px-4 py-2">🚀 Sistema de Alta Performance</span></div>
         <h1 class="hero-title mb-4" data-aos="fade-up" data-aos-delay="100">Santos Resources</h1>
@@ -477,19 +477,11 @@
             <div class="col" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
               <div class="card product-card-ref">
                 <div class="card-body">
-                  <% 
-                    let badgeClass = 'badge-white';
-                    if (p.badge && p.badge.trim() !== '') {
-                      const text = p.badge.toLowerCase();
-                      if (text.includes('pré') || text.includes('pre-venda')) badgeClass = 'badge-green';
-                      else if (text.includes('lançamento') || text.includes('lancamento')) badgeClass = 'badge-yellow';
-                      else if (text.includes('plano')) badgeClass = 'badge-orange';
-                      else if (text.includes('todos') || text.includes('oferta')) badgeClass = 'badge-red';
-                      else if (text.includes('novo')) badgeClass = 'badge-blue';
-                    }
-                  %>
+                  <!-- 🔥 BADGE DINÂMICA COM COR PERSONALIZADA -->
                   <% if (p.badge && p.badge.trim() !== '') { %>
-                    <div class="product-badge <%= badgeClass %>"><%= p.badge %></div>
+                    <div class="product-badge" style="border-color: <%- p.badge_color || '#94a3b8' %>; color: <%- p.badge_color || '#94a3b8' %>;">
+                      <%= p.badge %>
+                    </div>
                   <% } %>
 
                   <button class="btn-info" onclick="openInfoModal(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', '<%= p.video_link || "" %>', `<%= p.features || "" %>`)" title="Ver detalhes"><i class="fa-solid fa-info"></i></button>
