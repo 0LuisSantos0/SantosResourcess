@@ -291,10 +291,13 @@
       border: 1px solid #e2e8f0;
       transition: 0.2s;
       z-index: 10;
+      opacity: 0;
+      pointer-events: none;
     }
-    .product-card-ref .btn-info:hover {
-      background: #000;
-      color: #fff;
+
+    .product-card-ref:hover .btn-info {
+      opacity: 1;              /* Aparece */
+      pointer-events: auto;    /* Fica clicável */
     }
 
     /* 🔥 GLOW EFFECTS GERAIS */
