@@ -58,7 +58,13 @@
                   <% users.forEach(u => { %>
                     <tr>
                       <td class="ps-4 fw-bold text-secondary">#<%= u.id %></td>
-                      <td><img src="https://cdn.discordapp.com/avatars/<%= u.discord_id %>/<%= u.avatar %>.png" width="32" class="rounded-circle border"></td>
+                      <td>
+                        <% if (u.avatar) { %>
+                          <img src="https://cdn.discordapp.com/avatars/<%= u.discord_id %>/<%= u.avatar %>.png" width="32" class="rounded-circle border" onerror="this.onerror=null; this.src='https://cdn.discordapp.com/embed/avatars/0.png';">
+                        <% } else { %>
+                          <img src="https://cdn.discordapp.com/embed/avatars/0.png" width="32" class="rounded-circle border">
+                        <% } %>
+                      </td>
                       <td class="fw-semibold"><%= u.username %></td>
                       <td class="text-center">
                         <% if (u.is_admin === 1) { %>
