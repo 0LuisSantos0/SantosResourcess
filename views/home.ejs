@@ -419,8 +419,12 @@
         <div class="d-flex align-items-center gap-3">
           <% if (user) { %>
             <div class="dropdown">
-              <span class="text-light small dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
-                <i class="fa-regular fa-circle-user fa-lg"></i>
+              <span class="text-light small dropdown-toggle d-flex align-items-center gap-2" style="cursor: pointer;">
+                <% if (user.avatar) { %>
+                  <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" width="30" height="30" class="rounded-circle border border-light" alt="Avatar" style="object-fit: cover;">
+                <% } else { %>
+                  <i class="fa-regular fa-circle-user fa-lg"></i>
+                <% } %>
                 <strong class="d-none d-md-inline"><%= user.username %></strong>
               </span>
               <ul class="dropdown-menu dropdown-menu-end">
