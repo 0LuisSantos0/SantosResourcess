@@ -285,7 +285,7 @@
     .social-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.08); color: #fff; transition: all 0.3s; }
     .social-icon:hover { background: var(--primary); transform: translateY(-3px); }
 
-    /* MODAL */
+    /* MODAL DETALHES */
     .modal-dark { background: rgba(0, 0, 0, 0.8) !important; }
     .modal-dark .modal-content { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 20px; }
     .modal-dark .modal-header { border-bottom: none; }
@@ -295,22 +295,54 @@
     .features-code-block li { padding: 6px 0; font-size: 0.95rem; color: #cbd5e1; }
     .features-code-block li::before { content: '⚙️ '; color: #22d3ee; }
 
-    /* CARRINHO */
-    .modal-cart-dark .modal-content { background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; color: #f1f5f9; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-    .modal-cart-dark .modal-header { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 1.5rem; }
-    .modal-cart-dark .modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-    .modal-cart-dark .modal-footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 1.5rem; }
-    .modal-cart-dark .modal-body { max-height: 400px; overflow-y: auto; }
-    .modal-cart-dark .modal-body::-webkit-scrollbar { width: 6px; }
-    .modal-cart-dark .modal-body::-webkit-scrollbar-track { background: #1e293b; }
-    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb:hover { background: #64748b; }
-    .modal-cart-dark .cart-empty-icon { font-size: 4rem; color: #334155; margin-bottom: 15px; }
-    .modal-cart-dark .list-group-item { background-color: transparent; color: #f1f5f9; border-bottom: 1px solid rgba(255,255,255,0.05) !important; padding: 15px 0; }
-    .modal-cart-dark .list-group-item:last-child { border-bottom: none !important; }
-    .modal-cart-dark .quantity-btn { background: transparent; border: 1px solid #475569; color: #94a3b8; transition: 0.2s; }
-    .modal-cart-dark .quantity-btn:hover { background: #475569; color: #fff; }
+    /* 🛒 DRAWER CARRINHO (LATERAL) */
+    .cart-offcanvas {
+      background-color: #1e293b !important;
+      color: #f1f5f9;
+      width: 400px !important;
+      border-left: 1px solid rgba(255,255,255,0.1);
+    }
+    .cart-offcanvas .offcanvas-header {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 1.2rem 1.5rem;
+    }
+    .cart-offcanvas .offcanvas-header .btn-close {
+      filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    /* Área dos produtos: apenas esta parte dá scroll */
+    .cart-items-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.5rem;
+    }
+    .cart-items-scroll::-webkit-scrollbar { width: 6px; }
+    .cart-items-scroll::-webkit-scrollbar-track { background: #1e293b; }
+    .cart-items-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    .cart-items-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    
+    /* Rodapé fixo do carrinho (sempre visível) */
+    .cart-footer-sticky {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      background-color: #0f172a;
+      padding: 1.2rem 1.5rem;
+    }
+
+    .cart-empty-icon { font-size: 4rem; color: #334155; margin-bottom: 15px; }
+    .list-group-item { background-color: transparent; color: #f1f5f9; border-bottom: 1px solid rgba(255,255,255,0.05) !important; padding: 15px 0; }
+    .list-group-item:last-child { border-bottom: none !important; }
+    .quantity-btn { background: transparent; border: 1px solid #475569; color: #94a3b8; transition: 0.2s; }
+    .quantity-btn:hover { background: #475569; color: #fff; }
     .cart-total-price { color: #22d3ee; font-size: 1.4rem; }
+
+    /* Cupom */
+    .coupon-section { border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; margin-bottom: 15px; }
+    .coupon-section .form-control { background-color: #0f172a; border: 1px solid #475569; color: #fff; }
+    .coupon-section .form-control::placeholder { color: #64748b; }
+    .coupon-section .btn-outline-info { border-color: #06b6d4; color: #06b6d4; }
+    .coupon-section .btn-outline-info:hover { background-color: #06b6d4; color: #fff; }
+    .coupon-section .btn-outline-danger { border-color: #ef4444; color: #ef4444; }
+    .coupon-section .btn-outline-danger:hover { background-color: #ef4444; color: #fff; }
+    .coupon-feedback { margin-top: 5px; font-size: 0.85rem; }
   </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -450,10 +482,12 @@
     </div>
   </footer>
 
-  <button class="cart-floating-btn" data-bs-toggle="modal" data-bs-target="#cartModal"><i class="fa-solid fa-cart-shopping fa-lg"></i><span class="cart-badge" id="cartCount">0</span></button>
+  <!-- Botão Carrinho (abre o drawer lateral) -->
+  <button class="cart-floating-btn" data-bs-toggle="offcanvas" data-bs-target="#cartDrawer"><i class="fa-solid fa-cart-shopping fa-lg"></i><span class="cart-badge" id="cartCount">0</span></button>
 
   <button id="backToTop" onclick="window.scrollTo({ top: 0, behavior: 'smooth' });"><i class="fa-solid fa-arrow-up"></i></button>
 
+  <!-- Modal Detalhes -->
   <div class="modal fade modal-dark" id="infoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
@@ -462,40 +496,73 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4 pt-0">
-          <div class="ratio ratio-16x9" id="modalVideoContainer"><iframe id="modalVideoIframe" src="" allowfullscreen frameborder="0"></iframe></div>
+          <div class="ratio ratio-16x9" id="modalVideoContainer">
+            <iframe id="modalVideoIframe" src="" allowfullscreen frameborder="0"></iframe>
+          </div>
           <h3 id="modalProductTitle">Sistema de Empresas</h3>
-          <div class="d-flex align-items-start"><span class="bg-primary bg-opacity-10 text-white px-3 py-1 rounded-pill mb-3"><i class="fa-solid fa-info-circle me-2"></i> O sistema possui as seguintes funcionalidades:</span></div>
-          <div class="features-code-block"><ul id="modalFeaturesList"><li>Carregando funcionalidades...</li></ul></div>
-          <div class="text-center mt-4"><button type="button" class="btn btn-dark rounded-pill px-5 fw-bold border border-secondary" data-bs-dismiss="modal">FECHAR</button></div>
+          <div class="d-flex align-items-start">
+            <span class="bg-primary bg-opacity-10 text-white px-3 py-1 rounded-pill mb-3"><i class="fa-solid fa-info-circle me-2"></i> O sistema possui as seguintes funcionalidades:</span>
+          </div>
+          <div class="features-code-block">
+            <ul id="modalFeaturesList"><li>Carregando funcionalidades...</li></ul>
+          </div>
+          <div class="text-center mt-4">
+            <button type="button" class="btn btn-dark rounded-pill px-5 fw-bold border border-secondary" data-bs-dismiss="modal">FECHAR</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="modal fade modal-cart-dark" id="cartModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header border-0 p-4">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-cart-shopping text-info me-2"></i> Seu Carrinho</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body p-4 pt-0">
-          <div id="cartItemsContainer">
-            <div id="emptyCartMsg" class="text-center py-5">
-              <i class="fa-solid fa-cart-plus cart-empty-icon"></i>
-              <h5 class="text-secondary">Seu carrinho está vazio.</h5>
-              <p class="text-muted small">Adicione produtos para continuar.</p>
-            </div>
-            <ul class="list-group list-group-flush mb-3" id="cartItemsList" style="display: none;"></ul>
+  <!-- 🛒 DRAWER CARRINHO (LATERAL) -->
+  <div class="offcanvas offcanvas-end cart-offcanvas" tabindex="-1" id="cartDrawer" aria-labelledby="cartDrawerLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title fw-bold" id="cartDrawerLabel"><i class="fa-solid fa-cart-shopping text-info me-2"></i> Seu Carrinho</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    
+    <div class="offcanvas-body d-flex flex-column p-0">
+      <!-- Área dos Produtos (Scroll) -->
+      <div class="cart-items-scroll">
+        <div id="cartItemsContainer">
+          <div id="emptyCartMsg" class="text-center py-5">
+            <i class="fa-solid fa-cart-plus cart-empty-icon"></i>
+            <h5 class="text-secondary">Seu carrinho está vazio.</h5>
+            <p class="text-muted small">Adicione produtos para continuar.</p>
           </div>
-          <div class="d-flex justify-content-between align-items-center border-top pt-4 mt-4 fw-bold fs-5" style="border-color: rgba(255,255,255,0.1) !important;">
-            <span>Total:</span>
-            <span class="cart-total-price" id="cartTotal">€0.00</span>
-          </div>
+          <ul class="list-group list-group-flush" id="cartItemsList" style="display: none;"></ul>
         </div>
-        <div class="modal-footer border-0 p-4 justify-content-between">
-          <button type="button" class="btn btn-outline-light rounded-pill px-4" data-bs-dismiss="modal">Continuar Comprando</button>
-          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold btn-glow"><i class="fa-brands fa-discord me-2"></i> Processar Pagamento</a>
+      </div>
+
+      <!-- Rodapé Fixo (Sempre visível) -->
+      <div class="cart-footer-sticky">
+        <!-- Cupom de Desconto -->
+        <div class="coupon-section">
+          <div class="d-flex gap-2">
+            <input type="text" id="couponInput" class="form-control" placeholder="Cupom de desconto">
+            <button id="applyCouponBtn" class="btn btn-outline-info rounded-pill px-3" onclick="applyCoupon()">Aplicar</button>
+            <button id="removeCouponBtn" class="btn btn-outline-danger rounded-pill px-3 d-none" onclick="removeCoupon()">Remover</button>
+          </div>
+          <div id="couponFeedback" class="coupon-feedback text-muted"></div>
+        </div>
+        
+        <!-- Resumo -->
+        <div class="d-flex justify-content-between small text-muted">
+          <span>Subtotal:</span>
+          <span id="cartSubtotal">€0.00</span>
+        </div>
+        <div class="d-flex justify-content-between small text-success d-none" id="discountRow">
+          <span>Desconto (<span id="discountPercent">0</span>%):</span>
+          <span id="cartDiscount">-€0.00</span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold text-white mt-2">
+          <span>Total:</span>
+          <span class="cart-total-price" id="cartTotal">€0.00</span>
+        </div>
+
+        <!-- Botão Pagamento -->
+        <div class="mt-3">
+          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success w-100 rounded-pill fw-bold btn-glow"><i class="fa-brands fa-discord me-2"></i> Processar Pagamento</a>
         </div>
       </div>
     </div>
@@ -521,6 +588,7 @@
     });
 
     let cart = [];
+    let appliedCoupon = null;
 
     async function loadCart() {
       try {
@@ -528,6 +596,20 @@
         if (response.ok) {
           cart = await response.json();
           updateCartUI();
+        }
+        const couponResponse = await fetch('/api/coupon/status');
+        if (couponResponse.ok) {
+          const data = await couponResponse.json();
+          if (data.coupon) {
+            appliedCoupon = { code: data.coupon.code, percentage: data.coupon.percentage };
+            document.getElementById('couponInput').value = data.coupon.code;
+            document.getElementById('couponInput').disabled = true;
+            document.getElementById('applyCouponBtn').classList.add('d-none');
+            document.getElementById('removeCouponBtn').classList.remove('d-none');
+            document.getElementById('couponFeedback').textContent = `Cupom ${data.coupon.code} aplicado!`;
+            document.getElementById('couponFeedback').classList.remove('text-danger');
+            document.getElementById('couponFeedback').classList.add('text-success');
+          }
         }
       } catch (e) {
         console.error('Erro ao carregar carrinho:', e);
@@ -596,20 +678,30 @@
       const list = document.getElementById('cartItemsList');
       const empty = document.getElementById('emptyCartMsg');
       const totalSpan = document.getElementById('cartTotal');
+      const subtotalSpan = document.getElementById('cartSubtotal');
+      const discountSpan = document.getElementById('cartDiscount');
+      const discountRow = document.getElementById('discountRow');
+      const discountPercentSpan = document.getElementById('discountPercent');
+      
       const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
       badge.textContent = totalItems;
+      
       if (cart.length === 0) {
         list.style.display = 'none';
         empty.style.display = 'block';
+        subtotalSpan.textContent = '€0.00';
         totalSpan.textContent = '€0.00';
+        discountRow.classList.add('d-none');
         return;
       }
+      
       empty.style.display = 'none';
       list.style.display = 'block';
-      let totalPrice = 0;
+      
+      let subtotal = 0;
       list.innerHTML = cart.map((item, idx) => {
         const itemTotal = item.price * item.quantity;
-        totalPrice += itemTotal;
+        subtotal += itemTotal;
         return `<li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0 border-bottom">
           <div>
             <div><span class="fw-semibold">${item.name}</span></div>
@@ -624,7 +716,20 @@
           </div>
         </li>`;
       }).join('');
-      totalSpan.textContent = `€${totalPrice.toFixed(2)}`;
+      
+      subtotalSpan.textContent = `€${subtotal.toFixed(2)}`;
+      
+      let discount = 0;
+      if (appliedCoupon) {
+        discount = subtotal * (appliedCoupon.percentage / 100);
+        discountPercentSpan.textContent = appliedCoupon.percentage;
+        discountSpan.textContent = `-€${discount.toFixed(2)}`;
+        discountRow.classList.remove('d-none');
+      } else {
+        discountRow.classList.add('d-none');
+      }
+      
+      totalSpan.textContent = `€${(subtotal - discount).toFixed(2)}`;
     }
 
     function removeFromCart(index) {
@@ -633,31 +738,69 @@
       updateCartUI();
     }
 
+    async function applyCoupon() {
+      const code = document.getElementById('couponInput').value.trim();
+      if (!code) return;
+      const response = await fetch('/api/coupon/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      const data = await response.json();
+      if (data.success) {
+        appliedCoupon = data;
+        document.getElementById('couponInput').disabled = true;
+        document.getElementById('applyCouponBtn').classList.add('d-none');
+        document.getElementById('removeCouponBtn').classList.remove('d-none');
+        document.getElementById('couponFeedback').textContent = `Cupom ${data.code} aplicado!`;
+        document.getElementById('couponFeedback').classList.remove('text-danger');
+        document.getElementById('couponFeedback').classList.add('text-success');
+        updateCartUI();
+      } else {
+        document.getElementById('couponFeedback').textContent = data.error || 'Cupom inválido';
+        document.getElementById('couponFeedback').classList.remove('text-success');
+        document.getElementById('couponFeedback').classList.add('text-danger');
+      }
+    }
+
+    async function removeCoupon() {
+      const response = await fetch('/api/coupon/remove', { method: 'POST' });
+      if (response.ok) {
+        appliedCoupon = null;
+        document.getElementById('couponInput').disabled = false;
+        document.getElementById('couponInput').value = '';
+        document.getElementById('applyCouponBtn').classList.remove('d-none');
+        document.getElementById('removeCouponBtn').classList.add('d-none');
+        document.getElementById('couponFeedback').textContent = '';
+        updateCartUI();
+      }
+    }
+
     function openInfoModal(id, name, videoUrl, featuresText) {
-        const modal = new bootstrap.Modal(document.getElementById('infoModal'));
-        document.getElementById('modalProductTitle').textContent = name;
-        const iframe = document.getElementById('modalVideoIframe');
-        const container = document.getElementById('modalVideoContainer');
-        if (videoUrl && videoUrl.trim() !== '') {
-          container.style.display = 'block';
-          iframe.src = videoUrl;
-        } else {
-          container.style.display = 'none';
-          iframe.src = '';
-        }
-        const list = document.getElementById('modalFeaturesList');
-        list.innerHTML = '';
-        if (featuresText && featuresText.trim() !== '') {
-            const featuresArray = featuresText.split('\n').filter(f => f.trim() !== '');
-            featuresArray.forEach(f => {
-              const li = document.createElement('li');
-              li.textContent = f.trim();
-              list.appendChild(li);
-            });
-        } else {
-          list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
-        }
-        modal.show();
+      const modal = new bootstrap.Modal(document.getElementById('infoModal'));
+      document.getElementById('modalProductTitle').textContent = name;
+      const iframe = document.getElementById('modalVideoIframe');
+      const container = document.getElementById('modalVideoContainer');
+      if (videoUrl && videoUrl.trim() !== '') {
+        container.style.display = 'block';
+        iframe.src = videoUrl;
+      } else {
+        container.style.display = 'none';
+        iframe.src = '';
+      }
+      const list = document.getElementById('modalFeaturesList');
+      list.innerHTML = '';
+      if (featuresText && featuresText.trim() !== '') {
+        const featuresArray = featuresText.split('\n').filter(f => f.trim() !== '');
+        featuresArray.forEach(f => {
+          const li = document.createElement('li');
+          li.textContent = f.trim();
+          list.appendChild(li);
+        });
+      } else {
+        list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
+      }
+      modal.show();
     }
 
     const productItems = document.querySelectorAll('.product-item');
