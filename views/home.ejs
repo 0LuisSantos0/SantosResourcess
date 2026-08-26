@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Santos Resources | MTA & Discord Solutions</title>
   
-  <!-- 🔥 FAVICON DINÂMICO -->
   <link rel="icon" href="<%= siteSettings.logo_url ? siteSettings.logo_url : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>' %>" />
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
@@ -32,6 +31,7 @@
       flex-direction: column;
     }
 
+    /* ══════════════════ NAVBAR ══════════════════ */
     .navbar-glass {
       background: rgba(11, 17, 32, 0.8);
       backdrop-filter: blur(16px) saturate(180%);
@@ -61,14 +61,13 @@
     .navbar-glass .nav-link:hover::after,
     .navbar-glass .nav-link.active::after { width: 80%; }
 
-    /* 🔥 Menu Dropdown do Utilizador (Estilo Escuro e Hover) */
     .navbar .dropdown-menu {
       background-color: #1e293b;
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       padding: 0.5rem;
       min-width: 180px;
-      margin-top: 0.5rem; /* Espaço mínimo apenas para não colar */
+      margin-top: 0.5rem;
       box-shadow: 0 15px 40px rgba(0,0,0,0.4);
       position: absolute;
       top: 100%;
@@ -103,78 +102,130 @@
     }
     .navbar .dropdown:hover .dropdown-menu {
       display: block;
-      margin-top: 0.25rem; /* Ainda mais pequeno para ficar colado */
+      margin-top: 0.25rem;
     }
 
+    /* ══════════════════ HERO COM AURORA CIBERNÉTICA ══════════════════ */
     .hero-section {
       background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 70%, #0b1120 100%);
       color: white;
       padding: 180px 0 120px 0;
       position: relative;
       overflow: hidden;
+      isolation: isolate;
     }
 
-    /* 🔥 ANIMAÇÃO AURORA/BLOB ATRÁS DO TEXTO */
+    /* 1. Gradiente Aurora Giratório */
     .hero-section::before {
       content: '';
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.6), rgba(34, 211, 238, 0.4), transparent 70%);
-      border-radius: 50%;
-      transform: translate(-50%, -50%) scale(1);
-      animation: animateHeroBlob 6s infinite alternate ease-in-out;
-      z-index: 1;
-      pointer-events: none;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(99,102,241,0.3), transparent, rgba(34,211,238,0.2), transparent, rgba(139,92,246,0.3), transparent);
+      animation: rotateAurora 20s linear infinite;
+      z-index: -2;
     }
 
-    .hero-section::after {
-      content: '';
+    @keyframes rotateAurora {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 2. Formas Geométricas Flutuantes (Glassmorphism) */
+    .hero-shape {
       position: absolute;
-      top: 30%;
-      left: 30%;
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, rgba(139, 92, 246, 0.5), transparent 70%);
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 30%;
+      animation: floatShape 12s infinite ease-in-out;
+      z-index: -1;
+    }
+
+    .shape-1 {
+      width: 400px; height: 400px; top: -100px; left: -100px;
+      animation-delay: 0s;
+      transform: rotate(45deg);
+    }
+
+    .shape-2 {
+      width: 300px; height: 300px; bottom: -80px; right: -50px;
       border-radius: 50%;
-      animation: animateHeroBlob2 8s infinite alternate ease-in-out;
-      z-index: 1;
+      animation-delay: -3s;
+    }
+
+    .shape-3 {
+      width: 200px; height: 200px; top: 50%; left: 60%;
+      border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+      animation-delay: -6s;
+    }
+
+    @keyframes floatShape {
+      0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+      50% { transform: translateY(-40px) rotate(15deg) scale(1.1); }
+    }
+
+    /* 3. Partículas (Estrelas a brilhar) */
+    .star {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle 4s infinite ease-in-out;
+      z-index: -1;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.1; transform: scale(0.5); }
+      50% { opacity: 1; transform: scale(1.5); }
+    }
+
+    /* 4. Brilho Pulsante Central */
+    .hero-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(99,102,241,0.4), rgba(34,211,238,0.2), transparent 70%);
+      transform: translate(-50%, -50%);
+      animation: pulseGlow 5s infinite ease-in-out;
+      z-index: -1;
       pointer-events: none;
     }
 
-    @keyframes animateHeroBlob {
-      0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
-      50% { transform: translate(-50%, -60%) scale(1.2) rotate(45deg); }
-      100% { transform: translate(-50%, -40%) scale(0.8) rotate(90deg); }
+    @keyframes pulseGlow {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
     }
 
-    @keyframes animateHeroBlob2 {
-      0% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(50px, -30px) scale(1.3); }
-      100% { transform: translate(-30px, 50px) scale(0.9); }
-    }
-
-    /* Garantir que o conteúdo fica por cima do efeito */
-    .hero-section .container {
-      position: relative;
-      z-index: 2;
-    }
-
+    /* ══════════════════ CONTEÚDO DO HERO ══════════════════ */
     .hero-title {
       font-size: clamp(3rem, 8vw, 5.5rem);
       font-weight: 900;
       line-height: 1.1;
       letter-spacing: -2px;
       text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 2;
+      animation: titleGlow 3s infinite alternate;
     }
+
+    @keyframes titleGlow {
+      from { text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+      to { text-shadow: 0 0 40px rgba(99,102,241,0.8); }
+    }
+
     .hero-subtitle {
       font-size: 1.25rem;
       color: rgba(255,255,255,0.7);
       max-width: 600px;
       margin: 1.5rem auto;
+      position: relative;
+      z-index: 2;
     }
+
     .btn-hero {
       background: white;
       color: #0f172a;
@@ -183,22 +234,16 @@
       padding: 14px 40px;
       transition: all 0.3s ease;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      position: relative;
+      z-index: 2;
     }
     .btn-hero:hover {
       transform: translateY(-4px) scale(1.02);
       box-shadow: 0 10px 40px rgba(255,255,255,0.4);
       color: #0f172a;
     }
-    .hero-stats .stat-box {
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 24px;
-      border-radius: 20px;
-      transition: all 0.3s ease;
-      text-align: center;
-    }
 
+    /* ══════════════════ SECÇÕES SEGUINTES ══════════════════ */
     .feature-box {
       background: white;
       padding: 2rem;
@@ -236,7 +281,6 @@
       height: 100%;
     }
 
-    /* 🔥 BADGE DINÂMICA (Canto Esquerdo) */
     .product-badge {
       position: absolute;
       top: 12px;
@@ -325,7 +369,6 @@
       box-shadow: 0 8px 25px rgba(34, 211, 238, 0.6);
     }
 
-    /* 🔥 BOTÃO INFO - SÓ APARECE NO HOVER */
     .product-card-ref .btn-info {
       position: absolute;
       top: 15px;
@@ -345,30 +388,15 @@
       pointer-events: none;
     }
     .product-card-ref:hover .btn-info {
-      opacity: 1;              /* Aparece */
-      pointer-events: auto;    /* Fica clicável */
+      opacity: 1;
+      pointer-events: auto;
     }
 
-    /* 🔥 GLOW EFFECTS GERAIS */
     .btn-glow { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; }
     .btn-glow:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 25px rgba(34, 211, 238, 0.5); }
-    .btn-primary.btn-glow:hover, .navbar .btn-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5); transform: translateY(-2px) scale(1.02); }
-    .btn-outline-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); transform: translateY(-2px); }
-    .btn-discord:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5); }
 
-    /* 🔥 LINHA DIVISÓRIA COM GLOW */
     .section-glow { position: relative; box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.5); }
     .section-glow::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, #6366f1, transparent); box-shadow: 0 0 15px rgba(34, 211, 238, 0.8); z-index: 10; }
-
-    /* MODAL ESCURA */
-    .modal-dark { background: rgba(0, 0, 0, 0.8) !important; }
-    .modal-dark .modal-content { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 20px; }
-    .modal-dark .modal-header { border-bottom: none; }
-    .modal-dark .modal-body h3 { color: white; font-weight: 700; margin-top: 15px; }
-    .features-code-block { background: #020617; border-radius: 12px; padding: 20px; margin-top: 10px; border: 1px solid #1e293b; font-family: 'Inter', sans-serif; }
-    .features-code-block ul { list-style: none; padding-left: 0; margin: 0; }
-    .features-code-block li { padding: 6px 0; font-size: 0.95rem; color: #cbd5e1; }
-    .features-code-block li::before { content: '⚙️ '; color: #22d3ee; }
 
     footer { background: #0b1120; color: #94a3b8; padding: 40px 0 20px; margin-top: auto; }
     footer h5, footer h6 { color: #fff; font-weight: 600; }
@@ -382,7 +410,7 @@
     .cart-floating-btn:hover { transform: scale(1.05); background: #1e293b; box-shadow: 0 8px 30px rgba(15, 23, 42, 0.6); }
     .cart-badge { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
 
-    /* 🔥 CARRINHO ESCURO PREMIUM (NOVO DESIGN) */
+    /* ══════════════════ CARRINHO ESCURO ══════════════════ */
     .modal-cart-dark .modal-content {
       background-color: #1e293b;
       border: 1px solid rgba(255,255,255,0.1);
@@ -390,62 +418,20 @@
       color: #f1f5f9;
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     }
-    .modal-cart-dark .modal-header {
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      padding: 1.5rem;
-    }
-    .modal-cart-dark .modal-header .btn-close {
-      filter: invert(1) grayscale(100%) brightness(200%);
-    }
-    .modal-cart-dark .modal-footer {
-      border-top: 1px solid rgba(255,255,255,0.05);
-      padding: 1.5rem;
-    }
-    .modal-cart-dark .modal-body {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .modal-cart-dark .modal-body::-webkit-scrollbar {
-      width: 6px;
-    }
-    .modal-cart-dark .modal-body::-webkit-scrollbar-track {
-      background: #1e293b;
-    }
-    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb {
-      background: #475569;
-      border-radius: 10px;
-    }
-    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb:hover {
-      background: #64748b;
-    }
-    .modal-cart-dark .cart-empty-icon {
-      font-size: 4rem;
-      color: #334155;
-      margin-bottom: 15px;
-    }
-    .modal-cart-dark .list-group-item {
-      background-color: transparent;
-      color: #f1f5f9;
-      border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-      padding: 15px 0;
-    }
-    .modal-cart-dark .list-group-item:last-child {
-      border-bottom: none !important;
-    }
-    .modal-cart-dark .quantity-btn {
-      background: transparent;
-      border: 1px solid #475569;
-      color: #94a3b8;
-      transition: 0.2s;
-    }
-    .modal-cart-dark .quantity-btn:hover {
-      background: #475569;
-      color: #fff;
-    }
-    .cart-total-price {
-      color: #22d3ee;
-      font-size: 1.4rem;
-    }
+    .modal-cart-dark .modal-header { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 1.5rem; }
+    .modal-cart-dark .modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+    .modal-cart-dark .modal-footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 1.5rem; }
+    .modal-cart-dark .modal-body { max-height: 400px; overflow-y: auto; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar { width: 6px; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar-track { background: #1e293b; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    .modal-cart-dark .cart-empty-icon { font-size: 4rem; color: #334155; margin-bottom: 15px; }
+    .modal-cart-dark .list-group-item { background-color: transparent; color: #f1f5f9; border-bottom: 1px solid rgba(255,255,255,0.05) !important; padding: 15px 0; }
+    .modal-cart-dark .list-group-item:last-child { border-bottom: none !important; }
+    .modal-cart-dark .quantity-btn { background: transparent; border: 1px solid #475569; color: #94a3b8; transition: 0.2s; }
+    .modal-cart-dark .quantity-btn:hover { background: #475569; color: #fff; }
+    .cart-total-price { color: #22d3ee; font-size: 1.4rem; }
   </style>
 </head>
 <body>
@@ -497,7 +483,22 @@
   </nav>
 
   <main class="flex-fill">
+    <!-- HERO COM AURORA CIBERNÉTICA -->
     <section class="hero-section position-relative d-flex align-items-center section-glow">
+      <!-- Elementos da Animação -->
+      <div class="hero-glow"></div>
+      <div class="hero-shape shape-1"></div>
+      <div class="hero-shape shape-2"></div>
+      <div class="hero-shape shape-3"></div>
+
+      <!-- Partículas (Estrelas) -->
+      <div class="star" style="top: 20%; left: 10%;"></div>
+      <div class="star" style="top: 30%; left: 80%; animation-delay: 1s;"></div>
+      <div class="star" style="top: 70%; left: 15%; animation-delay: 2s;"></div>
+      <div class="star" style="top: 60%; left: 85%; animation-delay: 3s;"></div>
+      <div class="star" style="top: 80%; left: 50%; animation-delay: 1.5s;"></div>
+      <div class="star" style="top: 15%; left: 50%; animation-delay: 2.5s;"></div>
+
       <div class="container text-center position-relative" style="z-index: 2;">
         <div data-aos="fade-down" data-aos-delay="50"><span class="badge bg-primary bg-opacity-25 text-light mb-3 rounded-pill px-4 py-2">🚀 Sistema de Alta Performance</span></div>
         <h1 class="hero-title mb-4" data-aos="fade-up" data-aos-delay="100">Santos Resources</h1>
@@ -526,7 +527,6 @@
             <div class="col" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
               <div class="card product-card-ref">
                 <div class="card-body">
-                  <!-- 🔥 BADGE DINÂMICA COM COR PERSONALIZADA -->
                   <% if (p.badge && p.badge.trim() !== '') { %>
                     <div class="product-badge" style="border-color: <%- p.badge_color || '#94a3b8' %>; color: <%- p.badge_color || '#94a3b8' %>;">
                       <%= p.badge %>
@@ -685,7 +685,6 @@
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); }, 2000);
     }
 
-    // 🔥 NOVA FUNÇÃO PARA + E - NO CARRINHO
     function changeQuantity(index, delta) {
         const item = cart[index];
         if (item.category === 'MTA' && delta > 0 && item.quantity >= 1) {
