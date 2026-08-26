@@ -546,8 +546,7 @@
           <div id="couponFeedback" class="coupon-feedback text-muted"></div>
         </div>
         
-        <!-- Resumo -->
-        <div class="d-flex justify-content-between small text-muted">
+        <div class="d-flex justify-content-between small text-light opacity-75">
           <span>Subtotal:</span>
           <span id="cartSubtotal">€0.00</span>
         </div>
@@ -609,6 +608,7 @@
             document.getElementById('couponFeedback').textContent = `Cupom ${data.coupon.code} aplicado!`;
             document.getElementById('couponFeedback').classList.remove('text-danger');
             document.getElementById('couponFeedback').classList.add('text-success');
+            updateCartUI();
           }
         }
       } catch (e) {
