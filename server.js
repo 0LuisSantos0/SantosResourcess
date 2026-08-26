@@ -80,7 +80,6 @@ async function getApp() {
         }
       }));
 
-      // 🔥 MIDDLEWARE GLOBAL: Carrega as configurações
       app.use(async (req, res, next) => {
         try {
           const result = await pool.query('SELECT * FROM settings WHERE id = 1');
@@ -97,9 +96,6 @@ async function getApp() {
         }
       });
 
-      // ================================================================
-      // ROTAS DA API DO CARRINHO
-      // ================================================================
       app.get('/api/cart', async (req, res) => {
         if (!req.session.user) return res.json([]);
         const result = await pool.query('SELECT cart FROM users WHERE discord_id = $1', [req.session.user.id]);
@@ -113,9 +109,36 @@ async function getApp() {
         res.json({ success: true });
       });
 
-      // ================================================================
-      // ROTAS PÚBLICAS
-      // ================================================================
+      app.get('/api/coupon/status', async (req, res) => {
+        if (!req.session.user) return res.json({ coupon: null });
+        res.json({ coupon: req.session.coupon || null });
+      });
+
+      app.post('/api/coupon/apply', async (req, res) => {
+        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+        const { code } = req.body;
+        try {
+          const result = await pool.query('SELECT * FROM discounts WHERE code = $1 AND is_active = 1', [code.toUpperCase()]);
+          if (result.rows.length === 0) {
+            return res.status(400).json({ error: 'Cupom inválido ou inativo' });
+          }
+          const discount = result.rows[0];
+          req.session.coupon = { code: discount.code, percentage: discount.percentage };
+          await new Promise((resolve, reject) => req.session.save(err => err ? reject(err) : resolve()));
+          res.json({ success: true, percentage: discount.percentage, code: discount.code });
+        } catch (err) {
+          console.error('Erro ao validar cupom:', err);
+          res.status(500).json({ error: 'Erro ao validar cupom' });
+        }
+      });
+
+      app.post('/api/coupon/remove', async (req, res) => {
+        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+        req.session.coupon = null;
+        await new Promise((resolve, reject) => req.session.save(err => err ? reject(err) : resolve()));
+        res.json({ success: true });
+      });
+
       app.get('/', async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
@@ -131,11 +154,7 @@ async function getApp() {
             }
           }
 
-          res.render('home', {
-            products: result.rows,
-            user: req.session.user || null,
-            isAdmin: isAdmin
-          });
+          res.render('home', { products: result.rows, user: req.session.user || null, isAdmin: isAdmin });
         } catch (err) {
           console.error("❌ ERRO NA ROTA HOME:", err);
           res.status(500).send('Erro ao carregar produtos: ' + err.message);
@@ -156,12 +175,7 @@ async function getApp() {
               }
             }
           }
-          res.render('products', {
-            products: result.rows,
-            user: req.session.user || null,
-            isAdmin: isAdmin,
-            error: null
-          });
+          res.render('products', { products: result.rows, user: req.session.user || null, isAdmin: isAdmin, error: null });
         } catch (err) {
           res.render('products', { products: [], user: req.session.user || null, isAdmin: false, error: 'Erro ao carregar produtos' });
         }
@@ -242,9 +256,6 @@ async function getApp() {
 
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
-      // ================================================================
-      // ÁREA ADMINISTRATIVA
-      // ================================================================
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
@@ -274,14 +285,14 @@ async function getApp() {
         res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
       });
 
-      // 🔥 ROTA ADICIONAR PRODUTO (ATUALIZADA COM BADGE)
       app.post('/admin/products/add', isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features, badge } = req.body;
+          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color } = req.body;
           if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
+
           await pool.query(
-            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features, badge) VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8)',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge]
+            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features, badge, badge_color) VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8, $9)',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8']
           );
           await logActivity(req, `Criou o produto: ${name}`);
           res.redirect(303, '/admin');
@@ -291,13 +302,13 @@ async function getApp() {
         }
       });
 
-      // 🔥 ROTA EDITAR PRODUTO (ATUALIZADA COM BADGE)
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features, badge } = req.body;
+          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color } = req.body;
+
           await pool.query(
-            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7, badge = $8 WHERE id = $9',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, req.params.id]
+            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7, badge = $8, badge_color = $9 WHERE id = $10',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8', req.params.id]
           );
           await logActivity(req, `Editou o produto: ${name}`);
           res.redirect(303, '/admin'); 
