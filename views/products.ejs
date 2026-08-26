@@ -343,6 +343,34 @@
     .coupon-section .btn-outline-danger { border-color: #ef4444; color: #ef4444; }
     .coupon-section .btn-outline-danger:hover { background-color: #ef4444; color: #fff; }
     .coupon-feedback { margin-top: 5px; font-size: 0.85rem; }
+    .cart-offcanvas {
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+    }
+    .cart-offcanvas.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    .cart-offcanvas:not(.show) {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    .cart-floating-btn.pulse {
+      animation: pulse-cart 0.4s ease-in-out;
+    }
+    @keyframes pulse-cart {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); box-shadow: 0 0 20px rgba(34,211,238,0.7); }
+      100% { transform: scale(1); }
+    }
+
+    .list-group-item {
+      animation: fadeInItem 0.3s ease;
+    }
+    @keyframes fadeInItem {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -835,6 +863,18 @@
     document.getElementById('searchInput').addEventListener('input', filterAndSort);
     document.getElementById('sortPrice').addEventListener('change', filterAndSort);
     document.getElementById('sortCategory').addEventListener('change', filterAndSort);
+    document.addEventListener('DOMContentLoaded', function() {
+      const cartBtn = document.querySelector('.cart-floating-btn');
+      const cartOffcanvas = document.getElementById('cartDrawer');
+      
+      if (cartBtn && cartOffcanvas) {
+        // Quando o offcanvas está a abrir
+        cartOffcanvas.addEventListener('show.bs.offcanvas', function() {
+          cartBtn.classList.add('pulse');
+          setTimeout(() => cartBtn.classList.remove('pulse'), 500);
+        });
+      }
+    });
   </script>
 </body>
 </html>

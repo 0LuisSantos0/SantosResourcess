@@ -314,6 +314,34 @@
     .features-code-block ul { list-style: none; padding-left: 0; margin: 0; }
     .features-code-block li { padding: 6px 0; font-size: 0.95rem; color: #cbd5e1; }
     .features-code-block li::before { content: '⚙️ '; color: #22d3ee; }
+    .cart-offcanvas {
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+    }
+    .cart-offcanvas.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    .cart-offcanvas:not(.show) {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    .cart-floating-btn.pulse {
+      animation: pulse-cart 0.4s ease-in-out;
+    }
+    @keyframes pulse-cart {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); box-shadow: 0 0 20px rgba(34,211,238,0.7); }
+      100% { transform: scale(1); }
+    }
+
+    .list-group-item {
+      animation: fadeInItem 0.3s ease;
+    }
+    @keyframes fadeInItem {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -777,6 +805,18 @@
       }
       modal.show();
     }
+    document.addEventListener('DOMContentLoaded', function() {
+      const cartBtn = document.querySelector('.cart-floating-btn');
+      const cartOffcanvas = document.getElementById('cartDrawer');
+      
+      if (cartBtn && cartOffcanvas) {
+        // Quando o offcanvas está a abrir
+        cartOffcanvas.addEventListener('show.bs.offcanvas', function() {
+          cartBtn.classList.add('pulse');
+          setTimeout(() => cartBtn.classList.remove('pulse'), 500);
+        });
+      }
+    });
   </script>
 </body>
 </html>
