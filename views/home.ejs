@@ -256,17 +256,33 @@
     .cart-floating-btn:hover { transform: scale(1.05); background: #1e293b; box-shadow: 0 8px 30px rgba(15, 23, 42, 0.6); }
     .cart-badge { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; }
 
-    /* CARRINHO */
+    /* CARRINHO ESCURO PREMIUM (ORIGINAL) */
     .modal-cart-dark .modal-content { background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; color: #f1f5f9; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
     .modal-cart-dark .modal-header { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 1.5rem; }
     .modal-cart-dark .modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
     .modal-cart-dark .modal-footer { border-top: 1px solid rgba(255,255,255,0.05); padding: 1.5rem; }
     .modal-cart-dark .modal-body { max-height: 400px; overflow-y: auto; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar { width: 6px; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar-track { background: #1e293b; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    .modal-cart-dark .modal-body::-webkit-scrollbar-thumb:hover { background: #64748b; }
     .modal-cart-dark .cart-empty-icon { font-size: 4rem; color: #334155; margin-bottom: 15px; }
     .modal-cart-dark .list-group-item { background-color: transparent; color: #f1f5f9; border-bottom: 1px solid rgba(255,255,255,0.05) !important; padding: 15px 0; }
+    .modal-cart-dark .list-group-item:last-child { border-bottom: none !important; }
     .modal-cart-dark .quantity-btn { background: transparent; border: 1px solid #475569; color: #94a3b8; transition: 0.2s; }
     .modal-cart-dark .quantity-btn:hover { background: #475569; color: #fff; }
     .cart-total-price { color: #22d3ee; font-size: 1.4rem; }
+
+    /* ESTILOS DO CUPOM (Mantendo o tema escuro) */
+    .coupon-section { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 15px; }
+    .coupon-section .form-control { background-color: #0f172a; border: 1px solid #475569; color: #fff; }
+    .coupon-section .form-control::placeholder { color: #64748b; }
+    .coupon-section .btn-outline-info { border-color: #06b6d4; color: #06b6d4; }
+    .coupon-section .btn-outline-info:hover { background-color: #06b6d4; color: #fff; }
+    .coupon-section .btn-outline-danger { border-color: #ef4444; color: #ef4444; }
+    .coupon-section .btn-outline-danger:hover { background-color: #ef4444; color: #fff; }
+    .coupon-feedback { margin-top: 5px; font-size: 0.85rem; }
+    .summary-box { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 15px; }
   </style>
 </head>
 <body>
@@ -420,31 +436,35 @@
 
   <button class="cart-floating-btn" data-bs-toggle="modal" data-bs-target="#cartModal"><i class="fa-solid fa-cart-shopping fa-lg"></i><span class="cart-badge" id="cartCount">0</span></button>
 
-  <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+  <div class="modal fade modal-cart-dark" id="cartModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content" style="border-radius: 24px;">
+      <div class="modal-content">
         <div class="modal-header border-0 p-4">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-cart-shopping text-primary me-2"></i> Seu Carrinho</h5>
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-cart-shopping text-info me-2"></i> Seu Carrinho</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4 pt-0">
           <div id="cartItemsContainer">
-            <p class="text-muted text-center my-4" id="emptyCartMsg">O seu carrinho está vazio.</p>
+            <div id="emptyCartMsg" class="text-center py-5">
+              <i class="fa-solid fa-cart-plus cart-empty-icon"></i>
+              <h5 class="text-secondary">Seu carrinho está vazio.</h5>
+              <p class="text-muted small">Adicione produtos para continuar.</p>
+            </div>
             <ul class="list-group list-group-flush mb-3" id="cartItemsList" style="display: none;"></ul>
           </div>
           
-          <!-- Campo de Cupom -->
-          <div class="coupon-section mt-4">
+          <!-- Campo de Cupom (Mantendo o estilo escuro) -->
+          <div class="coupon-section">
             <div class="d-flex gap-2">
-              <input type="text" id="couponInput" class="form-control bg-dark text-white border-secondary" placeholder="Código do cupom" style="border-radius: 8px;">
+              <input type="text" id="couponInput" class="form-control" placeholder="Código do cupom">
               <button id="applyCouponBtn" class="btn btn-outline-info rounded-pill px-3" onclick="applyCoupon()">Aplicar</button>
               <button id="removeCouponBtn" class="btn btn-outline-danger rounded-pill px-3 d-none" onclick="removeCoupon()">Remover</button>
             </div>
-            <div id="couponFeedback" class="small mt-2"></div>
+            <div id="couponFeedback" class="coupon-feedback text-muted"></div>
           </div>
           
           <!-- Resumo -->
-          <div class="mt-3">
+          <div class="summary-box">
             <div class="d-flex justify-content-between small text-muted">
               <span>Subtotal:</span>
               <span id="cartSubtotal">€0.00</span>
@@ -453,15 +473,15 @@
               <span>Desconto (<span id="discountPercent">0</span>%):</span>
               <span id="cartDiscount">-€0.00</span>
             </div>
-            <div class="d-flex justify-content-between fw-bold text-white">
+            <div class="d-flex justify-content-between fw-bold">
               <span>Total:</span>
               <span class="cart-total-price" id="cartTotal">€0.00</span>
             </div>
           </div>
         </div>
         <div class="modal-footer border-0 p-4 justify-content-between">
-          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Continuar Comprando</button>
-          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold"><i class="fa-brands fa-discord me-2"></i> Processar Pagamento</a>
+          <button type="button" class="btn btn-outline-light rounded-pill px-4" data-bs-dismiss="modal">Continuar Comprando</button>
+          <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="btn btn-success rounded-pill px-4 fw-bold btn-glow"><i class="fa-brands fa-discord me-2"></i> Processar Pagamento</a>
         </div>
       </div>
     </div>
@@ -526,6 +546,7 @@
             document.getElementById('applyCouponBtn').classList.add('d-none');
             document.getElementById('removeCouponBtn').classList.remove('d-none');
             document.getElementById('couponFeedback').textContent = `Cupom ${data.coupon.code} aplicado!`;
+            document.getElementById('couponFeedback').classList.remove('text-danger');
             document.getElementById('couponFeedback').classList.add('text-success');
           }
         }
@@ -676,6 +697,7 @@
         updateCartUI();
       } else {
         document.getElementById('couponFeedback').textContent = data.error || 'Cupom inválido';
+        document.getElementById('couponFeedback').classList.remove('text-success');
         document.getElementById('couponFeedback').classList.add('text-danger');
       }
     }
