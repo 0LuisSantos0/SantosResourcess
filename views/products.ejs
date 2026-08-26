@@ -140,7 +140,6 @@
       height: 100%;
     }
 
-    /* 🔥 BADGE DINÂMICA (Canto Esquerdo) */
     .product-badge {
       position: absolute;
       top: 12px;
@@ -159,24 +158,24 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
+    /* 🔥 ÁREA DA IMAGEM - CORRIGIDA */
     .product-image-area {
       width: 100%;
       height: 180px;
       margin-bottom: 15px;
       border-radius: 12px;
-      background: #f8fafc;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
       position: relative;
-      border: 1px solid #e2e8f0;
-      padding: 8px;
+      padding: 0;
     }
     .product-image-area img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover; /* 🔥 IMAGEM PREENCHE O RETÂNGULO SEM ESPAÇOS */
       display: block;
     }
     .img-placeholder {
@@ -184,20 +183,25 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #94a3b8;
+      color: white;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
     .img-placeholder i {
-      font-size: 3rem;
-      opacity: 0.6;
-      margin-bottom: 5px;
-      color: #cbd5e1;
+      font-size: 2.5rem;
+      opacity: 0.8;
+      margin-bottom: 10px;
     }
     .img-placeholder span {
-      font-size: 0.75rem;
-      font-weight: 600;
+      font-size: 0.9rem;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      opacity: 0.8;
+      letter-spacing: 2px;
+      opacity: 0.9;
+      text-align: center;
     }
 
     .product-card-ref .product-title {
@@ -229,7 +233,6 @@
       box-shadow: 0 8px 25px rgba(34, 211, 238, 0.6);
     }
 
-    /* 🔥 BOTÃO INFO - SÓ APARECE NO HOVER */
     .product-card-ref .btn-info {
       position: absolute;
       top: 15px;
@@ -253,12 +256,8 @@
       pointer-events: auto;
     }
 
-    /* 🔥 GLOW EFFECTS GERAIS */
     .btn-glow { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; }
     .btn-glow:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 25px rgba(34, 211, 238, 0.5); }
-    .btn-primary.btn-glow:hover, .navbar .btn-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5); transform: translateY(-2px) scale(1.02); }
-    .btn-outline-primary:hover { box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); transform: translateY(-2px); }
-    .btn-discord:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5); }
 
     .search-input { border-radius: 50px; padding: 12px 20px; border: 1px solid #e2e8f0; transition: 0.2s; }
     .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
@@ -282,23 +281,9 @@
     footer a { color: #a5b4fc; text-decoration: none; transition: 0.2s; }
     footer a:hover { color: var(--primary); }
     .footer-divider { border-color: rgba(255,255,255,0.12); }
-    .footer-tagline {
-      color: #e2e8f0;
-      font-size: 0.875rem;
-      line-height: 1.6;
-    }
+    .footer-tagline { color: #e2e8f0; font-size: 0.875rem; line-height: 1.6; }
 
-    .social-icon { 
-      display: inline-flex; 
-      align-items: center; 
-      justify-content: center; 
-      width: 40px; 
-      height: 40px; 
-      border-radius: 50%; 
-      background: rgba(255,255,255,0.08); 
-      color: #fff; 
-      transition: all 0.3s; 
-    }
+    .social-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.08); color: #fff; transition: all 0.3s; }
     .social-icon:hover { background: var(--primary); transform: translateY(-3px); }
 
     .modal-dark { background: rgba(0, 0, 0, 0.8) !important; }
@@ -450,7 +435,6 @@
             <div class="col product-item" data-name="<%= p.name.toLowerCase() %>" data-category="<%= p.category %>" data-price="<%= p.price %>">
               <div class="card product-card-ref">
                 <div class="card-body">
-                  <!-- 🔥 BADGE DINÂMICA COM A COR DO ADMIN -->
                   <% if (p.badge && p.badge.trim() !== '') { %>
                     <div class="product-badge" style="border-color: <%- p.badge_color || '#94a3b8' %>; color: <%- p.badge_color || '#94a3b8' %>;">
                       <%= p.badge %>
@@ -461,10 +445,12 @@
                   
                   <div class="product-image-area">
                     <% if (p.thumbnail && p.thumbnail.trim() !== '') { %>
-                      <img src="<%= p.thumbnail %>" alt="<%= p.name %>" onerror="this.style.display='none'; this.parentElement.querySelector('.img-placeholder').style.display='flex'">
+                      <img src="<%= p.thumbnail %>" alt="<%= p.name %>" onerror="this.style.display='none'; this.parentElement.querySelector('.img-placeholder').style.display='flex';">
                     <% } %>
                     <div class="img-placeholder" style="<%= (p.thumbnail && p.thumbnail.trim() !== '') ? 'display: none;' : 'display: flex;' %>">
-                      <i class="fa-solid fa-image"></i><span>Sem Imagem</span>
+                      <i class="fa-solid fa-box"></i>
+                      <!-- 🔥 MOSTRA A CATEGORIA EM VEZ DE "SEM IMAGEM" -->
+                      <span><%= p.category %></span>
                     </div>
                   </div>
 
@@ -636,7 +622,6 @@
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); }, 2000);
     }
 
-    // 🔥 NOVA FUNÇÃO PARA + E - NO CARRINHO
     function changeQuantity(index, delta) {
         const item = cart[index];
         if (item.category === 'MTA' && delta > 0 && item.quantity >= 1) {
