@@ -520,6 +520,10 @@
             <iframe id="modalVideoIframe" src="" allowfullscreen frameborder="0"></iframe>
           </div>
           <h3 id="modalProductTitle">Sistema de Empresas</h3>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <span class="text-muted">Preço:</span>
+            <h4 id="modalProductPrice" class="fw-bold text-info mb-0">€0.00</h4>
+          </div>
           <div class="d-flex align-items-start">
             <span class="bg-primary bg-opacity-10 text-white px-3 py-1 rounded-pill mb-3"><i class="fa-solid fa-info-circle me-2"></i> O sistema possui as seguintes funcionalidades:</span>
           </div>
@@ -743,32 +747,59 @@
       }
     }
 
-    function openInfoModal(id, name, videoUrl, featuresText) {
-      const modal = new bootstrap.Modal(document.getElementById('infoModal'));
-      document.getElementById('modalProductTitle').textContent = name;
-      const iframe = document.getElementById('modalVideoIframe');
-      const container = document.getElementById('modalVideoContainer');
-      if (videoUrl && videoUrl.trim() !== '') {
-        container.style.display = 'block';
-        iframe.src = videoUrl;
-      } else {
-        container.style.display = 'none';
-        iframe.src = '';
+      function openInfoModal(id, name, price, videoUrl, featuresText) {
+        const modal = new bootstrap.Modal(document.getElementById('infoModal'));
+        document.getElementById('modalProductTitle').textContent = name;
+
+        // Preço com contagem animada
+        const priceElement = document.getElementById('modalProductPrice');
+        const targetPrice = parseFloat(price) || 0;
+        animatePrice(priceElement, targetPrice);
+
+        const iframe = document.getElementById('modalVideoIframe');
+        const container = document.getElementById('modalVideoContainer');
+        if (videoUrl && videoUrl.trim() !== '') {
+          container.style.display = 'block';
+          iframe.src = videoUrl;
+        } else {
+          container.style.display = 'none';
+          iframe.src = '';
+        }
+        const list = document.getElementById('modalFeaturesList');
+        list.innerHTML = '';
+        if (featuresText && featuresText.trim() !== '') {
+          const featuresArray = featuresText.split('\n').filter(f => f.trim() !== '');
+          featuresArray.forEach(f => {
+            const li = document.createElement('li');
+            li.textContent = f.trim();
+            list.appendChild(li);
+          });
+        } else {
+          list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
+        }
+        modal.show();
       }
-      const list = document.getElementById('modalFeaturesList');
-      list.innerHTML = '';
-      if (featuresText && featuresText.trim() !== '') {
-        const featuresArray = featuresText.split('\n').filter(f => f.trim() !== '');
-        featuresArray.forEach(f => {
-          const li = document.createElement('li');
-          li.textContent = f.trim();
-          list.appendChild(li);
-        });
-      } else {
-        list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
+
+      // Função de animação do preço (de 0 até o valor real)
+      function animatePrice(element, target) {
+        const duration = 800; // duração em ms
+        const start = 0;
+        const startTime = performance.now();
+        
+        function update(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          // Suaviza a animação (ease-out)
+          const easedProgress = 1 - Math.pow(1 - progress, 3);
+          const currentValue = start + (target - start) * easedProgress;
+          element.textContent = `€${currentValue.toFixed(2)}`;
+          if (progress < 1) {
+            requestAnimationFrame(update);
+          }
+        }
+        
+        requestAnimationFrame(update);
       }
-      modal.show();
-    }
     document.addEventListener('DOMContentLoaded', function() {
       const cartBtn = document.querySelector('.cart-floating-btn');
       const cartOffcanvas = document.getElementById('cartDrawer');
