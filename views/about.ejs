@@ -747,15 +747,9 @@
       }
     }
 
-    function openInfoModal(id, name, price, videoUrl, featuresText) {
+    function openInfoModal(id, name, videoUrl, featuresText) {
       const modal = new bootstrap.Modal(document.getElementById('infoModal'));
       document.getElementById('modalProductTitle').textContent = name;
-
-      // Preço com contagem animada
-      const priceElement = document.getElementById('modalProductPrice');
-      const targetPrice = parseFloat(price) || 0;
-      animatePrice(priceElement, targetPrice);
-
       const iframe = document.getElementById('modalVideoIframe');
       const container = document.getElementById('modalVideoContainer');
       if (videoUrl && videoUrl.trim() !== '') {
@@ -778,27 +772,6 @@
         list.innerHTML = '<li class="text-secondary">Este produto não possui funcionalidades listadas.</li>';
       }
       modal.show();
-    }
-
-    // Função de animação do preço (de 0 até o valor real)
-    function animatePrice(element, target) {
-      const duration = 800; // duração em ms
-      const start = 0;
-      const startTime = performance.now();
-      
-      function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        // Suaviza a animação (ease-out)
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        const currentValue = start + (target - start) * easedProgress;
-        element.textContent = `€${currentValue.toFixed(2)}`;
-        if (progress < 1) {
-          requestAnimationFrame(update);
-        }
-      }
-      
-      requestAnimationFrame(update);
     }
     document.addEventListener('DOMContentLoaded', function() {
       const cartBtn = document.querySelector('.cart-floating-btn');
