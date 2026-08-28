@@ -434,6 +434,71 @@ async function getApp() {
         }
       });
 
+    async function sendReminder(user, cart, discount) {
+      try {
+        const channelResponse = await axios.post(
+          `https://discord.com/api/v10/users/${user.discord_id}/channels`,
+          {},
+          { headers: { Authorization: `Bot ${config.DISCORD_BOT_TOKEN}` } }
+        );
+        const channelId = channelResponse.data.id;
+
+        const itemsList = cart.map(item => `- ${item.name} (€${item.price.toFixed(2)})`).join('\n');
+        const message = `👋 Olá **${user.username}**!\n\nNotámos que deixaste produtos no teu carrinho:\n${itemsList}\n\n**Não percas a oportunidade!** Usa o cupão **${discount.code}** para obteres **${discount.percentage}% de desconto**.\n\nVolta à loja para finalizar a tua compra! 🛒`;
+
+        await axios.post(
+          `https://discord.com/api/v10/channels/${channelId}/messages`,
+          { content: message },
+          { headers: { Authorization: `Bot ${config.DISCORD_BOT_TOKEN}` } }
+        );
+
+        return true;
+      } catch (error) {
+        console.error(`❌ Erro ao enviar lembrete para ${user.username}:`, error.response?.data || error.message);
+        return false;
+      }
+    }
+
+    // Rota para o cron chamar
+    app.get('/api/cron/remind', async (req, res) => {
+      // Proteção por chave secreta
+      if (req.query.secret !== config.CRON_SECRET) {
+        return res.status(401).json({ error: 'Não autorizado' });
+      }
+
+      try {
+        // 1. Buscar utilizadores com carrinho não vazio e sem lembrete nos últimos 2 dias
+        const result = await pool.query(`
+          SELECT id, discord_id, username, cart, last_reminder_sent
+          FROM users
+          WHERE jsonb_array_length(cart) > 0
+          AND (last_reminder_sent IS NULL OR last_reminder_sent < NOW() - INTERVAL '2 days')
+        `);
+
+        // 2. Escolher um desconto ativo aleatório
+        const discountResult = await pool.query('SELECT * FROM discounts WHERE is_active = 1 ORDER BY RANDOM() LIMIT 1');
+        const discount = discountResult.rows[0];
+
+        let remindersSent = 0;
+
+        // 3. Para cada utilizador, envia o lembrete
+        for (const user of result.rows) {
+          if (!discount) continue; // se não houver desconto ativo, não envia
+
+          const sent = await sendReminder(user, user.cart, discount);
+          if (sent) {
+            await pool.query('UPDATE users SET last_reminder_sent = NOW() WHERE id = $1', [user.id]);
+            remindersSent++;
+          }
+        }
+
+        res.json({ success: true, remindersSent });
+      } catch (error) {
+        console.error('❌ Erro na rota de lembrete:', error);
+        res.status(500).json({ error: 'Erro interno' });
+      }
+    });
+
       console.log('🚀 Santos Resources configurado e a aguardar pedidos.');
       return app;
     })();

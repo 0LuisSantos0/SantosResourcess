@@ -19,7 +19,6 @@ const initDB = async () => {
     await pool.query('SELECT NOW()');
     console.log('✅ Ligação ao PostgreSQL estabelecida com sucesso!');
 
-    // 🔥 ADICIONADA A COLUNA logo_url NA TABELA settings
     await pool.query(`
       CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
@@ -29,7 +28,6 @@ const initDB = async () => {
       );
     `);
 
-    // Adiciona as outras tabelas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -41,9 +39,12 @@ const initDB = async () => {
         is_featured INTEGER DEFAULT 0,
         thumbnail TEXT,
         video_link TEXT,
-        features TEXT
+        features TEXT,
+        badge TEXT,
+        badge_color TEXT DEFAULT '#94a3b8'
       );
     `);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -57,6 +58,10 @@ const initDB = async () => {
       );
     `);
     await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_reminder_sent TIMESTAMP;
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS discounts (
         id SERIAL PRIMARY KEY,
         code TEXT UNIQUE NOT NULL,
@@ -65,6 +70,7 @@ const initDB = async () => {
         is_active INTEGER DEFAULT 1
       );
     `);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS activity_logs (
         id SERIAL PRIMARY KEY,
@@ -74,6 +80,7 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS "session" (
         "sid" varchar NOT NULL PRIMARY KEY,
