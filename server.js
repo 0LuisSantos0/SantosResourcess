@@ -199,19 +199,27 @@ async function getApp() {
         res.render('about', { user: req.session.user || null, isAdmin: isAdmin });
       });
 
-      // Página pública de métodos de pagamento
       app.get('/payment-methods', async (req, res) => {
+        let isAdmin = false;
+        if (req.session.user) {
+          if (config.ADMIN_IDS.includes(req.session.user.id)) {
+            isAdmin = true;
+          } else {
+            const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+            if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
+              isAdmin = true;
+            }
+          }
+        }
+
         try {
           const result = await pool.query('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY display_order ASC');
-          res.render('payment-methods', { methods: result.rows, user: req.session.user || null });
+          res.render('payment-methods', { methods: result.rows, user: req.session.user || null, isAdmin: isAdmin });
         } catch (err) {
-          res.render('payment-methods', { methods: [], user: req.session.user || null });
+          res.render('payment-methods', { methods: [], user: req.session.user || null, isAdmin: isAdmin });
         }
       });
 
-      // ══════════════════════════════════════════
-      // AUTENTICAÇÃO DISCORD
-      // ══════════════════════════════════════════
 
       app.get('/auth/discord', (req, res) => {
         res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
