@@ -57,9 +57,6 @@ const initDB = async () => {
         cart JSONB DEFAULT '[]'::jsonb
       );
     `);
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_reminder_sent TIMESTAMP;
-    `);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS discounts (
