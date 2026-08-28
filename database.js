@@ -69,6 +69,17 @@ const initDB = async () => {
     `);
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_methods (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        icon TEXT, -- classe FontAwesome (ex: fa-credit-card)
+        display_order INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1
+      );
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS activity_logs (
         id SERIAL PRIMARY KEY,
         admin_discord_id TEXT NOT NULL,

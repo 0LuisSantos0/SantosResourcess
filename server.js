@@ -50,8 +50,7 @@ async function ensureSessionTable() {
     `);
     console.log('✅ Tabela "session" garantida.');
   } catch (err) {
-    console.error('❌ ERRO FATAL na tabela session:', err);
-    throw err;
+    console.error('❌ ERRO NA TABELA SESSION (mas o site continua):', err);
   }
 }
 
@@ -61,8 +60,8 @@ async function getApp() {
   if (!appPromise) {
     appPromise = (async () => {
       console.log('⏳ A iniciar base de dados e sessão...');
-      await initDB();        
-      await ensureSessionTable(); 
+      await initDB();
+      await ensureSessionTable();
 
       console.log('✅ A configurar middleware de sessão...');
       app.use(session({
@@ -95,6 +94,10 @@ async function getApp() {
           next();
         }
       });
+
+      // ══════════════════════════════════════════
+      // ROTAS PÚBLICAS
+      // ══════════════════════════════════════════
 
       app.get('/api/cart', async (req, res) => {
         if (!req.session.user) return res.json([]);
@@ -196,6 +199,20 @@ async function getApp() {
         res.render('about', { user: req.session.user || null, isAdmin: isAdmin });
       });
 
+      // Página pública de métodos de pagamento
+      app.get('/payment-methods', async (req, res) => {
+        try {
+          const result = await pool.query('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY display_order ASC');
+          res.render('payment-methods', { methods: result.rows, user: req.session.user || null });
+        } catch (err) {
+          res.render('payment-methods', { methods: [], user: req.session.user || null });
+        }
+      });
+
+      // ══════════════════════════════════════════
+      // AUTENTICAÇÃO DISCORD
+      // ══════════════════════════════════════════
+
       app.get('/auth/discord', (req, res) => {
         res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
       });
@@ -256,6 +273,10 @@ async function getApp() {
 
       app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
 
+      // ══════════════════════════════════════════
+      // ADMIN DASHBOARD
+      // ══════════════════════════════════════════
+
       app.get('/admin/dashboard', isAdmin, async (req, res) => {
         const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
         const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
@@ -264,7 +285,8 @@ async function getApp() {
         const bots = await pool.query('SELECT COUNT(*) as discord_bots FROM products WHERE category = $1', ['Discord Bot']);
         const site = await pool.query('SELECT COUNT(*) as site_scripts FROM products WHERE category = $1', ['Site']);
         const discounts = await pool.query('SELECT COUNT(*) as total_discounts FROM discounts');
-      
+        const paymentMethods = await pool.query('SELECT COUNT(*) as total_payment_methods FROM payment_methods');
+
         res.render('admin/dashboard', {
           stats: {
             total_products: total.rows[0].total_products,
@@ -273,12 +295,17 @@ async function getApp() {
             mta_scripts: mta.rows[0].mta_scripts,
             discord_bots: bots.rows[0].discord_bots,
             site_scripts: site.rows[0].site_scripts,
-            total_discounts: discounts.rows[0].total_discounts
+            total_discounts: discounts.rows[0].total_discounts,
+            total_payment_methods: paymentMethods.rows[0].total_payment_methods
           },
           activeTab: 'dashboard',
           user: req.session.user
         });
       });
+
+      // ══════════════════════════════════════════
+      // ADMIN PRODUTOS
+      // ══════════════════════════════════════════
 
       app.get('/admin', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
@@ -346,6 +373,10 @@ async function getApp() {
         res.redirect(303, '/admin');
       });
 
+      // ══════════════════════════════════════════
+      // ADMIN UTILIZADORES
+      // ══════════════════════════════════════════
+
       app.get('/admin/users', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT * FROM users ORDER BY id ASC');
         res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
@@ -373,6 +404,10 @@ async function getApp() {
           `);
         }
       });
+
+      // ══════════════════════════════════════════
+      // ADMIN DESCONTOS
+      // ══════════════════════════════════════════
 
       app.get('/admin/discounts', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT * FROM discounts ORDER BY id ASC');
@@ -407,6 +442,74 @@ async function getApp() {
         await pool.query('UPDATE discounts SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
         res.redirect(303, '/admin/discounts');
       });
+
+      // ══════════════════════════════════════════
+      // ADMIN MÉTODOS DE PAGAMENTO (NOVO)
+      // ══════════════════════════════════════════
+
+      // Listar métodos de pagamento (admin)
+      app.get('/admin/payment-methods', isAdmin, async (req, res) => {
+        try {
+          const result = await pool.query('SELECT * FROM payment_methods ORDER BY display_order ASC');
+          res.render('admin/payment-methods', { methods: result.rows, activeTab: 'payment-methods', error: null, user: req.session.user });
+        } catch (err) {
+          res.render('admin/payment-methods', { methods: [], activeTab: 'payment-methods', error: 'Erro ao carregar', user: req.session.user });
+        }
+      });
+
+      // Adicionar método
+      app.post('/admin/payment-methods/add', isAdmin, async (req, res) => {
+        try {
+          const { name, description, icon, display_order } = req.body;
+          if (!name) return res.redirect('/admin/payment-methods?error=missing_fields');
+          await pool.query('INSERT INTO payment_methods (name, description, icon, display_order) VALUES ($1, $2, $3, $4)',
+            [name, description, icon, parseInt(display_order) || 0]);
+          await logActivity(req, `Adicionou método de pagamento: ${name}`);
+          res.redirect(303, '/admin/payment-methods');
+        } catch (err) {
+          console.error('Erro ao adicionar método:', err);
+          res.status(500).send(`<h3>Erro ao adicionar método</h3><p>${err.message}</p><a href="/admin/payment-methods">Voltar</a>`);
+        }
+      });
+
+      // Editar método
+      app.post('/admin/payment-methods/edit/:id', isAdmin, async (req, res) => {
+        try {
+          const { name, description, icon, display_order } = req.body;
+          await pool.query('UPDATE payment_methods SET name = $1, description = $2, icon = $3, display_order = $4 WHERE id = $5',
+            [name, description, icon, parseInt(display_order) || 0, req.params.id]);
+          await logActivity(req, `Editou método de pagamento: ${name}`);
+          res.redirect(303, '/admin/payment-methods');
+        } catch (err) {
+          console.error('Erro ao editar método:', err);
+          res.status(500).send(`<h3>Erro ao editar método</h3><p>${err.message}</p><a href="/admin/payment-methods">Voltar</a>`);
+        }
+      });
+
+      // Alternar ativo/inativo
+      app.post('/admin/payment-methods/toggle/:id', isAdmin, async (req, res) => {
+        try {
+          await pool.query('UPDATE payment_methods SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
+          res.redirect(303, '/admin/payment-methods');
+        } catch (err) {
+          console.error('Erro ao alternar método:', err);
+          res.redirect(303, '/admin/payment-methods');
+        }
+      });
+
+      // Apagar método
+      app.post('/admin/payment-methods/delete/:id', isAdmin, async (req, res) => {
+        try {
+          const result = await pool.query('SELECT name FROM payment_methods WHERE id = $1', [req.params.id]);
+          await pool.query('DELETE FROM payment_methods WHERE id = $1', [req.params.id]);
+          await logActivity(req, `Apagou método de pagamento: ${result.rows[0]?.name || 'ID ' + req.params.id}`);
+          res.redirect(303, '/admin/payment-methods');
+        } catch (err) {
+          console.error('Erro ao apagar método:', err);
+          res.redirect(303, '/admin/payment-methods');
+        }
+      });
+
 
       app.get('/admin/logs', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT * FROM activity_logs ORDER BY id DESC LIMIT 100');
