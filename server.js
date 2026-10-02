@@ -5,12 +5,17 @@ const axios = require('axios');
 const { pool, initDB } = require('./database');
 const config = require('./config');
 const path = require('path');
+const ejs = require('ejs');
 const pgSession = require('connect-pg-simple')(session);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.set('view engine', 'ejs');
+// ══════════════════════════════════════════
+// VIEW ENGINE - Usa .html mas processa EJS
+// ══════════════════════════════════════════
+app.set('view engine', 'html');
+app.engine('html', ejs.renderFile);
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -219,7 +224,6 @@ async function getApp() {
           res.render('payment-methods', { methods: [], user: req.session.user || null, isAdmin: isAdmin });
         }
       });
-
 
       app.get('/auth/discord', (req, res) => {
         res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
@@ -451,11 +455,16 @@ async function getApp() {
         res.redirect(303, '/admin/discounts');
       });
 
+      app.post('/admin/upload-image', isAdmin, (req, res) => {
+        const { image } = req.body;
+        if (!image) return res.status(400).json({ error: 'Imagem não enviada' });
+        res.json({ success: true, dataUrl: image });
+      });
+
       // ══════════════════════════════════════════
-      // ADMIN MÉTODOS DE PAGAMENTO (NOVO)
+      // ADMIN MÉTODOS DE PAGAMENTO
       // ══════════════════════════════════════════
 
-      // Listar métodos de pagamento (admin)
       app.get('/admin/payment-methods', isAdmin, async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM payment_methods ORDER BY display_order ASC');
@@ -465,13 +474,12 @@ async function getApp() {
         }
       });
 
-      // Adicionar método
       app.post('/admin/payment-methods/add', isAdmin, async (req, res) => {
         try {
-          const { name, description, icon, display_order } = req.body;
+          const { name, description, icon, display_order, image_base64 } = req.body;
           if (!name) return res.redirect('/admin/payment-methods?error=missing_fields');
-          await pool.query('INSERT INTO payment_methods (name, description, icon, display_order) VALUES ($1, $2, $3, $4)',
-            [name, description, icon, parseInt(display_order) || 0]);
+          await pool.query('INSERT INTO payment_methods (name, description, icon, image_base64, display_order) VALUES ($1, $2, $3, $4, $5)',
+            [name, description, icon, image_base64 || null, parseInt(display_order) || 0]);
           await logActivity(req, `Adicionou método de pagamento: ${name}`);
           res.redirect(303, '/admin/payment-methods');
         } catch (err) {
@@ -480,12 +488,11 @@ async function getApp() {
         }
       });
 
-      // Editar método
       app.post('/admin/payment-methods/edit/:id', isAdmin, async (req, res) => {
         try {
-          const { name, description, icon, display_order } = req.body;
-          await pool.query('UPDATE payment_methods SET name = $1, description = $2, icon = $3, display_order = $4 WHERE id = $5',
-            [name, description, icon, parseInt(display_order) || 0, req.params.id]);
+          const { name, description, icon, display_order, image_base64 } = req.body;
+          await pool.query('UPDATE payment_methods SET name = $1, description = $2, icon = $3, image_base64 = $4, display_order = $5 WHERE id = $6',
+            [name, description, icon, image_base64 || null, parseInt(display_order) || 0, req.params.id]);
           await logActivity(req, `Editou método de pagamento: ${name}`);
           res.redirect(303, '/admin/payment-methods');
         } catch (err) {
@@ -494,7 +501,6 @@ async function getApp() {
         }
       });
 
-      // Alternar ativo/inativo
       app.post('/admin/payment-methods/toggle/:id', isAdmin, async (req, res) => {
         try {
           await pool.query('UPDATE payment_methods SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
@@ -505,7 +511,6 @@ async function getApp() {
         }
       });
 
-      // Apagar método
       app.post('/admin/payment-methods/delete/:id', isAdmin, async (req, res) => {
         try {
           const result = await pool.query('SELECT name FROM payment_methods WHERE id = $1', [req.params.id]);
@@ -518,6 +523,9 @@ async function getApp() {
         }
       });
 
+      // ══════════════════════════════════════════
+      // ADMIN LOGS & SETTINGS
+      // ══════════════════════════════════════════
 
       app.get('/admin/logs', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT * FROM activity_logs ORDER BY id DESC LIMIT 100');
