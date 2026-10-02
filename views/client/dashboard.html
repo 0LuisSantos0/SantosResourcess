@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Área do Cliente | Santos Resources</title>
+
+  <link rel="icon" href="<%= siteSettings.logo_url ? siteSettings.logo_url : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>' %>" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --cyan: #22d3ee;
+      --dark-bg: #0b1120;
+      --glass-border: rgba(255,255,255,0.1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* NAVBAR (mantém o mesmo estilo) */
+    .navbar-glass {
+      background: rgba(11, 17, 32, 0.8);
+      backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 0.8rem 0;
+    }
+    .navbar-glass .nav-link {
+      color: rgba(255,255,255,0.7);
+      font-weight: 500;
+      transition: color 0.2s;
+      position: relative;
+    }
+    .navbar-glass .nav-link:hover,
+    .navbar-glass .nav-link.active { color: #fff; }
+    .navbar-glass .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0; height: 2px; bottom: 0; left: 50%;
+      background: var(--primary);
+      transition: all 0.3s;
+      transform: translateX(-50%);
+    }
+    .navbar-glass .nav-link:hover::after,
+    .navbar-glass .nav-link.active::after { width: 80%; }
+
+    .navbar .dropdown-menu {
+      background-color: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 0.5rem;
+      min-width: 200px;
+      margin-top: 0.5rem;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+    .navbar .dropdown-item {
+      color: #94a3b8;
+      border-radius: 8px;
+      padding: 10px 15px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar .dropdown-item:hover,
+    .navbar .dropdown-item:focus {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transform: translateX(3px);
+    }
+    .navbar .dropdown-divider { border-color: rgba(255,255,255,0.06); margin: 4px 0; }
+    .dropdown-toggle { cursor: pointer; user-select: none; }
+    .dropdown-toggle::after { display: none; }
+    .navbar .dropdown:hover .dropdown-menu { display: block; margin-top: 0.25rem; }
+
+    /* HEADER */
+    .section-glow { position: relative; box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.5); }
+    .section-glow::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #22d3ee, #6366f1, transparent); box-shadow: 0 0 15px rgba(34, 211, 238, 0.8); z-index: 10; }
+
+    .page-header {
+      padding: 140px 0 90px;
+      background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, #0f172a 70%, #0b1120 100%);
+      color: white;
+      text-align: center;
+    }
+    .page-header h1 { font-weight: 900; font-size: clamp(2rem, 4.5vw, 3.2rem); }
+
+    /* PROFILE CARD */
+    .profile-card {
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      color: white;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+      margin-top: -55px;
+      position: relative;
+      z-index: 5;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .profile-avatar {
+      width: 84px; height: 84px;
+      border-radius: 50%;
+      border: 3px solid rgba(34,211,238,0.5);
+      object-fit: cover;
+      box-shadow: 0 0 25px rgba(34,211,238,0.3);
+    }
+    .profile-card .profile-role-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 8px;
+    }
+    .role-admin { background: #facc15; color: #78350f; }
+    .role-client { background: #22d3ee; color: #083344; }
+
+    /* TABS */
+    .custom-tabs {
+      display: flex;
+      gap: 10px;
+      background: white;
+      padding: 8px;
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .custom-tab {
+      flex: 1;
+      min-width: 180px;
+      padding: 14px 20px;
+      text-align: center;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #64748b;
+      transition: all 0.3s ease;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 1rem;
+    }
+    .custom-tab:hover { background: #f1f5f9; color: #1e293b; }
+    .custom-tab.active {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+    }
+    .custom-tab .tab-count {
+      background: rgba(255,255,255,0.25);
+      padding: 2px 10px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .custom-tab.active .tab-count {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .tab-content { display: none; animation: fadeIn 0.35s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+      border: 1px dashed #e2e8f0;
+    }
+    .empty-state i {
+      font-size: 4rem;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    /* CARDS */
+    .system-card, .purchase-card {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .system-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, #6366f1, #22d3ee);
+    }
+    .system-card:hover, .purchase-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+      border-color: var(--primary);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-completed { background: #d1fae5; color: #065f46; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+
+    /* FOOTER */
+    footer { background: #0b1120; color: #cbd5e1; padding: 50px 0 20px; margin-top: auto; }
+    footer h5, footer h6 { color: #ffffff; font-weight: 600; }
+    footer a { color: #a5b4fc; text-decoration: none; transition: 0.2s; }
+    footer a:hover { color: var(--primary); }
+    .footer-divider { border-color: rgba(255,255,255,0.12); }
+    .footer-tagline { color: #e2e8f0; font-size: 0.875rem; line-height: 1.6; }
+    .social-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.08); color: #fff; transition: all 0.3s; }
+    .social-icon:hover { background: var(--primary); transform: translateY(-3px); }
+
+    /* SPLASH */
+    .splash-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 20% 20%, #1e1b4b, #0b1120 60%, #020617);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99999;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    .splash-screen.hidden { opacity: 0; pointer-events: none; }
+    .splash-content { text-align: center; }
+    .splash-logo { max-height: 100px; max-width: 100px; object-fit: contain; margin-bottom: 20px; animation: splashLogoPulse 1.5s infinite ease-in-out; }
+    .splash-logo-icon { font-size: 5rem; color: #6366f1; margin-bottom: 20px; animation: splashLogoPulse 1.5s infinite ease-in-out; }
+    @keyframes splashLogoPulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.08); opacity: 0.85; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .splash-title {
+      font-weight: 800; font-size: 2rem; color: #fff; margin: 10px 0 20px;
+      background: linear-gradient(90deg, #6366f1, #22d3ee, #6366f1);
+      background-size: 200% auto;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: splashShimmer 2s linear infinite;
+    }
+    @keyframes splashShimmer {
+      0% { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
+    .spinner {
+      width: 50px; height: 50px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: #22d3ee;
+      border-radius: 50%;
+      margin: 0 auto;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+  <!-- Splash -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <% if (siteSettings.logo_url) { %>
+        <img src="<%= siteSettings.logo_url %>" alt="Logo" class="splash-logo">
+      <% } else { %>
+        <i class="fa-solid fa-cube splash-logo-icon"></i>
+      <% } %>
+      <h1 class="splash-title">Santos Resources</h1>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+        <% if (siteSettings.logo_url) { %>
+          <img src="<%= siteSettings.logo_url %>" alt="Logo" class="me-2" style="height: 30px; width: 30px; object-fit: contain;">
+        <% } else { %>
+          <i class="fa-solid fa-cube me-2 text-primary" style="color: #6366f1;"></i>
+        <% } %>
+        Santos Resources
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
+          <li class="nav-item"><a class="nav-link" href="/products">Produtos</a></li>
+          <li class="nav-item"><a class="nav-link" href="/about">Sobre Nós</a></li>
+          <li class="nav-item"><a class="nav-link" href="/payment-methods">Pagamentos</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://discord.gg/8GyNS5vRgt" target="_blank"><i class="fa-brands fa-discord me-1"></i> Discord</a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-3">
+          <% if (user) { %>
+            <div class="dropdown">
+              <span class="text-light small dropdown-toggle d-flex align-items-center gap-2" style="cursor: pointer;">
+                <% if (user.avatar) { %>
+                  <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" width="30" height="30" class="rounded-circle border border-light" alt="Avatar" style="object-fit: cover;">
+                <% } else { %>
+                  <i class="fa-regular fa-circle-user fa-lg"></i>
+                <% } %>
+                <strong class="d-none d-md-inline"><%= user.username %></strong>
+              </span>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="/client-area"><i class="fa-solid fa-user text-info"></i> Área Cliente</a></li>
+                <% if (isAdmin) { %>
+                  <li><a class="dropdown-item" href="/admin/dashboard"><i class="fa-solid fa-screwdriver-wrench text-warning"></i> Área Admin</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                <% } else { %>
+                  <li><hr class="dropdown-divider"></li>
+                <% } %>
+                <li><a class="dropdown-item" href="/logout"><i class="fa-solid fa-right-from-bracket text-danger"></i> Sair</a></li>
+              </ul>
+            </div>
+          <% } else { %>
+            <a href="/auth/discord" class="btn btn-primary btn-sm px-4 rounded-pill"><i class="fa-brands fa-discord me-2"></i>Entrar</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="flex-fill">
+    <div class="page-header section-glow">
+      <div class="container">
+        <h1 data-aos="fade-down"><i class="fa-solid fa-user-circle me-2"></i> Área do Cliente</h1>
+        <p class="lead text-light opacity-75" data-aos="fade-down" data-aos-delay="100">Gere os teus sistemas e consulta o histórico de compras.</p>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Perfil -->
+      <div class="profile-card" data-aos="fade-up">
+        <% if (user.avatar) { %>
+          <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" class="profile-avatar" alt="Avatar">
+        <% } else { %>
+          <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="profile-avatar" alt="Avatar">
+        <% } %>
+        <div>
+          <h4 class="fw-bold mb-1">
+            <%= user.username %>
+            <% if (isAdmin) { %>
+              <span class="profile-role-badge role-admin">Admin</span>
+            <% } else { %>
+              <span class="profile-role-badge role-client">Cliente</span>
+            <% } %>
+          </h4>
+          <p class="mb-0 opacity-75 small">
+            <i class="fa-brands fa-discord me-1"></i> ID: <%= user.id %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="container mt-5 mb-5">
+      <!-- Tabs -->
+      <div class="custom-tabs" data-aos="fade-up">
+        <button class="custom-tab active" id="tabBtn-systems" onclick="switchTab('systems', this)">
+          <i class="fa-solid fa-cube"></i> Meus Sistemas
+          <span class="tab-count"><%= systems.length %></span>
+        </button>
+        <button class="custom-tab" id="tabBtn-purchases" onclick="switchTab('purchases', this)">
+          <i class="fa-solid fa-receipt"></i> Histórico de Compras
+          <span class="tab-count"><%= purchases.length %></span>
+        </button>
+      </div>
+
+      <!-- Tab: Sistemas -->
+      <div id="tab-systems" class="tab-content active">
+        <% if (systems.length === 0) { %>
+          <div class="empty-state">
+            <i class="fa-solid fa-box-open"></i>
+            <h4 class="fw-bold">Ainda não tens sistemas</h4>
+            <p class="text-muted mb-4">Quando comprares um sistema, ele aparecerá aqui com o respetivo acesso.</p>
+            <a href="/products" class="btn btn-primary rounded-pill px-4 fw-bold">
+              <i class="fa-solid fa-cart-shopping me-2"></i> Explorar Produtos
+            </a>
+          </div>
+        <% } else { %>
+          <div class="row g-4">
+            <% systems.forEach(s => { %>
+              <div class="col-md-6 col-lg-4">
+                <div class="system-card">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-primary bg-opacity-10 text-primary fw-bold">
+                      <i class="fa-solid fa-tag me-1"></i><%= s.product_category || 'Sistema' %>
+                    </span>
+                    <span class="status-badge status-completed">Ativo</span>
+                  </div>
+                  <h5 class="fw-bold mb-2"><%= s.product_name %></h5>
+                  <p class="text-muted small mb-3">
+                    <i class="fa-solid fa-calendar me-1"></i>
+                    Adquirido em <%= new Date(s.purchased_at + 'Z').toLocaleDateString('pt-PT') %>
+                  </p>
+                  <div class="mt-auto d-flex gap-2">
+                    <button class="btn btn-primary w-100 rounded-pill fw-bold" onclick="alert('Funcionalidade de download em breve!')">
+                      <i class="fa-solid fa-download me-2"></i> Aceder
+                    </button>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Tab: Histórico -->
+      <div id="tab-purchases" class="tab-content">
+        <% if (purchases.length === 0) { %>
+          <div class="empty-state">
+            <i class="fa-solid fa-receipt"></i>
+            <h4 class="fw-bold">Sem histórico de compras</h4>
+            <p class="text-muted mb-4">Ainda não realizaste nenhuma compra na loja.</p>
+            <a href="/products" class="btn btn-primary rounded-pill px-4 fw-bold">
+              <i class="fa-solid fa-cart-shopping me-2"></i> Ver Produtos
+            </a>
+          </div>
+        <% } else { %>
+          <div class="row g-4">
+            <% purchases.forEach(p => { %>
+              <div class="col-md-6">
+                <div class="purchase-card">
+                  <div class="d-flex justify-content-between align-items-start mb-3 gap-3">
+                    <div class="flex-grow-1">
+                      <span class="badge bg-secondary mb-2"><%= p.product_category || 'Produto' %></span>
+                      <h5 class="fw-bold mb-1"><%= p.product_name %></h5>
+                      <small class="text-muted">
+                        <i class="fa-solid fa-calendar me-1"></i>
+                        <%= new Date(p.purchased_at + 'Z').toLocaleString('pt-PT', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) %>
+                      </small>
+                    </div>
+                    <div class="text-end">
+                      <div class="fw-bold text-success fs-5">€<%= parseFloat(p.price).toFixed(2) %></div>
+                      <span class="status-badge status-<%= p.status || 'completed' %>">
+                        <%= p.status === 'pending' ? 'Pendente' : p.status === 'cancelled' ? 'Cancelado' : 'Concluído' %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 mb-4">
+          <h5 class="fw-bold d-flex align-items-center">
+            <% if (siteSettings.logo_url) { %>
+              <img src="<%= siteSettings.logo_url %>" alt="Logo" class="me-2" style="height: 28px; width: 28px; object-fit: contain;">
+            <% } else { %>
+              <i class="fa-solid fa-cube text-primary me-2"></i>
+            <% } %>
+            Santos Resources
+          </h5>
+          <p class="footer-tagline mt-2">Soluções de alta performance para MTA e Discord. Confiança e qualidade.</p>
+        </div>
+        <div class="col-md-4 mb-4 text-center">
+          <h6 class="fw-bold">Links Rápidos</h6>
+          <div class="d-flex flex-column">
+            <a href="/products" class="small mb-1">Produtos</a>
+            <a href="/about" class="small mb-1">Sobre Nós</a>
+            <a href="/payment-methods" class="small mb-1">Métodos de Pagamento</a>
+            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="small">Discord</a>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4 text-end">
+          <h6 class="fw-bold">Redes Sociais</h6>
+          <div class="d-flex justify-content-end gap-2">
+            <a href="https://discord.gg/8GyNS5vRgt" target="_blank" class="social-icon"><i class="fa-brands fa-discord"></i></a>
+          </div>
+        </div>
+      </div>
+      <hr class="footer-divider">
+      <p class="mb-0 small text-center text-light opacity-75">&copy; 2026 Santos Resources. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({ duration: 800, once: true });
+
+    function switchTab(tabName, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.custom-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    window.addEventListener('load', function() {
+      setTimeout(() => {
+        const splash = document.getElementById('splashScreen');
+        if (splash) splash.classList.add('hidden');
+      }, 800);
+    });
+  </script>
+</body>
+</html>
