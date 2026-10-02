@@ -41,11 +41,15 @@ const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
 
 async function logActivity(req, action) {
-  if (req.session.user) {
-    await pool.query(
-      `INSERT INTO activity_logs (admin_discord_id, admin_username, action) VALUES ($1, $2, $3)`,
-      [req.session.user.id, req.session.user.username, action]
-    );
+  try {
+    if (req.session.user) {
+      await pool.query(
+        `INSERT INTO activity_logs (admin_discord_id, admin_username, action) VALUES ($1, $2, $3)`,
+        [req.session.user.id, req.session.user.username, action]
+      );
+    }
+  } catch (err) {
+    console.error('⚠️ Erro ao registar atividade (ignorado para não quebrar a ação principal):', err.message);
   }
 }
 
@@ -354,7 +358,7 @@ async function getApp() {
 
           res.json(result);
       });
-
+      
       app.post('/admin/licenses/generate', isAdmin, async (req, res) => {
           const { discord_id } = req.body;
           if (!discord_id) return res.redirect('/admin/licenses?error=missing_fields');
@@ -372,7 +376,9 @@ async function getApp() {
               res.redirect('/admin/licenses?success=generated');
           } catch (err) {
               console.error('❌ Erro ao gerar licença:', err);
-              res.redirect('/admin/licenses?error=generation_failed');
+              // 🔥 Passa a mensagem de erro real para o URL para saberes o que se passa
+              const errorMsg = encodeURIComponent(err.message || 'Erro desconhecido');
+              res.redirect(`/admin/licenses?error=generation_failed&reason=${errorMsg}`);
           }
       });
 
@@ -861,15 +867,34 @@ async function getApp() {
       });
 
       app.post('/admin/purchases/approve/:id', isAdmin, async (req, res) => {
-        try {
-          const result = await pool.query('SELECT product_name FROM purchases WHERE id = $1', [req.params.id]);
-          await pool.query(`UPDATE purchases SET status = 'completed' WHERE id = $1`, [req.params.id]);
-          await logActivity(req, `Aprovou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
-          res.redirect(303, '/admin/purchases');
-        } catch (err) {
-          console.error('Erro ao aprovar:', err);
-          res.redirect(303, '/admin/purchases');
-        }
+          try { q 
+              const result = await pool.query('SELECT product_name, user_discord_id FROM purchases WHERE id = $1', [req.params.id]);
+              const purchase = result.rows[0];
+
+              await pool.query(`UPDATE purchases SET status = 'completed' WHERE id = $1`, [req.params.id]);
+
+              if (purchase && purchase.user_discord_id) {
+                  const existingLicense = await getLicenseByDiscordId(purchase.user_discord_id);
+                  if (!existingLicense) {
+                      const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+                      const randomPart = () => Math.random().toString(36).substring(2, 10);
+                      const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+                      
+                      await createLicense(purchase.user_discord_id, usuario, chave);
+                      console.log(`✅ Licença gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`);
+                      await logActivity(req, `Aprovou compra e gerou licença automática para: ${purchase.user_discord_id}`);
+                  } else {
+                      await logActivity(req, `Aprovou a compra: ${purchase.product_name}`);
+                  }
+              } else {
+                  await logActivity(req, `Aprovou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
+              }
+
+              res.redirect(303, '/admin/purchases');
+          } catch (err) {
+              console.error('Erro ao aprovar:', err);
+              res.redirect(303, '/admin/purchases');
+          }
       });
 
       app.post('/admin/purchases/reject/:id', isAdmin, async (req, res) => {

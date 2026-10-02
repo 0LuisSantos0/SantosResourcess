@@ -1,13 +1,23 @@
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('⚠️️ AVISO: SUPABASE_URL ou SUPABASE_KEY não estão configurados no ficheiro .env');
+console.log('🔍 [Supabase] Verificando variáveis de ambiente:');
+console.log('   SUPABASE_URL:', SUPABASE_URL ? `✅ definida (${SUPABASE_URL.substring(0, 30)}...)` : '❌ NÃO DEFINIDA');
+console.log('   SUPABASE_KEY:', SUPABASE_KEY ? `✅ definida (${SUPABASE_KEY.substring(0, 15)}...)` : '❌ NÃO DEFINIDA');
+
+let supabase = null;
+
+if (SUPABASE_URL && SUPABASE_KEY) {
+  try {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('✅ [Supabase] Cliente criado com sucesso.');
+  } catch (err) {
+    console.error('❌ [Supabase] Erro ao criar cliente:', err.message);
+  }
+} else {
+  console.error('❌ [Supabase] Cliente NÃO criado — variáveis em falta.');
 }
-
-const supabase = createClient(supabaseUrl || '', supabaseKey || '');
 
 module.exports = supabase;

@@ -1,117 +1,120 @@
 const supabase = require('../supabase/client');
 
-// Criar nova licença
-async function createLicense(discordId, usuario, chave) {
-  const { data, error } = await supabase
-    .from('licencas')
-    .insert([
-      {
-        discord_id: String(discordId),
-        usuario: usuario,
-        chave: chave,
-        ip_permitido: '',
-        ativa: true,
-        criado_em: new Date().toISOString()
-      }
-    ])
-    .select();
-
-  if (error) {
-    console.error('❌ Erro Supabase (createLicense):', error);
-    throw error;
-  }
-  return data[0];
-}
-
-// Buscar licença por Discord ID
 async function getLicenseByDiscordId(discordId) {
-  const { data, error } = await supabase
-    .from('licencas')
-    .select('*')
-    .eq('discord_id', String(discordId))
-    .maybeSingle();
+    console.log('🔍 [Licenses] Buscando licença para discord_id:', discordId, '(tipo:', typeof discordId + ')');
+    if (!supabase) {
+        console.error('❌ [Licenses] Supabase não configurado — impossível buscar licença.');
+        return null;
+    }
+    const idStr = String(discordId).trim();
+    try {
+        let { data, error } = await supabase
+            .from('licencas')
+            .select('*')
+            .eq('discord_id', idStr)
+            .maybeSingle();
 
-  if (error) {
-    console.error('❌ Erro Supabase (getLicenseByDiscordId):', error);
-    return null;
-  }
-  return data;
+        if (error) {
+            console.error('❌ [Licenses] Erro na query:', error.message);
+        }
+        if (data) {
+            if (data.ativa === false || data.ativa === 0) {
+                console.warn('⚠️ [Licenses] Licença encontrada mas está inativa.');
+                return null;
+            }
+            return data;
+        }
+        return null;
+    } catch (err) {
+        console.error('❌ [Licenses] Exceção na busca:', err.message);
+        return null;
+    }
 }
 
-// Listar todas as licenças (ordenadas pelas mais recentes)
 async function getAllLicenses() {
-  const { data, error } = await supabase
-    .from('licencas')
-    .select('*')
-    .order('criado_em', { ascending: false });
+    if (!supabase) return [];
+    const { data, error } = await supabase
+        .from('licencas')
+        .select('*')
+        .order('id', { ascending: false });
 
-  if (error) {
-    console.error('❌ Erro Supabase (getAllLicenses):', error);
-    return [];
-  }
-  return data || [];
+    if (error) {
+        console.error('Erro ao buscar todas as licenças:', error);
+        return [];
+    }
+    return data || [];
 }
 
-// Atualizar IP permitido
+async function createLicense(discordId, usuario, chave) {
+    if (!supabase) throw new Error('Supabase não configurado');
+    
+    // 🔥 CORREÇÃO: Adicionado .single() no final para retornar um objeto em vez de array
+    const { data, error } = await supabase
+        .from('licencas')
+        .insert([{ discord_id: String(discordId), usuario, chave, ativa: true }])
+        .select()
+        .single(); 
+
+    if (error) {
+        console.error('❌ Erro ao criar licença no Supabase:', error);
+        throw new Error(`Supabase Error: ${error.message} (Código: ${error.code})`);
+    }
+    return data;
+}
+
 async function updateLicenseIP(discordId, ip) {
-  const { data, error } = await supabase
-    .from('licencas')
-    .update({ ip_permitido: ip })
-    .eq('discord_id', String(discordId))
-    .select();
+    if (!supabase) throw new Error('Supabase não configurado');
+    const { data, error } = await supabase
+        .from('licencas')
+        .update({ ip_permitido: ip })
+        .eq('discord_id', String(discordId))
+        .select()
+        .single(); // 🔥 Adicionado .single()
 
-  if (error) {
-    console.error('❌ Erro Supabase (updateLicenseIP):', error);
-    throw error;
-  }
-  return data;
+    if (error) {
+        console.error('Erro ao atualizar IP:', error);
+        throw error;
+    }
+    return data;
 }
 
-// Alternar estado de ativação (ativa / inativa)
 async function toggleLicenseStatus(id) {
-  const { data: current, error: fetchError } = await supabase
-    .from('licencas')
-    .select('ativa')
-    .eq('id', id)
-    .single();
+    if (!supabase) throw new Error('Supabase não configurado');
+    const { data: current, error: fetchError } = await supabase
+        .from('licencas')
+        .select('ativa')
+        .eq('id', id)
+        .single();
+    
+    if (fetchError) throw fetchError;
 
-  if (fetchError || !current) {
-    console.error('❌ Licença não encontrada:', fetchError);
-    return;
-  }
+    const { data, error } = await supabase
+        .from('licencas')
+        .update({ ativa: !current.ativa })
+        .eq('id', id)
+        .select()
+        .single(); // 🔥 Adicionado .single()
 
-  const { data, error } = await supabase
-    .from('licencas')
-    .update({ ativa: !current.ativa })
-    .eq('id', id)
-    .select();
-
-  if (error) {
-    console.error('❌ Erro Supabase (toggleLicenseStatus):', error);
-    throw error;
-  }
-  return data;
+    if (error) throw error;
+    return data;
 }
 
-// Apagar licença
 async function deleteLicense(id) {
-  const { error } = await supabase
-    .from('licencas')
-    .delete()
-    .eq('id', id);
+    if (!supabase) throw new Error('Supabase não configurado');
+    const { error } = await supabase
+        .from('licencas')
+        .delete()
+        .eq('id', id);
 
-  if (error) {
-    console.error('❌ Erro Supabase (deleteLicense):', error);
-    throw error;
-  }
-  return true;
+    if (error) throw error;
+    return true;
 }
 
 module.exports = {
-  createLicense,
-  getLicenseByDiscordId,
-  getAllLicenses,
-  updateLicenseIP,
-  toggleLicenseStatus,
-  deleteLicense
+    createLicense,
+    getLicenseByDiscordId,
+    getAllLicenses,
+    updateLicenseIP,
+    toggleLicenseStatus,
+    deleteLicense
 };
