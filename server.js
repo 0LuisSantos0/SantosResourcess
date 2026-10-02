@@ -22,6 +22,7 @@ try {
 
 const createLicense = licensesModule?.createLicense || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 const getLicenseByDiscordId = licensesModule?.getLicenseByDiscordId || (async () => null);
+const getLicenseByDiscordIdRaw = licensesModule?.getLicenseByDiscordIdRaw || (async () => null); // 🔥 NOVO
 const getAllLicenses = licensesModule?.getAllLicenses || (async () => []);
 const updateLicenseIP = licensesModule?.updateLicenseIP || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 const toggleLicenseStatus = licensesModule?.toggleLicenseStatus || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
@@ -444,7 +445,9 @@ async function getApp() {
           if (!req.session.user) return res.redirect('/');
           try {
               const data = await getClientData(req);
-              const license = await getLicenseByDiscordId(req.session.user.id);
+
+              // 🔥 Usa a versão "raw" que devolve a licença mesmo quando inativa
+              const license = await getLicenseByDiscordIdRaw(req.session.user.id);
               const mta_config = license ? { ip: license.ip_permitido } : null;
 
               res.render('client/license', {

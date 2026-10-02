@@ -126,6 +126,71 @@
     .license-status i { font-size: 1.1rem; }
 
     /* ══════════════════════════════════
+       LICENÇA DESATIVADA — AVISO
+    ══════════════════════════════════ */
+    .license-inactive {
+      background: #1e293b;
+      border-radius: 18px;
+      padding: 45px 30px;
+      text-align: center;
+      color: #e2e8f0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      border: 2px dashed rgba(239,68,68,0.5);
+      margin-bottom: 24px;
+    }
+    .license-inactive .icon-wrap {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: rgba(239,68,68,0.15);
+      border: 2px solid rgba(239,68,68,0.5);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      animation: pulseInactive 2s infinite ease-in-out;
+    }
+    @keyframes pulseInactive {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      50%      { box-shadow: 0 0 0 15px rgba(239,68,68,0); }
+    }
+    .license-inactive .icon-wrap i {
+      font-size: 2.6rem;
+      color: #f87171;
+    }
+    .license-inactive h4 {
+      color: #fff;
+      font-weight: 800;
+      margin-bottom: 12px;
+      font-size: 1.35rem;
+    }
+    .license-inactive p {
+      color: #cbd5e1;
+      max-width: 500px;
+      margin: 0 auto 12px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .license-inactive .badge-inactive {
+      display: inline-block;
+      margin-top: 14px;
+      background: rgba(239,68,68,0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239,68,68,0.4);
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .license-inactive .help-text {
+      margin-top: 22px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    /* ══════════════════════════════════
        SERVER CONFIG — CARD BRANCO
     ══════════════════════════════════ */
     .server-card {
@@ -308,21 +373,48 @@
         </div>
 
         <!-- ═══════════════════════════════════════════════
-             CASO 1: TEM SISTEMAS COMPRADOS → Mostrar licença
+             CASO 1: TEM SISTEMAS COMPRADOS
         ═══════════════════════════════════════════════ -->
         <% if (systems && systems.length > 0) { %>
 
-          <!-- CARD: Licença -->
-          <div class="license-card">
-            <div class="license-title">
-              <i class="fa-solid fa-code"></i>
-              Código de Configuração
+          <% if (license && (license.ativa === false || license.ativa === 0)) { %>
+
+            <!-- ═══════════════════════════════════════════════
+                 LICENÇA DESATIVADA PELO ADMIN
+            ═══════════════════════════════════════════════ -->
+            <div class="license-inactive">
+              <div class="icon-wrap">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <h4>Licença Desativada</h4>
+              <p><strong>A sua licença está desativada.</strong></p>
+              <p>Aguarde um Administrador ativar.</p>
+              <span class="badge-inactive">
+                <i class="fa-solid fa-circle-exclamation me-1"></i> Estado: Inativa
+              </span>
+              <div class="help-text">
+                <i class="fa-brands fa-discord me-1"></i>
+                Se precisares de ajuda, abre um ticket no nosso Discord.
+              </div>
             </div>
 
-            <div class="license-code-box" id="licenseBox">
-              <button class="copy-btn" onclick="copyLicense()">
-                <i class="fa-regular fa-copy"></i> Copiar
-              </button>
+          <% } else { %>
+
+            <!-- ═══════════════════════════════════════════════
+                 LICENÇA ATIVA (ou ainda em processamento)
+            ═══════════════════════════════════════════════ -->
+
+            <!-- CARD: Licença -->
+            <div class="license-card">
+              <div class="license-title">
+                <i class="fa-solid fa-code"></i>
+                Código de Configuração
+              </div>
+
+              <div class="license-code-box" id="licenseBox">
+                <button class="copy-btn" onclick="copyLicense()">
+                  <i class="fa-regular fa-copy"></i> Copiar
+                </button>
 <% if (license) { %>
 <pre style="margin:0; color:inherit; font-family:inherit;">License = {
   [<span class="code-key">"user"</span>] = <span class="code-value">"<%= user.id %>"</span>,
@@ -332,50 +424,52 @@
 <pre style="margin:0; color:#94a3b8; font-family:inherit; font-style:italic;">// A tua licença está a ser gerada pela equipa.
 // Receberás a chave em breve no Discord.</pre>
 <% } %>
+              </div>
+
+              <% if (license) { %>
+                <div class="license-status ok" id="licenseStatus">
+                  <i class="fa-solid fa-circle-check"></i>
+                  Licença ativa e funcionando
+                </div>
+              <% } else { %>
+                <div class="license-status" id="licenseStatus">
+                  <i class="fa-solid fa-clock"></i>
+                  Licença em processamento — aguarda contacto da equipa
+                </div>
+              <% } %>
             </div>
 
-            <% if (license) { %>
-              <div class="license-status ok" id="licenseStatus">
-                <i class="fa-solid fa-circle-check"></i>
-                Licença ativa e funcionando
+            <!-- CARD: Configurar Servidor -->
+            <div class="server-card">
+              <div class="server-title">
+                <i class="fa-solid fa-gear"></i>
+                Configurar Servidor
               </div>
-            <% } else { %>
-              <div class="license-status" id="licenseStatus">
-                <i class="fa-solid fa-clock"></i>
-                Licença em processamento — aguarda contacto da equipa
-              </div>
-            <% } %>
-          </div>
 
-          <!-- CARD: Configurar Servidor -->
-          <div class="server-card">
-            <div class="server-title">
-              <i class="fa-solid fa-gear"></i>
-              Configurar Servidor
-            </div>
-
-            <div class="row g-3">
-              <div class="col-md-7">
-                <label class="form-label">IP do Servidor</label>
-                <input type="text" class="form-control" id="mtaIp"
-                       value="<%= mta_config && mta_config.ip ? mta_config.ip : '' %>"
-                       placeholder="Ex: 192.168.1.1 ou play.meuserver.pt">
+              <div class="row g-3">
+                <div class="col-md-7">
+                  <label class="form-label">IP do Servidor</label>
+                  <input type="text" class="form-control" id="mtaIp"
+                         value="<%= mta_config && mta_config.ip ? mta_config.ip : '' %>"
+                         placeholder="Ex: 192.168.1.1 ou play.meuserver.pt">
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label">Porta</label>
+                  <input type="text" class="form-control" id="mtaPort"
+                         value="<%= mta_config && mta_config.port ? mta_config.port : '' %>"
+                         placeholder="Ex: 22003">
+                </div>
               </div>
-              <div class="col-md-5">
-                <label class="form-label">Porta</label>
-                <input type="text" class="form-control" id="mtaPort"
-                       value="<%= mta_config && mta_config.port ? mta_config.port : '' %>"
-                       placeholder="Ex: 22003">
+
+              <div class="mt-4">
+                <button class="btn-save-config" onclick="saveMtaConfig()">
+                  <i class="fa-solid fa-floppy-disk me-2"></i> Salvar Configurações
+                </button>
+                <span id="saveFeedback" class="ms-3 small fw-bold"></span>
               </div>
             </div>
 
-            <div class="mt-4">
-              <button class="btn-save-config" onclick="saveMtaConfig()">
-                <i class="fa-solid fa-floppy-disk me-2"></i> Salvar Configurações
-              </button>
-              <span id="saveFeedback" class="ms-3 small fw-bold"></span>
-            </div>
-          </div>
+          <% } %>
 
         <% } else { %>
 
@@ -401,6 +495,7 @@
   <script>
     function copyLicense() {
       const box = document.getElementById('licenseBox');
+      if (!box) return;
       <% if (license) { %>
         const text = `License = {\n  ["user"] = "<%= user.id %>",\n  ["key"] = "<%= license.chave %>"\n}`;
       <% } else { %>

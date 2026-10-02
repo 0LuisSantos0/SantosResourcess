@@ -31,6 +31,31 @@ async function getLicenseByDiscordId(discordId) {
     }
 }
 
+// 🔥 NOVO: devolve a licença mesmo quando inativa (para a Área do Cliente)
+async function getLicenseByDiscordIdRaw(discordId) {
+    if (!supabase) {
+        console.error('❌ [Licenses] Supabase não configurado.');
+        return null;
+    }
+    const idStr = String(discordId).trim();
+    try {
+        const { data, error } = await supabase
+            .from('licencas')
+            .select('*')
+            .eq('discord_id', idStr)
+            .maybeSingle();
+
+        if (error) {
+            console.error('❌ [Licenses] Erro na query (raw):', error.message);
+            return null;
+        }
+        return data || null;
+    } catch (err) {
+        console.error('❌ [Licenses] Exceção na busca (raw):', err.message);
+        return null;
+    }
+}
+
 async function getAllLicenses() {
     if (!supabase) return [];
     const { data, error } = await supabase
@@ -47,13 +72,12 @@ async function getAllLicenses() {
 
 async function createLicense(discordId, usuario, chave) {
     if (!supabase) throw new Error('Supabase não configurado');
-    
-    // 🔥 CORREÇÃO: Adicionado .single() no final para retornar um objeto em vez de array
+
     const { data, error } = await supabase
         .from('licencas')
         .insert([{ discord_id: String(discordId), usuario, chave, ativa: true }])
         .select()
-        .single(); 
+        .single();
 
     if (error) {
         console.error('❌ Erro ao criar licença no Supabase:', error);
@@ -69,7 +93,7 @@ async function updateLicenseIP(discordId, ip) {
         .update({ ip_permitido: ip })
         .eq('discord_id', String(discordId))
         .select()
-        .single(); // 🔥 Adicionado .single()
+        .single();
 
     if (error) {
         console.error('Erro ao atualizar IP:', error);
@@ -90,7 +114,7 @@ async function toggleLicenseStatus(id) {
         .select('ativa')
         .eq('id', numericId)
         .single();
-    
+
     if (fetchError) {
         console.error('❌ Erro ao buscar licença:', fetchError);
         throw new Error(`Erro ao buscar licença: ${fetchError.message}`);
@@ -113,7 +137,7 @@ async function toggleLicenseStatus(id) {
 
 async function deleteLicense(id) {
     if (!supabase) throw new Error('Supabase não configurado');
-    
+
     const numericId = parseInt(id, 10);
     if (isNaN(numericId)) throw new Error('ID da licença inválido');
 
@@ -132,6 +156,7 @@ async function deleteLicense(id) {
 module.exports = {
     createLicense,
     getLicenseByDiscordId,
+    getLicenseByDiscordIdRaw,
     getAllLicenses,
     updateLicenseIP,
     toggleLicenseStatus,
