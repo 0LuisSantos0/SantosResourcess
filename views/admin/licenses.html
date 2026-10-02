@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | Licenças</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+    .sidebar { min-height: 100vh; background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%); color: white; position: sticky; top: 0; height: 100vh; }
+    .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; border-radius: 12px; margin: 4px 10px; transition: 0.3s; }
+    .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; transform: translateX(5px); border-left: 4px solid #22d3ee; }
+    .admin-card { border: none; border-radius: 20px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
+    .action-btn { width: 35px; height: 35px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .action-btn:hover { transform: scale(1.1); }
+    .modal-content { border-radius: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-3 col-lg-2 sidebar p-3 d-flex flex-column">
+        <div class="sidebar-header text-center mb-4">
+          <h4 class="fw-bold text-warning mt-2"><i class="fa-solid fa-screwdriver-wrench me-2"></i> Admin</h4>
+          <hr class="border-secondary">
+          <div class="text-start small text-light-emphasis mt-2 px-2"><i class="fa-regular fa-circle-user me-2"></i> <%= user ? user.username : 'Admin' %></div>
+        </div>
+        <nav class="nav flex-column mb-auto">
+          <a href="/admin/dashboard"><i class="fa-solid fa-chart-simple me-2"></i> Dashboard</a>
+          <a href="/admin"><i class="fa-solid fa-box me-2"></i> Produtos</a>
+          <a href="/admin/users"><i class="fa-solid fa-users me-2"></i> Utilizadores</a>
+          <a href="/admin/licenses" class="active"><i class="fa-solid fa-key me-2"></i> Licenças</a>
+          <a href="/admin/discounts"><i class="fa-solid fa-tags me-2"></i> Descontos</a>
+          <a href="/admin/payment-methods"><i class="fa-solid fa-money-bill-transfer me-2"></i> Pagamentos</a>
+          <a href="/admin/purchases"><i class="fa-solid fa-cart-shopping me-2"></i> Compras</a>
+          <a href="/admin/logs"><i class="fa-solid fa-clock-rotate-left me-2"></i> Logs</a>
+          <a href="/admin/settings"><i class="fa-solid fa-gear me-2"></i> Configurações</a>
+        </nav>
+        <div class="mt-auto pt-3 border-top border-secondary">
+          <a href="/" class="text-light"><i class="fa-solid fa-arrow-left me-2"></i> Voltar ao Site</a>
+          <a href="/logout" class="text-danger mt-2"><i class="fa-solid fa-right-from-bracket me-2"></i> Sair</a>
+        </div>
+      </div>
+
+      <!-- Conteúdo -->
+      <div class="col-md-9 col-lg-10 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h3 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-key text-primary me-2"></i> Gestão de Licenças</h3>
+          <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#generateLicenseModal">
+            <i class="fa-solid fa-plus me-2"></i> Gerar Licença
+          </button>
+        </div>
+
+        <% if (locals.error) { %><div class="alert alert-danger"><%= locals.error %></div><% } %>
+        <% if (locals.success) { %><div class="alert alert-success"><%= locals.success %></div><% } %>
+
+        <div class="admin-card p-4">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-light">
+                <tr>
+                  <th class="ps-4">ID</th>
+                  <th>Discord ID</th>
+                  <th>Usuário (MTA)</th>
+                  <th>Chave</th>
+                  <th>IP Permitido</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-end pe-4">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (licenses.length === 0) { %>
+                  <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma licença registada.</td></tr>
+                <% } else { %>
+                  <% licenses.forEach(l => { %>
+                    <tr>
+                      <td class="ps-4 fw-bold text-secondary">#<%= l.id %></td>
+                      <td><code><%= l.discord_id %></code></td>
+                      <td class="fw-semibold"><%= l.usuario %></td>
+                      <td><code class="text-primary fw-bold"><%= l.chave %></code></td>
+                      <td><%= l.ip_permitido || 'Não definido' %></td>
+                      <td class="text-center">
+                        <% if (l.ativa) { %>
+                          <span class="badge bg-success rounded-pill px-3">Ativa</span>
+                        <% } else { %>
+                          <span class="badge bg-danger rounded-pill px-3">Inativa</span>
+                        <% } %>
+                      </td>
+                      <td class="text-end pe-4">
+                        <div class="d-flex justify-content-end gap-2">
+                          <form action="/admin/licenses/toggle/<%= l.id %>" method="POST">
+                            <button type="submit" class="action-btn btn btn-outline-warning" title="Alternar Status">
+                              <i class="fa-solid fa-power-off"></i>
+                            </button>
+                          </form>
+                          <form action="/admin/licenses/delete/<%= l.id %>" method="POST" onsubmit="return confirm('Apagar esta licença?');">
+                            <button type="submit" class="action-btn btn btn-outline-danger" title="Apagar">
+                              <i class="fa-solid fa-trash"></i>
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Gerar Licença -->
+  <div class="modal fade" id="generateLicenseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-2">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold">Gerar Nova Licença</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form action="/admin/licenses/generate" method="POST">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Discord ID do Utilizador</label>
+              <input type="text" name="discord_id" class="form-control bg-light border-0" placeholder="Ex: 1327356911418347622" required>
+              <div class="form-text small">O ID do Discord do utilizador que receberá a licença.</div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Gerar Licença</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

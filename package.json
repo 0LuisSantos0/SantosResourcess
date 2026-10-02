@@ -1,12 +1,13 @@
 {
   "name": "santos-resources",
   "version": "1.0.0",
-  "description": "Site explicativo da Santos Resources com login Discord e painel admin",
+  "description": "Site Santos Resources - A website for Santos Resources",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "axios": "^1.6.0",
     "connect-pg-simple": "^10.0.0",
     "dotenv": "^16.3.1",

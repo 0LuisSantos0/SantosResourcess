@@ -11,6 +11,8 @@ const pgSession = require('connect-pg-simple')(session);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const { createLicense, getLicenseByDiscordId, getAllLicenses, updateLicenseIP, toggleLicenseStatus, deleteLicense } = require('./src/database/licenses');
+
 // ══════════════════════════════════════════
 // VIEW ENGINE - Usa .html mas processa EJS
 // ══════════════════════════════════════════
@@ -285,6 +287,145 @@ async function getApp() {
           console.error('❌ Erro ao carregar histórico:', err);
           res.render('client/purchases', { user: req.session.user, isAdmin: false, systems: [], purchases: [] });
         }
+      });
+
+      // ══════════════════════════════════════════
+      // ADMIN — GESTÃO DE LICENÇAS
+      // ══════════════════════════════════════════
+      app.get('/admin/licenses', isAdmin, async (req, res) => {
+          try {
+              const licenses = await getAllLicenses();
+              res.render('admin/licenses', { 
+                  licenses: licenses || [], 
+                  activeTab: 'licenses', 
+                  error: null, 
+                  user: req.session.user 
+              });
+          } catch (err) {
+              console.error('❌ Erro ao carregar licenças:', err);
+              res.render('admin/licenses', { 
+                  licenses: [], 
+                  activeTab: 'licenses', 
+                  error: 'Erro ao carregar licenças', 
+                  user: req.session.user 
+              });
+          }
+      });
+
+      app.post('/admin/licenses/generate', isAdmin, async (req, res) => {
+          const { discord_id } = req.body;
+          if (!discord_id) return res.redirect('/admin/licenses?error=missing_fields');
+
+          try {
+              const existing = await getLicenseByDiscordId(discord_id);
+              if (existing) return res.redirect('/admin/licenses?error=user_has_license');
+
+              const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+              const randomPart = () => Math.random().toString(36).substring(2, 10);
+              const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+
+              await createLicense(discord_id, usuario, chave);
+              await logActivity(req, `Gerou licença para Discord ID: ${discord_id}`);
+              res.redirect('/admin/licenses?success=generated');
+          } catch (err) {
+              console.error('❌ Erro ao gerar licença:', err);
+              res.redirect('/admin/licenses?error=generation_failed');
+          }
+      });
+
+      app.post('/admin/licenses/toggle/:id', isAdmin, async (req, res) => {
+          try {
+              await toggleLicenseStatus(req.params.id);
+              res.redirect('/admin/licenses');
+          } catch (err) {
+              console.error('Erro ao alternar licença:', err);
+              res.redirect('/admin/licenses');
+          }
+      });
+
+      app.post('/admin/licenses/delete/:id', isAdmin, async (req, res) => {
+          try {
+              await deleteLicense(req.params.id);
+              await logActivity(req, `Apagou a licença ID: ${req.params.id}`);
+              res.redirect('/admin/licenses');
+          } catch (err) {
+              console.error('Erro ao apagar licença:', err);
+              res.redirect('/admin/licenses');
+          }
+      });
+
+      // ══════════════════════════════════════════
+      // ADMIN — DETALHES DO UTILIZADOR (MODAL)
+      // ══════════════════════════════════════════
+      app.get('/admin/users/:id/details', isAdmin, async (req, res) => {
+          try {
+              const userId = req.params.id;
+              const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+              if (userResult.rows.length === 0) return res.status(404).json({ error: 'Utilizador não encontrado' });
+              const user = userResult.rows[0];
+
+              const systemsResult = await pool.query(
+                  `SELECT DISTINCT ON (product_id) * FROM purchases 
+                   WHERE user_discord_id = $1 AND status = 'completed' 
+                   ORDER BY product_id, purchased_at DESC`,
+                  [user.discord_id]
+              );
+
+              const license = await getLicenseByDiscordId(user.discord_id);
+              const mta_config = license ? { ip: license.ip_permitido } : null;
+
+              res.json({
+                  user_discord_id: user.discord_id,
+                  systems: systemsResult.rows,
+                  license: license || null,
+                  mta_config: mta_config
+              });
+          } catch (err) {
+              console.error('❌ Erro ao buscar detalhes do utilizador:', err);
+              res.status(500).json({ error: 'Erro interno do servidor.' });
+          }
+      });
+
+      // ══════════════════════════════════════════
+      // ÁREA DO CLIENTE — LICENÇA E CONFIGURAÇÃO MTA
+      // ══════════════════════════════════════════
+      app.get('/client-area/license', async (req, res) => {
+          if (!req.session.user) return res.redirect('/');
+          try {
+              const data = await getClientData(req);
+              const license = await getLicenseByDiscordId(req.session.user.id);
+              const mta_config = license ? { ip: license.ip_permitido } : null;
+
+              res.render('client/license', {
+                  user: req.session.user,
+                  isAdmin: data.isAdmin,
+                  systems: data.systems,
+                  purchases: data.purchases,
+                  license: license || null,
+                  mta_config: mta_config || null
+              });
+          } catch (err) {
+              console.error('❌ Erro ao carregar licença:', err);
+              res.render('client/license', {
+                  user: req.session.user,
+                  isAdmin: false, systems: [], purchases: [], license: null, mta_config: null
+              });
+          }
+      });
+
+      app.post('/api/client/mta-config', async (req, res) => {
+          if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+          const { ip } = req.body;
+          if (!ip || !/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+              return res.status(400).json({ error: 'IP inválido. Formato: xxx.xxx.xxx.xxx' });
+          }
+          try {
+              await updateLicenseIP(req.session.user.id, ip);
+              res.json({ success: true });
+          } catch (err) {
+              console.error('Erro ao atualizar IP:', err);
+              res.status(500).json({ error: 'Erro ao guardar as configurações.' });
+          }
       });
 
       // ══════════════════════════════════════════
