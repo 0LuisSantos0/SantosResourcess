@@ -228,56 +228,67 @@ async function getApp() {
       // ══════════════════════════════════════════
       // ÁREA DO CLIENTE
       // ══════════════════════════════════════════
-      app.get('/client-area', async (req, res) => {
+
+      // Helpers
+      async function getClientData(req) {
+        const isAdmin = config.ADMIN_IDS.includes(req.session.user.id)
+          || (await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id])).rows[0]?.is_admin === 1;
+
+        const systemsResult = await pool.query(
+          `SELECT DISTINCT ON (product_id) *
+           FROM purchases
+           WHERE user_discord_id = $1 AND status = 'completed'
+           ORDER BY product_id, purchased_at DESC`,
+          [req.session.user.id]
+        );
+
+        const purchasesResult = await pool.query(
+          `SELECT * FROM purchases
+           WHERE user_discord_id = $1
+           ORDER BY purchased_at DESC`,
+          [req.session.user.id]
+        );
+
+        return {
+          user: req.session.user,
+          isAdmin,
+          systems: systemsResult.rows,
+          purchases: purchasesResult.rows
+        };
+      }
+
+      // Redireciona para a tab padrão
+      app.get('/client-area', (req, res) => {
         if (!req.session.user) return res.redirect('/');
+        res.redirect('/client-area/systems');
+      });
 
-        let isAdmin = false;
-        if (config.ADMIN_IDS.includes(req.session.user.id)) {
-          isAdmin = true;
-        } else {
-          const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
-          if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
-            isAdmin = true;
-          }
-        }
-
+      // Tab: Meus Sistemas
+      app.get('/client-area/systems', async (req, res) => {
+        if (!req.session.user) return res.redirect('/');
         try {
-          // Sistemas distintos (última compra por produto)
-          const systemsResult = await pool.query(
-            `SELECT DISTINCT ON (product_id) *
-            FROM purchases
-            WHERE user_discord_id = $1 AND status = 'completed'
-            ORDER BY product_id, purchased_at DESC`,
-            [req.session.user.id]
-          );
-
-          // Histórico completo
-          const purchasesResult = await pool.query(
-            `SELECT * FROM purchases
-            WHERE user_discord_id = $1
-            ORDER BY purchased_at DESC`,
-            [req.session.user.id]
-          );
-
-          res.render('client/dashboard', {
-            user: req.session.user,
-            isAdmin: isAdmin,
-            systems: systemsResult.rows,
-            purchases: purchasesResult.rows
-          });
+          const data = await getClientData(req);
+          res.render('client/systems', data);
         } catch (err) {
-          console.error('❌ Erro ao carregar área cliente:', err);
-          res.render('client/dashboard', {
-            user: req.session.user,
-            isAdmin: isAdmin,
-            systems: [],
-            purchases: []
-          });
+          console.error('❌ Erro ao carregar sistemas:', err);
+          res.render('client/systems', { user: req.session.user, isAdmin: false, systems: [], purchases: [] });
+        }
+      });
+
+      // Tab: Histórico de Compras
+      app.get('/client-area/purchases', async (req, res) => {
+        if (!req.session.user) return res.redirect('/');
+        try {
+          const data = await getClientData(req);
+          res.render('client/purchases', data);
+        } catch (err) {
+          console.error('❌ Erro ao carregar histórico:', err);
+          res.render('client/purchases', { user: req.session.user, isAdmin: false, systems: [], purchases: [] });
         }
       });
 
       // ══════════════════════════════════════════
-      // CHECKOUT
+      // CHECKOUT (regista como PENDENTE)
       // ══════════════════════════════════════════
       app.post('/api/checkout', async (req, res) => {
         if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
@@ -291,7 +302,7 @@ async function getApp() {
           for (const item of cart) {
             await pool.query(
               `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status)
-               VALUES ($1, $2, $3, $4, $5, 'completed')`,
+               VALUES ($1, $2, $3, $4, $5, 'pending')`,
               [req.session.user.id, item.id, item.name, item.category, item.price]
             );
           }
@@ -299,7 +310,7 @@ async function getApp() {
           await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', ['[]', req.session.user.id]);
           req.session.coupon = null;
 
-          res.json({ success: true, message: 'Compra registada com sucesso!' });
+          res.json({ success: true, message: 'Pedido registado! Abre Ticket no Discord para pagar.' });
         } catch (err) {
           console.error('❌ Erro no checkout:', err);
           res.status(500).json({ error: 'Erro ao processar a compra' });
@@ -631,6 +642,73 @@ async function getApp() {
         } catch (err) {
           console.error('❌ Erro ao atualizar configurações:', err);
           res.status(500).send(`<h3>Erro ao salvar configurações</h3><p>${err.message}</p><a href="/admin/settings">Voltar</a>`);
+        }
+      });
+
+            // ══════════════════════════════════════════
+      // ADMIN — COMPRAS / PEDIDOS
+      // ══════════════════════════════════════════
+
+      app.get('/admin/purchases', isAdmin, async (req, res) => {
+        try {
+          const result = await pool.query(`
+            SELECT p.*, u.username, u.avatar
+            FROM purchases p
+            LEFT JOIN users u ON u.discord_id = p.user_discord_id
+            ORDER BY
+              CASE WHEN p.status = 'pending' THEN 0 ELSE 1 END,
+              p.purchased_at DESC
+          `);
+          res.render('admin/purchases', {
+            purchases: result.rows,
+            activeTab: 'purchases',
+            error: null,
+            user: req.session.user
+          });
+        } catch (err) {
+          console.error('❌ Erro ao carregar compras:', err);
+          res.render('admin/purchases', {
+            purchases: [],
+            activeTab: 'purchases',
+            error: 'Erro ao carregar pedidos',
+            user: req.session.user
+          });
+        }
+      });
+
+      app.post('/admin/purchases/approve/:id', isAdmin, async (req, res) => {
+        try {
+          const result = await pool.query('SELECT product_name FROM purchases WHERE id = $1', [req.params.id]);
+          await pool.query(`UPDATE purchases SET status = 'completed' WHERE id = $1`, [req.params.id]);
+          await logActivity(req, `Aprovou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
+          res.redirect(303, '/admin/purchases');
+        } catch (err) {
+          console.error('Erro ao aprovar:', err);
+          res.redirect(303, '/admin/purchases');
+        }
+      });
+
+      app.post('/admin/purchases/reject/:id', isAdmin, async (req, res) => {
+        try {
+          const result = await pool.query('SELECT product_name FROM purchases WHERE id = $1', [req.params.id]);
+          await pool.query(`UPDATE purchases SET status = 'cancelled' WHERE id = $1`, [req.params.id]);
+          await logActivity(req, `Cancelou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
+          res.redirect(303, '/admin/purchases');
+        } catch (err) {
+          console.error('Erro ao cancelar:', err);
+          res.redirect(303, '/admin/purchases');
+        }
+      });
+
+      app.post('/admin/purchases/delete/:id', isAdmin, async (req, res) => {
+        try {
+          const result = await pool.query('SELECT product_name FROM purchases WHERE id = $1', [req.params.id]);
+          await pool.query('DELETE FROM purchases WHERE id = $1', [req.params.id]);
+          await logActivity(req, `Apagou o registo de compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
+          res.redirect(303, '/admin/purchases');
+        } catch (err) {
+          console.error('Erro ao apagar:', err);
+          res.redirect(303, '/admin/purchases');
         }
       });
 
