@@ -93,15 +93,17 @@
                       </td>
                       <td class="text-end pe-4">
                         <div class="d-flex justify-content-end gap-2">
+                          <button type="button"
+                            class="action-btn <%= m.is_active === 1 ? 'btn btn-outline-danger' : 'btn btn-success' %>"
+                            title="<%= m.is_active === 1 ? 'Desativar' : 'Ativar' %>"
+                            onclick="openToggleConfirm('/admin/payment-methods/toggle/<%= m.id %>', '<%= m.is_active === 1 ? 'Desativar' : 'Ativar' %>', '<%= m.name.replace(/'/g, "\\'") %>')">
+                            <% if (m.is_active === 1) { %><i class="fa-solid fa-eye-slash"></i><% } else { %><i class="fa-solid fa-eye"></i><% } %>
+                          </button>
                           <button type="button" class="action-btn btn btn-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#editModal<%= m.id %>"><i class="fa-solid fa-pen-to-square"></i></button>
-                          <form action="/admin/payment-methods/toggle/<%= m.id %>" method="POST" class="d-inline">
-                            <button type="submit" class="action-btn <%= m.is_active === 1 ? 'btn btn-outline-danger' : 'btn btn-success' %>" title="<%= m.is_active === 1 ? 'Desativar' : 'Ativar' %>">
-                              <% if (m.is_active === 1) { %><i class="fa-solid fa-eye-slash"></i><% } else { %><i class="fa-solid fa-eye"></i><% } %>
-                            </button>
-                          </form>
-                          <form action="/admin/payment-methods/delete/<%= m.id %>" method="POST" class="d-inline">
-                            <button type="submit" class="action-btn btn btn-danger" title="Apagar" onclick="return confirm('Tem a certeza que deseja apagar este método?');"><i class="fa-solid fa-trash-can"></i></button>
-                          </form>
+                          <button type="button" class="action-btn btn btn-danger" title="Apagar"
+                            onclick="openDeleteConfirm('/admin/payment-methods/delete/<%= m.id %>', '<%= m.name.replace(/'/g, "\\'") %>')">
+                            <i class="fa-solid fa-trash-can"></i>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -114,7 +116,7 @@
                             <h5 class="modal-title fw-bold">Editar: <%= m.name %></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                           </div>
-                          <form action="/admin/payment-methods/edit/<%= m.id %>" method="POST">
+                          <form id="editForm_<%= m.id %>" action="/admin/payment-methods/edit/<%= m.id %>" method="POST">
                             <div class="modal-body">
                               <div class="mb-3"><label class="form-label small">Nome</label><input type="text" name="name" class="form-control" value="<%= m.name %>" required></div>
                               <div class="mb-3"><label class="form-label small">Descrição</label><input type="text" name="description" class="form-control" value="<%= m.description %>"></div>
@@ -123,7 +125,7 @@
                             </div>
                             <div class="modal-footer border-0">
                               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                              <button type="submit" class="btn btn-primary fw-bold">Guardar</button>
+                              <button type="button" class="btn btn-primary fw-bold" onclick="openEditConfirm(document.getElementById('editForm_<%= m.id %>'))">Guardar</button>
                             </div>
                           </form>
                         </div>
@@ -139,6 +141,109 @@
     </div>
   </div>
 
+  <!-- Modal de Confirmação de EDIÇÃO -->
+  <div class="modal fade" id="editConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-pen-to-square me-2"></i> Confirmar Edição</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="editConfirmMessage">Tem certeza que deseja salvar as alterações?</div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="confirmEditBtn">Sim, Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação de TOGGLE -->
+  <div class="modal fade" id="toggleConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-toggle-on me-2"></i> Confirmar Alteração de Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="toggleConfirmMessage">Tem certeza que deseja alterar o status?</div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold" id="confirmToggleBtn">Sim, Alterar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação de EXCLUSÃO -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Confirmar Exclusão</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="deleteConfirmMessage">Tem certeza que deseja apagar este método? <br><span class="text-danger fw-bold">Esta ação é irreversível!</span></div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" id="confirmDeleteBtn">Sim, Apagar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ── Formulário oculto partilhado para toggle e delete ──
+    let toggleForm = document.getElementById('toggleForm');
+    if (!toggleForm) {
+      toggleForm = document.createElement('form');
+      toggleForm.id = 'toggleForm';
+      toggleForm.method = 'POST';
+      document.body.appendChild(toggleForm);
+    }
+    let deleteForm = document.getElementById('deleteForm');
+    if (!deleteForm) {
+      deleteForm = document.createElement('form');
+      deleteForm.id = 'deleteForm';
+      deleteForm.method = 'POST';
+      document.body.appendChild(deleteForm);
+    }
+
+    // ── EDIT ──
+    let currentEditForm = null;
+    function openEditConfirm(form) {
+      currentEditForm = form;
+      const nameInput = form.querySelector('input[name="name"]');
+      document.getElementById('editConfirmMessage').innerHTML =
+        `Tem certeza que deseja salvar as alterações em <strong>${nameInput ? nameInput.value : 'este método'}</strong>?`;
+      new bootstrap.Modal(document.getElementById('editConfirmModal')).show();
+    }
+    document.getElementById('confirmEditBtn').addEventListener('click', function () {
+      if (currentEditForm) currentEditForm.submit();
+    });
+
+    // ── TOGGLE ──
+    function openToggleConfirm(action, statusAction, itemName) {
+      document.getElementById('toggleConfirmMessage').innerHTML =
+        `Tem certeza que deseja <strong>${statusAction}</strong> o método <strong>${itemName}</strong>?`;
+      toggleForm.action = action;
+      new bootstrap.Modal(document.getElementById('toggleConfirmModal')).show();
+    }
+    document.getElementById('confirmToggleBtn').addEventListener('click', function () {
+      toggleForm.submit();
+    });
+
+    // ── DELETE ──
+    function openDeleteConfirm(action, itemName) {
+      document.getElementById('deleteConfirmMessage').innerHTML =
+        `Tem certeza que deseja apagar o método <strong>${itemName}</strong>? <br><span class="text-danger fw-bold">Esta ação é irreversível!</span>`;
+      deleteForm.action = action;
+      new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+    }
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+      deleteForm.submit();
+    });
+  </script>
 </body>
 </html>

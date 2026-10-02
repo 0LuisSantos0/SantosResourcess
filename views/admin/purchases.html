@@ -15,6 +15,7 @@
     .admin-card { border: none; border-radius: 20px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
     .action-btn { width: 35px; height: 35px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; }
     .action-btn:hover { transform: scale(1.1); }
+    .modal-content { border-radius: 20px; }
   </style>
 </head>
 <body>
@@ -92,24 +93,21 @@
                         <td class="text-end pe-4">
                           <div class="d-flex justify-content-end gap-2">
                             <% if (p.status !== 'completed') { %>
-                              <form action="/admin/purchases/approve/<%= p.id %>" method="POST" class="d-inline">
-                                <button type="submit" class="action-btn btn btn-success" title="Aprovar">
-                                  <i class="fa-solid fa-check"></i>
-                                </button>
-                              </form>
+                              <button type="button" class="action-btn btn btn-success" title="Aprovar"
+                                onclick="openConfirmModal('/admin/purchases/approve/<%= p.id %>', 'approve', '<%= p.product_name.replace(/'/g, "\\'") %>')">
+                                <i class="fa-solid fa-check"></i>
+                              </button>
                             <% } %>
                             <% if (p.status !== 'cancelled') { %>
-                              <form action="/admin/purchases/reject/<%= p.id %>" method="POST" class="d-inline">
-                                <button type="submit" class="action-btn btn btn-warning" title="Cancelar">
-                                  <i class="fa-solid fa-xmark"></i>
-                                </button>
-                              </form>
-                            <% } %>
-                            <form action="/admin/purchases/delete/<%= p.id %>" method="POST" class="d-inline" onsubmit="return confirm('Apagar este registo?');">
-                              <button type="submit" class="action-btn btn btn-danger" title="Apagar">
-                                <i class="fa-solid fa-trash-can"></i>
+                              <button type="button" class="action-btn btn btn-warning" title="Cancelar"
+                                onclick="openConfirmModal('/admin/purchases/reject/<%= p.id %>', 'reject', '<%= p.product_name.replace(/'/g, "\\'") %>')">
+                                <i class="fa-solid fa-xmark"></i>
                               </button>
-                            </form>
+                            <% } %>
+                            <button type="button" class="action-btn btn btn-danger" title="Apagar"
+                              onclick="openConfirmModal('/admin/purchases/delete/<%= p.id %>', 'delete', '<%= p.product_name.replace(/'/g, "\\'") %>')">
+                              <i class="fa-solid fa-trash-can"></i>
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -123,6 +121,73 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de Confirmação Dinâmico -->
+  <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold" id="confirmModalTitle">Confirmar Ação</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="confirmModalMessage">Tem certeza?</div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="confirmActionBtn">Sim, Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let confirmForm = document.getElementById('confirmActionForm');
+    if (!confirmForm) {
+      confirmForm = document.createElement('form');
+      confirmForm.id = 'confirmActionForm';
+      confirmForm.method = 'POST';
+      document.body.appendChild(confirmForm);
+    }
+
+    function openConfirmModal(action, type, itemInfo) {
+      const configs = {
+        approve: {
+          title: '<i class="fa-solid fa-circle-check text-success me-2"></i> Confirmar Aprovação',
+          message: `Tem certeza que deseja <strong class="text-success">APROVAR</strong> a compra de <strong>${itemInfo}</strong>?<br><small class="text-muted">O sistema ficará visível na Área do Cliente do utilizador.</small>`,
+          btnClass: 'btn-success',
+          btnText: 'Sim, Aprovar'
+        },
+        reject: {
+          title: '<i class="fa-solid fa-circle-xmark text-warning me-2"></i> Confirmar Cancelamento',
+          message: `Tem certeza que deseja <strong class="text-warning">CANCELAR</strong> a compra de <strong>${itemInfo}</strong>?<br><small class="text-muted">O sistema NÃO ficará visível na Área do Cliente.</small>`,
+          btnClass: 'btn-warning',
+          btnText: 'Sim, Cancelar'
+        },
+        delete: {
+          title: '<i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> Confirmar Exclusão',
+          message: `Tem certeza que deseja apagar o registo de <strong>${itemInfo}</strong>?<br><span class="text-danger fw-bold">Esta ação é irreversível!</span>`,
+          btnClass: 'btn-danger',
+          btnText: 'Sim, Apagar'
+        }
+      };
+
+      const cfg = configs[type];
+      document.getElementById('confirmModalTitle').innerHTML = cfg.title;
+      document.getElementById('confirmModalMessage').innerHTML = cfg.message;
+
+      const btn = document.getElementById('confirmActionBtn');
+      btn.className = `btn ${cfg.btnClass} rounded-pill px-4 fw-bold`;
+      btn.textContent = cfg.btnText;
+
+      confirmForm.action = action;
+
+      const modal = new bootstrap.Modal(document.getElementById('confirmActionModal'));
+      modal.show();
+    }
+
+    document.getElementById('confirmActionBtn').addEventListener('click', function () {
+      confirmForm.submit();
+    });
+  </script>
 </body>
 </html>
