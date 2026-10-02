@@ -398,6 +398,7 @@ async function getApp() {
       app.post('/admin/licenses/delete/:id', isAdmin, async (req, res) => {
           try {
               await deleteLicense(req.params.id);
+              // 🔥 O logActivity já está protegido com try/catch interno, não vai quebrar
               await logActivity(req, `Apagou a licença ID: ${req.params.id}`);
               res.redirect('/admin/licenses?success=deleted');
           } catch (err) {

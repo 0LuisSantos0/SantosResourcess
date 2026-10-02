@@ -80,11 +80,11 @@ async function updateLicenseIP(discordId, ip) {
 
 async function toggleLicenseStatus(id) {
     if (!supabase) throw new Error('Supabase não configurado');
-    
-    // 🔥 CORREÇÃO: converter id para número inteiro
+
     const numericId = parseInt(id, 10);
     if (isNaN(numericId)) throw new Error('ID da licença inválido');
 
+    // 1. Buscar o valor atual
     const { data: current, error: fetchError } = await supabase
         .from('licencas')
         .select('ativa')
@@ -96,72 +96,24 @@ async function toggleLicenseStatus(id) {
         throw new Error(`Erro ao buscar licença: ${fetchError.message}`);
     }
 
-    const { data, error } = await supabase
+    // 2. Atualizar SEM tentar ler de volta (evita erro de RLS)
+    const { error: updateError } = await supabase
         .from('licencas')
         .update({ ativa: !current.ativa })
-        .eq('id', numericId)
-        .select()
-        .single();
-
-    if (error) {
-        console.error('❌ Erro ao atualizar status:', error);
-        throw new Error(`Erro ao atualizar status: ${error.message}`);
-    }
-    return data;
-}
-
-async function deleteLicense(id) {
-    if (!supabase) throw new Error('Supabase não configurado');
-    
-    // 🔥 CORREÇÃO: converter id para número inteiro
-    const numericId = parseInt(id, 10);
-    if (isNaN(numericId)) throw new Error('ID da licença inválido');
-
-    const { error } = await supabase
-        .from('licencas')
-        .delete()
         .eq('id', numericId);
 
-    if (error) {
-        console.error('❌ Erro ao apagar licença:', error);
-        throw new Error(`Erro ao apagar licença: ${error.message}`);
-    }
-    return true;
-}async function toggleLicenseStatus(id) {
-    if (!supabase) throw new Error('Supabase não configurado');
-
-    const numericId = parseInt(id, 10);
-    if (isNaN(numericId)) throw new Error('ID da licença inválido');
-
-    const { data: current, error: fetchError } = await supabase
-        .from('licencas')
-        .select('ativa')
-        .eq('id', numericId)
-        .single();
-    
-    if (fetchError) {
-        console.error('❌ Erro ao buscar licença:', fetchError);
-        throw new Error(`Erro ao buscar licença: ${fetchError.message}`);
+    if (updateError) {
+        console.error('❌ Erro ao atualizar status:', updateError);
+        throw new Error(`Erro ao atualizar status: ${updateError.message}`);
     }
 
-    const { data, error } = await supabase
-        .from('licencas')
-        .update({ ativa: !current.ativa })
-        .eq('id', numericId)
-        .select()
-        .single();
-
-    if (error) {
-        console.error('❌ Erro ao atualizar status:', error);
-        throw new Error(`Erro ao atualizar status: ${error.message}`);
-    }
-    return data;
+    // 3. Retornar o novo valor
+    return { id: numericId, ativa: !current.ativa };
 }
 
 async function deleteLicense(id) {
     if (!supabase) throw new Error('Supabase não configurado');
     
-    // 🔥 CORREÇÃO: converter id para número inteiro
     const numericId = parseInt(id, 10);
     if (isNaN(numericId)) throw new Error('ID da licença inválido');
 
