@@ -15,6 +15,55 @@
     .admin-card { border: none; border-radius: 20px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
     .action-btn { width: 35px; height: 35px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; }
     .action-btn:hover { transform: scale(1.1); }
+
+    /* Linha clicável */
+    .user-row { cursor: pointer; transition: 0.2s; }
+    .user-row:hover { background: #f8fafc !important; }
+
+    /* Modal detalhes */
+    .detail-section-title {
+      font-weight: 800;
+      color: #0f172a;
+      font-size: 0.95rem;
+      margin: 20px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .detail-section-title i { color: #6366f1; }
+
+    .system-item {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid #6366f1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .system-item .sys-name { font-weight: 700; color: #0f172a; }
+    .system-item .sys-cat { font-size: 0.75rem; color: #64748b; }
+
+    .license-admin-box {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .license-admin-box .code-key { color: #f472b6; }
+    .license-admin-box .code-value { color: #22d3ee; }
+
+    .empty-detail {
+      text-align: center;
+      padding: 30px 15px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+    .empty-detail i { font-size: 2.2rem; display: block; margin-bottom: 10px; opacity: 0.5; }
   </style>
 </head>
 <body>
@@ -47,18 +96,31 @@
       <div class="col-md-9 col-lg-10 p-4">
         <div class="admin-card shadow-sm">
           <div class="p-4 border-bottom">
-            <h5 class="fw-bold mb-0"><i class="fa-solid fa-users-gear text-primary me-2"></i> Todos os Utilizadores Registados</h5>
+            <h5 class="fw-bold mb-0">
+              <i class="fa-solid fa-users-gear text-primary me-2"></i> Todos os Utilizadores Registados
+            </h5>
+            <p class="small text-muted mb-0 mt-1">
+              <i class="fa-solid fa-circle-info me-1"></i>
+              Clica num utilizador para ver os seus sistemas e a licença.
+            </p>
           </div>
           <div class="p-0">
             <% if (error) { %><div class="alert alert-danger m-4"><%= error %></div><% } %>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
-                  <tr><th class="ps-4">ID</th><th>Avatar</th><th>Nome Discord</th><th class="text-center">Admin</th><th class="text-center">Último Login</th><th class="text-end pe-4">Ação</th></tr>
+                  <tr>
+                    <th class="ps-4">ID</th>
+                    <th>Avatar</th>
+                    <th>Nome Discord</th>
+                    <th class="text-center">Admin</th>
+                    <th class="text-center">Último Login</th>
+                    <th class="text-end pe-4">Ações</th>
+                  </tr>
                 </thead>
                 <tbody>
                   <% users.forEach(u => { %>
-                    <tr>
+                    <tr class="user-row" onclick="openUserDetail(<%= u.id %>, '<%= u.username.replace(/'/g, "\\'") %>')">
                       <td class="ps-4 fw-bold text-secondary">#<%= u.id %></td>
                       <td>
                         <% if (u.avatar) { %>
@@ -76,18 +138,24 @@
                         <% } %>
                       </td>
                       <td class="text-center small text-muted"><%= new Date(u.last_login).toLocaleDateString() %></td>
-                      <td class="text-end pe-4">
-                        <form action="/admin/users/toggle/<%= u.id %>" method="POST">
-                          <% if (u.is_admin === 1) { %>
-                            <button type="submit" class="action-btn btn btn-outline-danger" title="Remover Admin">
-                              <i class="fa-solid fa-user-minus"></i>
-                            </button>
-                          <% } else { %>
-                            <button type="submit" class="action-btn btn btn-outline-primary" title="Tornar Admin">
-                              <i class="fa-solid fa-user-plus"></i>
-                            </button>
-                          <% } %>
-                        </form>
+                      <td class="text-end pe-4" onclick="event.stopPropagation();">
+                        <div class="d-flex justify-content-end gap-2">
+                          <button type="button" class="action-btn btn btn-info" title="Ver detalhes"
+                            onclick="openUserDetail(<%= u.id %>, '<%= u.username.replace(/'/g, "\\'") %>')">
+                            <i class="fa-solid fa-eye text-white"></i>
+                          </button>
+                          <form action="/admin/users/toggle/<%= u.id %>" method="POST">
+                            <% if (u.is_admin === 1) { %>
+                              <button type="submit" class="action-btn btn btn-outline-danger" title="Remover Admin">
+                                <i class="fa-solid fa-user-minus"></i>
+                              </button>
+                            <% } else { %>
+                              <button type="submit" class="action-btn btn btn-outline-primary" title="Tornar Admin">
+                                <i class="fa-solid fa-user-plus"></i>
+                              </button>
+                            <% } %>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   <% }) %>
@@ -99,6 +167,114 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══════════ MODAL: DETALHES DO USER ═══════════ -->
+  <div class="modal fade" id="userDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0" style="border-radius:20px; overflow:hidden;">
+        <div class="modal-header border-0" style="background:linear-gradient(135deg,#0f172a,#1e1b4b); color:white; padding:20px 24px;">
+          <h5 class="modal-title fw-bold">
+            <i class="fa-solid fa-user-circle me-2"></i>
+            <span id="modalUsername">Utilizador</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="modalBody" style="background:#f8fafc; max-height:70vh; overflow-y:auto;">
+          <!-- Conteúdo carregado via AJAX -->
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted small mt-3 mb-0">A carregar dados...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let userDetailModal = null;
+
+    async function openUserDetail(userId, username) {
+      document.getElementById('modalUsername').textContent = username;
+
+      if (!userDetailModal) {
+        userDetailModal = new bootstrap.Modal(document.getElementById('userDetailModal'));
+      }
+      userDetailModal.show();
+
+      const modalBody = document.getElementById('modalBody');
+      modalBody.innerHTML = `
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted small mt-3 mb-0">A carregar dados...</p>
+        </div>`;
+
+      try {
+        const res = await fetch(`/admin/users/${userId}/details`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
+
+        let html = '';
+
+        // ── SISTEMAS ──
+        html += `<div class="detail-section-title"><i class="fa-solid fa-cube"></i> Sistemas Comprados (${data.systems.length})</div>`;
+        if (data.systems.length === 0) {
+          html += `<div class="empty-detail"><i class="fa-solid fa-box-open"></i>Este utilizador ainda não comprou nenhum sistema.</div>`;
+        } else {
+          data.systems.forEach(s => {
+            html += `<div class="system-item">
+              <div>
+                <div class="sys-name">${s.product_name}</div>
+                <div class="sys-cat">${s.product_category || '—'}</div>
+              </div>
+              <div class="text-end small text-muted">
+                <div>€${parseFloat(s.price).toFixed(2)}</div>
+                <div>${new Date(s.purchased_at).toLocaleDateString('pt-PT')}</div>
+              </div>
+            </div>`;
+          });
+        }
+
+        // ── LICENÇA ──
+        html += `<div class="detail-section-title"><i class="fa-solid fa-key"></i> Licença do Utilizador</div>`;
+        if (data.license && data.license.key) {
+          html += `<div class="license-admin-box">License = {
+  [<span class="code-key">"user"</span>] = <span class="code-value">"${data.user_discord_id}"</span>,
+  [<span class="code-key">"key"</span>] = <span class="code-value">"${data.license.key}"</span>
+}</div>`;
+        } else if (data.systems.length > 0) {
+          html += `<div class="empty-detail" style="color:#f59e0b;">
+            <i class="fa-solid fa-clock"></i>
+            Ainda não foi gerada licença para este utilizador.
+          </div>`;
+        } else {
+          html += `<div class="empty-detail">
+            <i class="fa-solid fa-lock"></i>
+            Sem licença — nenhum sistema comprado.
+          </div>`;
+        }
+
+        // ── CONFIG MTA ──
+        if (data.mta_config && (data.mta_config.ip || data.mta_config.port)) {
+          html += `<div class="detail-section-title"><i class="fa-solid fa-server"></i> Servidor MTA Configurado</div>`;
+          html += `<div class="license-admin-box">
+  IP:   <span class="code-value">${data.mta_config.ip || '—'}</span>
+  Porta: <span class="code-value">${data.mta_config.port || '—'}</span>
+</div>`;
+        }
+
+        modalBody.innerHTML = html;
+
+      } catch (err) {
+        console.error(err);
+        modalBody.innerHTML = `
+          <div class="empty-detail" style="color:#ef4444;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            ${err.message}
+          </div>`;
+      }
+    }
+  </script>
 </body>
 </html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santos Resources | Licença</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+    .sidebar { min-height: 100vh; background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%); color: white; position: sticky; top: 0; height: 100vh; }
+    .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; border-radius: 12px; margin: 4px 10px; transition: 0.3s; }
+    .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; transform: translateX(5px); border-left: 4px solid #22d3ee; }
+
+    .admin-card { border: none; border-radius: 20px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
+
+    .profile-card {
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      color: white;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+    }
+    .profile-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      border: 3px solid rgba(34,211,238,0.5);
+      object-fit: cover;
+      box-shadow: 0 0 20px rgba(34,211,238,0.3);
+    }
+    .profile-role-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 6px;
+    }
+    .role-admin { background: #facc15; color: #78350f; }
+    .role-client { background: #22d3ee; color: #083344; }
+
+    /* ══════════════════════════════════
+       LICENÇA — CARD ESCURO
+    ══════════════════════════════════ */
+    .license-card {
+      background: #1e293b;
+      border-radius: 18px;
+      padding: 24px;
+      color: #e2e8f0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      margin-bottom: 24px;
+    }
+    .license-card .license-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.05rem;
+      margin-bottom: 18px;
+    }
+    .license-card .license-title i {
+      color: #6366f1;
+      font-size: 1.2rem;
+    }
+
+    .license-code-box {
+      background: #0f172a;
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 12px;
+      padding: 18px 20px;
+      position: relative;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: #cbd5e1;
+      overflow-x: auto;
+    }
+    .license-code-box .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .license-code-box .copy-btn:hover {
+      background: rgba(99,102,241,0.3);
+      border-color: #6366f1;
+    }
+    .license-code-box .copy-btn i { margin-right: 5px; }
+
+    .license-code-box .code-key { color: #f472b6; }
+    .license-code-box .code-value { color: #22d3ee; }
+
+    .license-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      margin-top: 16px;
+    }
+    .license-status.ok {
+      background: rgba(16,185,129,0.15);
+      border-color: rgba(16,185,129,0.4);
+      color: #6ee7b7;
+    }
+    .license-status i { font-size: 1.1rem; }
+
+    /* ══════════════════════════════════
+       SERVER CONFIG — CARD BRANCO
+    ══════════════════════════════════ */
+    .server-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+      margin-bottom: 24px;
+    }
+    .server-card .server-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 1.05rem;
+      margin-bottom: 18px;
+    }
+    .server-card .server-title i {
+      color: #6366f1;
+      font-size: 1.15rem;
+    }
+    .server-card .form-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #64748b;
+    }
+    .server-card .form-control {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: 'Consolas', monospace;
+      font-weight: 600;
+    }
+    .server-card .form-control:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .btn-save-config {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      border: none;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 10px;
+      transition: 0.25s;
+    }
+    .btn-save-config:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(99,102,241,0.4);
+      color: #fff;
+    }
+
+    /* ══════════════════════════════════
+       BLOQUEADO — SEM COMPRAS
+    ══════════════════════════════════ */
+    .locked-state {
+      background: white;
+      border-radius: 20px;
+      padding: 60px 30px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+      border: 2px dashed #e2e8f0;
+    }
+    .locked-icon {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .locked-icon i {
+      font-size: 3rem;
+      color: #94a3b8;
+    }
+    .locked-state h4 {
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+    .locked-state p {
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+    .btn-acquire {
+      background: linear-gradient(135deg, #22d3ee, #06b6d4);
+      color: #0f172a;
+      border: none;
+      font-weight: 800;
+      padding: 14px 32px;
+      border-radius: 50px;
+      transition: 0.3s;
+      box-shadow: 0 10px 25px rgba(34,211,238,0.35);
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-acquire:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 15px 35px rgba(34,211,238,0.55);
+      color: #0f172a;
+    }
+
+    /* Inputs bloqueados */
+    .form-control:disabled, .form-control[readonly] {
+      background: #f1f5f9 !important;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- SIDEBAR -->
+      <div class="col-md-3 col-lg-2 sidebar p-3 d-flex flex-column">
+        <div class="sidebar-header text-center mb-4">
+          <h4 class="fw-bold text-info mt-2"><i class="fa-solid fa-user-circle me-2"></i> Cliente</h4>
+          <hr class="border-secondary">
+          <div class="text-start small text-light-emphasis mt-2 px-2">
+            <i class="fa-regular fa-circle-user me-2"></i> <%= user.username %>
+          </div>
+        </div>
+
+        <nav class="nav flex-column mb-auto">
+          <a href="/client-area/systems">
+            <i class="fa-solid fa-cube me-2"></i> Meus Sistemas
+            <span class="badge bg-secondary rounded-pill ms-1"><%= systems.length %></span>
+          </a>
+          <a href="/client-area/purchases">
+            <i class="fa-solid fa-receipt me-2"></i> Histórico
+            <span class="badge bg-secondary rounded-pill ms-1"><%= purchases.length %></span>
+          </a>
+          <a href="/client-area/license" class="active">
+            <i class="fa-solid fa-key me-2"></i> Licença
+          </a>
+        </nav>
+
+        <div class="mt-auto pt-3 border-top border-secondary">
+          <a href="/" class="text-light"><i class="fa-solid fa-arrow-left me-2"></i> Voltar ao Site</a>
+          <% if (isAdmin) { %>
+            <a href="/admin/dashboard" class="text-warning"><i class="fa-solid fa-screwdriver-wrench me-2"></i> Painel Admin</a>
+          <% } %>
+          <a href="/logout" class="text-danger mt-2"><i class="fa-solid fa-right-from-bracket me-2"></i> Sair</a>
+        </div>
+      </div>
+
+      <!-- CONTEÚDO -->
+      <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="fw-bold mb-4 text-dark">
+          <i class="fa-solid fa-key text-primary me-2"></i> Licença & Servidor
+        </h3>
+
+        <!-- Perfil -->
+        <div class="profile-card">
+          <% if (user.avatar) { %>
+            <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" class="profile-avatar" alt="Avatar">
+          <% } else { %>
+            <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="profile-avatar" alt="Avatar">
+          <% } %>
+          <div>
+            <h4 class="fw-bold mb-1">
+              <%= user.username %>
+              <% if (isAdmin) { %>
+                <span class="profile-role-badge role-admin">Admin</span>
+              <% } else { %>
+                <span class="profile-role-badge role-client">Cliente</span>
+              <% } %>
+            </h4>
+            <p class="mb-0 opacity-75 small">
+              <i class="fa-brands fa-discord me-1"></i> ID: <%= user.id %>
+            </p>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+             CASO 1: TEM SISTEMAS COMPRADOS → Mostrar licença
+        ═══════════════════════════════════════════════ -->
+        <% if (systems && systems.length > 0) { %>
+
+          <!-- CARD: Licença -->
+          <div class="license-card">
+            <div class="license-title">
+              <i class="fa-solid fa-code"></i>
+              Código de Configuração
+            </div>
+
+            <div class="license-code-box" id="licenseBox">
+              <button class="copy-btn" onclick="copyLicense()">
+                <i class="fa-regular fa-copy"></i> Copiar
+              </button>
+<% if (license) { %>
+<pre style="margin:0; color:inherit; font-family:inherit;">License = {
+  [<span class="code-key">"user"</span>] = <span class="code-value">"<%= user.id %>"</span>,
+  [<span class="code-key">"key"</span>] = <span class="code-value">"<%= license.key %>"</span>
+}</pre>
+<% } else { %>
+<pre style="margin:0; color:#94a3b8; font-family:inherit; font-style:italic;">// A tua licença está a ser gerada pela equipa.
+// Receberás a chave em breve no Discord.</pre>
+<% } %>
+            </div>
+
+            <% if (license) { %>
+              <div class="license-status ok" id="licenseStatus">
+                <i class="fa-solid fa-circle-check"></i>
+                Licença ativa e funcionando
+              </div>
+            <% } else { %>
+              <div class="license-status" id="licenseStatus">
+                <i class="fa-solid fa-clock"></i>
+                Licença em processamento — aguarda contacto da equipa
+              </div>
+            <% } %>
+          </div>
+
+          <!-- CARD: Configurar Servidor -->
+          <div class="server-card">
+            <div class="server-title">
+              <i class="fa-solid fa-gear"></i>
+              Configurar Servidor
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-7">
+                <label class="form-label">IP do Servidor</label>
+                <input type="text" class="form-control" id="mtaIp"
+                       value="<%= mta_config && mta_config.ip ? mta_config.ip : '' %>"
+                       placeholder="Ex: 192.168.1.1 ou play.meuserver.pt">
+              </div>
+              <div class="col-md-5">
+                <label class="form-label">Porta</label>
+                <input type="text" class="form-control" id="mtaPort"
+                       value="<%= mta_config && mta_config.port ? mta_config.port : '' %>"
+                       placeholder="Ex: 22003">
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <button class="btn-save-config" onclick="saveMtaConfig()">
+                <i class="fa-solid fa-floppy-disk me-2"></i> Salvar Configurações
+              </button>
+              <span id="saveFeedback" class="ms-3 small fw-bold"></span>
+            </div>
+          </div>
+
+        <% } else { %>
+
+          <!-- ═══════════════════════════════════════════════
+               CASO 2: SEM SISTEMAS → Bloqueado
+          ═══════════════════════════════════════════════ -->
+          <div class="locked-state">
+            <div class="locked-icon">
+              <i class="fa-solid fa-lock"></i>
+            </div>
+            <h4>Ainda não tens nenhum sistema comprado</h4>
+            <p>Adquire um sistema para desbloquear a tua licença e a configuração do servidor MTA.</p>
+            <a href="/products" class="btn-acquire">
+              <i class="fa-solid fa-cart-shopping me-2"></i> Adquirir Agora
+            </a>
+          </div>
+
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyLicense() {
+      const box = document.getElementById('licenseBox');
+      <% if (license) { %>
+        const text = `License = {\n  ["user"] = "<%= user.id %>",\n  ["key"] = "<%= license.key %>"\n}`;
+      <% } else { %>
+        const text = 'Licença ainda não gerada.';
+      <% } %>
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = box.querySelector('.copy-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+        setTimeout(() => { btn.innerHTML = orig; }, 1800);
+      });
+    }
+
+    async function saveMtaConfig() {
+      const ip = document.getElementById('mtaIp').value.trim();
+      const port = document.getElementById('mtaPort').value.trim();
+      const fb = document.getElementById('saveFeedback');
+
+      if (!ip || !port) {
+        fb.className = 'ms-3 small fw-bold text-danger';
+        fb.textContent = 'Preenche o IP e a Porta.';
+        return;
+      }
+
+      fb.className = 'ms-3 small fw-bold text-muted';
+      fb.textContent = 'A guardar...';
+
+      try {
+        const res = await fetch('/api/client/mta-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ip, port })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          fb.className = 'ms-3 small fw-bold text-success';
+          fb.textContent = '✓ Configurações guardadas!';
+        } else {
+          fb.className = 'ms-3 small fw-bold text-danger';
+          fb.textContent = data.error || 'Erro ao guardar.';
+        }
+      } catch (err) {
+        fb.className = 'ms-3 small fw-bold text-danger';
+        fb.textContent = 'Erro de comunicação.';
+      }
+    }
+  </script>
+</body>
+</html>
