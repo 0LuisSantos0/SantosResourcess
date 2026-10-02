@@ -328,6 +328,33 @@ async function getApp() {
           }
       });
 
+      app.get('/api/debug/license', async (req, res) => {
+          if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+
+          const supabase = require('./src/supabase/client');
+          const result = {
+              supabase_url_defined: !!process.env.SUPABASE_URL,
+              supabase_key_defined: !!process.env.SUPABASE_KEY,
+              supabase_client_ok: !!supabase,
+              user_id: req.session.user.id,
+              user_id_type: typeof req.session.user.id,
+          };
+
+          if (supabase) {
+              const { data, error } = await supabase.from('licencas').select('*').limit(5);
+              result.raw_query = { data, error: error ? { message: error.message, code: error.code } : null };
+
+              const { data: specific } = await supabase
+                  .from('licencas')
+                  .select('*')
+                  .eq('discord_id', String(req.session.user.id))
+                  .maybeSingle();
+              result.specific_license = specific;
+          }
+
+          res.json(result);
+      });
+
       app.post('/admin/licenses/generate', isAdmin, async (req, res) => {
           const { discord_id } = req.body;
           if (!discord_id) return res.redirect('/admin/licenses?error=missing_fields');
