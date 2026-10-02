@@ -126,6 +126,10 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
     .payment-card:hover {
       transform: translateY(-6px);
@@ -134,6 +138,15 @@
     .payment-icon {
       font-size: 3.5rem;
       line-height: 1;
+      margin-bottom: 15px;
+      display: inline-block;
+      color: #0f172a;
+    }
+    /* 🔥 NOVO: Estilo para a imagem personalizada do método de pagamento */
+    .payment-image {
+      max-height: 80px;
+      max-width: 100%;
+      object-fit: contain;
       margin-bottom: 15px;
       display: inline-block;
     }
@@ -192,6 +205,7 @@
       0% { background-position: 0% center; }
       100% { background-position: 200% center; }
     }
+    /* 🔥 SPINNER CORRIGIDO */
     .spinner {
       width: 50px;
       height: 50px;
@@ -218,6 +232,8 @@
         <i class="fa-solid fa-cube splash-logo-icon"></i>
       <% } %>
       <h1 class="splash-title">Santos Resources</h1>
+      <!-- 🔥 CORREÇÃO: Adicionado o spinner que faltava -->
+      <div class="spinner"></div>
     </div>
   </div>
 
@@ -289,7 +305,12 @@
           <% methods.forEach((m, index) => { %>
             <div class="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
               <div class="card payment-card p-4 text-center">
-                <i class="fa-solid <%= m.icon || 'fa-credit-card' %> payment-icon"></i>
+                <!-- 🔥 CORREÇÃO: Lógica para mostrar imagem personalizada ou ícone -->
+                <% if (m.image_base64 && m.image_base64.trim() !== '') { %>
+                  <img src="<%= m.image_base64 %>" alt="<%= m.name %>" class="payment-image">
+                <% } else { %>
+                  <i class="fa-solid <%= m.icon || 'fa-credit-card' %> payment-icon"></i>
+                <% } %>
                 <h5 class="card-title fw-bold"><%= m.name %></h5>
                 <p class="card-text text-muted"><%= m.description %></p>
               </div>
