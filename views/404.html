@@ -15,7 +15,6 @@
     :root {
       --primary: #8b5cf6;
       --secondary: #06b6d4;
-      --dark-bg: #05050A;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --glass-bg: rgba(255, 255, 255, 0.03);
@@ -26,7 +25,8 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background-color: var(--dark-bg);
+      /* Fundo azul escuro original restaurado */
+      background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f172a 60%, #0b1120 100%);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
@@ -34,10 +34,6 @@
       justify-content: center;
       overflow: hidden;
       position: relative;
-      background-image: 
-        radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.12), transparent 45%),
-        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.12), transparent 45%),
-        radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.08), transparent 50%);
     }
 
     /* Grid Animado de Fundo */
@@ -102,7 +98,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Ícone do Astronauta */
+    /* Ícone do Astronauta / Logo */
     .astronaut-icon {
       font-size: 5rem;
       color: var(--text-main);
@@ -157,43 +153,8 @@
       font-size: 1.05rem;
       color: var(--text-muted);
       max-width: 500px;
-      margin: 0 auto 35px;
+      margin: 0 auto 45px; /* Aumentei a margem inferior para compensar a remoção da barra de pesquisa */
       line-height: 1.6;
-    }
-
-    /* Barra de Pesquisa */
-    .search-wrapper {
-      position: relative;
-      max-width: 400px;
-      margin: 0 auto 35px;
-    }
-    .search-wrapper input {
-      width: 100%;
-      padding: 14px 20px 14px 45px;
-      border-radius: 50px;
-      border: 1px solid var(--glass-border);
-      background: var(--glass-bg);
-      color: #fff;
-      font-size: 0.95rem;
-      backdrop-filter: blur(10px);
-      transition: all 0.3s ease;
-      outline: none;
-    }
-    .search-wrapper input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .search-wrapper input::placeholder {
-      color: #64748b;
-    }
-    .search-wrapper i {
-      position: absolute;
-      left: 18px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      font-size: 1rem;
     }
 
     /* Botões */
@@ -295,12 +256,6 @@
       Parece que te perdeste no espaço digital. A página que procuras não existe, foi movida ou está temporariamente indisponível.
     </p>
 
-    <!-- Barra de Pesquisa -->
-    <div class="search-wrapper">
-      <i class="fa-solid fa-magnifying-glass"></i>
-      <input type="text" id="searchInput" placeholder="Procurar produtos..." onkeypress="handleSearch(event)">
-    </div>
-
     <!-- Botões -->
     <div class="action-buttons">
       <a href="/" class="btn-custom btn-primary-custom">
@@ -320,19 +275,5 @@
     </p>
 
   </div>
-
-  <script>
-    function handleSearch(event) {
-      if (event.key === 'Enter') {
-        const query = document.getElementById('searchInput').value.trim();
-        if (query) {
-
-          window.location.href = `/products?search=${encodeURIComponent(query)}`;
-        } else {
-          window.location.href = '/products';
-        }
-      }
-    }
-  </script>
 </body>
 </html>
