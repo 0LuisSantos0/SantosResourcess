@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Sistemas | Santos Resources</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+    .sidebar { min-height: 100vh; background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%); color: white; position: sticky; top: 0; height: 100vh; }
+    .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; border-radius: 12px; margin: 4px 10px; transition: 0.3s; }
+    .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; transform: translateX(5px); border-left: 4px solid #22d3ee; }
+
+    .admin-card { border: none; border-radius: 20px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
+
+    .profile-card {
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      color: white;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+    }
+    .profile-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      border: 3px solid rgba(34,211,238,0.5);
+      object-fit: cover;
+      box-shadow: 0 0 20px rgba(34,211,238,0.3);
+    }
+    .profile-role-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 6px;
+    }
+    .role-admin { background: #facc15; color: #78350f; }
+    .role-client { background: #22d3ee; color: #083344; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+      border: 1px dashed #e2e8f0;
+    }
+    .empty-state i { font-size: 4rem; color: #cbd5e1; margin-bottom: 20px; display: block; }
+
+    .system-card {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .system-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, #6366f1, #22d3ee);
+    }
+    .system-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+      border-color: #6366f1;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-completed { background: #d1fae5; color: #065f46; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- SIDEBAR -->
+      <div class="col-md-3 col-lg-2 sidebar p-3 d-flex flex-column">
+        <div class="sidebar-header text-center mb-4">
+          <h4 class="fw-bold text-info mt-2"><i class="fa-solid fa-user-circle me-2"></i> Cliente</h4>
+          <hr class="border-secondary">
+          <div class="text-start small text-light-emphasis mt-2 px-2">
+            <i class="fa-regular fa-circle-user me-2"></i> <%= user.username %>
+          </div>
+        </div>
+
+        <nav class="nav flex-column mb-auto">
+          <a href="/client-area/systems" class="active">
+            <i class="fa-solid fa-cube me-2"></i> Meus Sistemas
+            <span class="badge bg-secondary rounded-pill ms-1"><%= systems.length %></span>
+          </a>
+          <a href="/client-area/purchases">
+            <i class="fa-solid fa-receipt me-2"></i> Histórico
+            <span class="badge bg-secondary rounded-pill ms-1"><%= purchases.length %></span>
+          </a>
+        </nav>
+
+        <div class="mt-auto pt-3 border-top border-secondary">
+          <a href="/" class="text-light"><i class="fa-solid fa-arrow-left me-2"></i> Voltar ao Site</a>
+          <% if (isAdmin) { %>
+            <a href="/admin/dashboard" class="text-warning"><i class="fa-solid fa-screwdriver-wrench me-2"></i> Painel Admin</a>
+          <% } %>
+          <a href="/logout" class="text-danger mt-2"><i class="fa-solid fa-right-from-bracket me-2"></i> Sair</a>
+        </div>
+      </div>
+
+      <!-- CONTEÚDO -->
+      <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="fw-bold mb-4 text-dark">
+          <i class="fa-solid fa-user-circle text-primary me-2"></i> Área do Cliente
+        </h3>
+
+        <!-- Perfil -->
+        <div class="profile-card">
+          <% if (user.avatar) { %>
+            <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png" class="profile-avatar" alt="Avatar">
+          <% } else { %>
+            <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="profile-avatar" alt="Avatar">
+          <% } %>
+          <div>
+            <h4 class="fw-bold mb-1">
+              <%= user.username %>
+              <% if (isAdmin) { %>
+                <span class="profile-role-badge role-admin">Admin</span>
+              <% } else { %>
+                <span class="profile-role-badge role-client">Cliente</span>
+              <% } %>
+            </h4>
+            <p class="mb-0 opacity-75 small">
+              <i class="fa-brands fa-discord me-1"></i> ID: <%= user.id %>
+            </p>
+          </div>
+        </div>
+
+        <!-- MEUS SISTEMAS -->
+        <div class="admin-card shadow-sm p-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-cube text-primary me-2"></i> Meus Sistemas</h5>
+            <span class="badge bg-primary rounded-pill px-3"><%= systems.length %> sistema(s)</span>
+          </div>
+
+          <% if (systems.length === 0) { %>
+            <div class="empty-state">
+              <i class="fa-solid fa-box-open"></i>
+              <h4 class="fw-bold">Ainda não tens sistemas</h4>
+              <p class="text-muted mb-4">Quando comprares um sistema, ele aparecerá aqui com o respetivo acesso.</p>
+              <a href="/products" class="btn btn-primary rounded-pill px-4 fw-bold">
+                <i class="fa-solid fa-cart-shopping me-2"></i> Explorar Produtos
+              </a>
+            </div>
+          <% } else { %>
+            <div class="row g-4">
+              <% systems.forEach(s => { %>
+                <div class="col-md-6 col-xl-4">
+                  <div class="system-card">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                      <span class="badge bg-primary bg-opacity-10 text-primary fw-bold">
+                        <i class="fa-solid fa-tag me-1"></i><%= s.product_category || 'Sistema' %>
+                      </span>
+                      <span class="status-badge status-completed">Ativo</span>
+                    </div>
+                    <h5 class="fw-bold mb-2"><%= s.product_name %></h5>
+                    <p class="text-muted small mb-3">
+                      <i class="fa-solid fa-calendar me-1"></i>
+                      Adquirido em <%= new Date(s.purchased_at + 'Z').toLocaleDateString('pt-PT') %>
+                    </p>
+                    <div class="mt-auto">
+                      <button class="btn btn-primary w-100 rounded-pill fw-bold" onclick="alert('Funcionalidade de download em breve!')">
+                        <i class="fa-solid fa-download me-2"></i> Aceder
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
