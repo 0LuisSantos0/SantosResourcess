@@ -387,10 +387,11 @@ async function getApp() {
       app.post('/admin/licenses/toggle/:id', isAdmin, async (req, res) => {
           try {
               await toggleLicenseStatus(req.params.id);
-              res.redirect('/admin/licenses');
+              res.redirect('/admin/licenses?success=toggled');
           } catch (err) {
-              console.error('Erro ao alternar licença:', err);
-              res.redirect('/admin/licenses');
+              console.error('❌ Erro ao alternar licença:', err);
+              const errorMsg = encodeURIComponent(err.message || 'Erro desconhecido');
+              res.redirect(`/admin/licenses?error=toggle_failed&reason=${errorMsg}`);
           }
       });
 
@@ -398,10 +399,11 @@ async function getApp() {
           try {
               await deleteLicense(req.params.id);
               await logActivity(req, `Apagou a licença ID: ${req.params.id}`);
-              res.redirect('/admin/licenses');
+              res.redirect('/admin/licenses?success=deleted');
           } catch (err) {
-              console.error('Erro ao apagar licença:', err);
-              res.redirect('/admin/licenses');
+              console.error('❌ Erro ao apagar licença:', err);
+              const errorMsg = encodeURIComponent(err.message || 'Erro desconhecido');
+              res.redirect(`/admin/licenses?error=delete_failed&reason=${errorMsg}`);
           }
       });
 
