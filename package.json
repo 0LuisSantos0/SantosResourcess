@@ -1,8 +1,11 @@
 {
   "name": "santos-resources",
   "version": "1.0.0",
-  "description": "Site Santos Resources - A website for Santos Resources",
+  "description": "Site Santos Resources",
   "main": "server.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node server.js"
   },

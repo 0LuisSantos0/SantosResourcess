@@ -11,7 +11,19 @@ const pgSession = require('connect-pg-simple')(session);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const { createLicense, getLicenseByDiscordId, getAllLicenses, updateLicenseIP, toggleLicenseStatus, deleteLicense } = require('./src/database/licenses');
+let licensesModule = null;
+try {
+  licensesModule = require('./src/database/licenses');
+} catch (err) {
+  console.error('⚠️ AVISO: Não foi possível carregar o módulo de licenças. O site vai continuar sem essa funcionalidade.', err.message);
+}
+
+const createLicense = licensesModule?.createLicense || (async () => { throw new Error('Licenças indisponíveis'); });
+const getLicenseByDiscordId = licensesModule?.getLicenseByDiscordId || (async () => null);
+const getAllLicenses = licensesModule?.getAllLicenses || (async () => []);
+const updateLicenseIP = licensesModule?.updateLicenseIP || (async () => { throw new Error('Licenças indisponíveis'); });
+const toggleLicenseStatus = licensesModule?.toggleLicenseStatus || (async () => { throw new Error('Licenças indisponíveis'); });
+const deleteLicense = licensesModule?.deleteLicense || (async () => { throw new Error('Licenças indisponíveis'); });
 
 // ══════════════════════════════════════════
 // VIEW ENGINE - Usa .html mas processa EJS
@@ -67,8 +79,12 @@ async function getApp() {
   if (!appPromise) {
     appPromise = (async () => {
       console.log('⏳ A iniciar base de dados e sessão...');
-      await initDB();
-      await ensureSessionTable();
+      try {
+        await initDB();
+        await ensureSessionTable();
+      } catch (dbError) {
+        console.error('⚠️ AVISO: Falha ao ligar à base de dados PostgreSQL. O site vai continuar, mas algumas funções podem falhar.', dbError);
+      }
 
       console.log('✅ A configurar middleware de sessão...');
       app.use(session({
