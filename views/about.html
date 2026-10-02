@@ -572,7 +572,7 @@
         <!-- Cupom de Desconto -->
         <div class="coupon-section">
           <div class="d-flex gap-2">
-            <input type="text" id="couponInput" class="form-control" placeholder="Cupom de desconto">
+            <input type="text" id="couponInput" name="coupon_code_<%='x'+Math.random().toString(36).slice(2,7) %>" class="form-control" placeholder="Cupom de desconto" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other">
             <button id="applyCouponBtn" class="btn btn-outline-info rounded-pill px-3" onclick="applyCoupon()">Aplicar</button>
             <button id="removeCouponBtn" class="btn btn-outline-danger rounded-pill px-3 d-none" onclick="removeCoupon()">Remover</button>
           </div>
@@ -627,6 +627,59 @@
     </div>
   </div>
 
+  <div class="modal fade" id="checkoutSuccessModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0" style="border-radius:24px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg,#0f172a,#1e1b4b); padding:35px 20px 25px; text-align:center;">
+          <div style="width:80px; height:80px; border-radius:50%; background:rgba(34,211,238,0.15); display:inline-flex; align-items:center; justify-content:center; border:3px solid #22d3ee; animation:pulseCheck 1.2s ease-out;">
+            <i class="fa-solid fa-check" style="font-size:2.2rem; color:#22d3ee;"></i>
+          </div>
+          <h3 class="fw-bold text-white mt-3 mb-1">Pedido Registado!</h3>
+          <p class="text-light opacity-75 small mb-0">O teu pedido foi criado com sucesso.</p>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <div class="d-flex align-items-start gap-3 mb-3 p-3" style="background:#f8fafc; border-radius:14px; text-align:left;">
+            <i class="fa-brands fa-discord" style="font-size:1.6rem; color:#5865F2; margin-top:2px;"></i>
+            <div>
+              <div class="fw-bold small">Próximo passo: pagamento</div>
+              <div class="text-muted small">Dirige-te ao nosso <strong>Discord</strong> e abre um <strong>Ticket</strong> para concluir o pagamento.</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-start gap-3 mb-3 p-3" style="background:#f8fafc; border-radius:14px; text-align:left;">
+            <i class="fa-solid fa-user-shield" style="font-size:1.6rem; color:#6366f1; margin-top:2px;"></i>
+            <div>
+              <div class="fw-bold small">Aprovação do admin</div>
+              <div class="text-muted small">Após confirmação, o admin irá <strong>adicionar o sistema à tua conta</strong>.</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-start gap-3 p-3" style="background:#f8fafc; border-radius:14px; text-align:left;">
+            <i class="fa-solid fa-cube" style="font-size:1.6rem; color:#22d3ee; margin-top:2px;"></i>
+            <div>
+              <div class="fw-bold small">Área do Cliente</div>
+              <div class="text-muted small">Acompanha o estado em <strong>Área Cliente → Histórico</strong>.</div>
+            </div>
+          </div>
+          <div class="d-grid gap-2 mt-4">
+            <a href="/client-area/purchases" class="btn btn-primary rounded-pill fw-bold py-2 shadow-sm">
+              <i class="fa-solid fa-receipt me-2"></i> Ver os meus Pedidos
+            </a>
+            <a href="/products" class="btn btn-outline-secondary rounded-pill fw-bold py-2">
+              <i class="fa-solid fa-cart-shopping me-2"></i> Continuar a Comprar
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes pulseCheck {
+      0%   { transform: scale(0.6); opacity: 0; }
+      50%  { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
     <div id="mtaAlertToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
@@ -672,11 +725,15 @@
 
     async function processarPagamento() {
       if (!cart || cart.length === 0) {
-        alert('O carrinho está vazio!');
+        const toastEl = document.getElementById('mtaAlertToast');
+        if (toastEl) {
+          toastEl.querySelector('.toast-body').innerHTML =
+            '<i class="fa-solid fa-circle-exclamation me-2"></i> O carrinho está vazio!';
+          new bootstrap.Toast(toastEl).show();
+        }
         return;
       }
 
-      // Abre o Discord imediatamente (tem de ser no gesto do clique)
       const discordUrl = '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
       window.open(discordUrl, '_blank');
 
@@ -692,7 +749,18 @@
         cart = [];
         updateCartUI();
 
-        alert('✅ Pedido registado!\n\nDirige-te ao nosso Discord para concluir o pagamento. Após confirmação, o sistema será adicionado à tua conta.');
+        const offcanvasEl = document.getElementById('cartDrawer');
+        if (offcanvasEl) {
+          const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl)
+                          || new bootstrap.Offcanvas(offcanvasEl);
+          bsOffcanvas.hide();
+        }
+
+        setTimeout(() => {
+          const modal = new bootstrap.Modal(document.getElementById('checkoutSuccessModal'));
+          modal.show();
+        }, 350);
+
       } catch (err) {
         console.error(err);
         alert('Erro ao comunicar com o servidor.');
