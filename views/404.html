@@ -7,241 +7,281 @@
   
   <link rel="icon" href="<%= siteSettings.logo_url ? siteSettings.logo_url : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>' %>" />
   
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
-    * { box-sizing: border-box; }
-    
+    :root {
+      --primary: #8b5cf6;
+      --secondary: #06b6d4;
+      --dark-bg: #05050A;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'Inter', sans-serif;
-      background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f172a 60%, #0b1120 100%);
-      color: #e2e8f0;
+      background-color: var(--dark-bg);
+      color: var(--text-main);
       min-height: 100vh;
-      margin: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
       position: relative;
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.12), transparent 45%),
+        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.12), transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.08), transparent 50%);
     }
 
-    /* Bolhas decorativas animadas */
-    .blob {
+    /* Grid Animado de Fundo */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139, 92, 246, 0.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+      z-index: 0;
+      mask-image: radial-gradient(circle at center, black 20%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at center, black 20%, transparent 80%);
+      animation: gridMove 20s linear infinite;
+    }
+
+    @keyframes gridMove {
+      0% { background-position: 0 0; }
+      100% { background-position: 60px 60px; }
+    }
+
+    /* Orbes de Luz */
+    .orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(90px);
-      opacity: 0.5;
+      filter: blur(100px);
       z-index: 0;
       pointer-events: none;
+      opacity: 0.6;
     }
-    .blob-1 {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, #6366f1, transparent 70%);
-      top: -10%; left: -10%;
-      animation: floatBlob 18s infinite ease-in-out;
-    }
-    .blob-2 {
+    .orb-1 {
       width: 400px; height: 400px;
-      background: radial-gradient(circle, #22d3ee, transparent 70%);
-      bottom: -15%; right: -10%;
-      animation: floatBlob 22s infinite ease-in-out reverse;
+      background: var(--primary);
+      top: -10%; left: -5%;
+      animation: floatOrb 15s infinite ease-in-out alternate;
     }
-    @keyframes floatBlob {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50%      { transform: translate(40px, -30px) scale(1.1); }
+    .orb-2 {
+      width: 350px; height: 350px;
+      background: var(--secondary);
+      bottom: -15%; right: -5%;
+      animation: floatOrb 18s infinite ease-in-out alternate-reverse;
     }
 
-    /* Container principal */
-    .error-wrapper {
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, -40px) scale(1.15); }
+    }
+
+    /* Container Principal */
+    .error-container {
       position: relative;
       z-index: 10;
       text-align: center;
       padding: 40px 20px;
-      max-width: 700px;
-      margin: 0 auto;
+      max-width: 750px;
+      width: 100%;
+      animation: fadeInUp 1s ease-out forwards;
     }
 
-    /* Logo no topo */
-    .error-logo {
-      max-height: 60px;
-      max-width: 60px;
-      object-fit: contain;
-      margin-bottom: 20px;
-      animation: pulseLogo 2.4s infinite ease-in-out;
-      filter: drop-shadow(0 0 15px rgba(99,102,241,0.5));
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .error-logo-icon {
-      font-size: 3rem;
-      color: #6366f1;
-      margin-bottom: 20px;
+
+    /* Ícone do Astronauta */
+    .astronaut-icon {
+      font-size: 5rem;
+      color: var(--text-main);
+      margin-bottom: 10px;
       display: inline-block;
-      animation: pulseLogo 2.4s infinite ease-in-out;
-      filter: drop-shadow(0 0 15px rgba(99,102,241,0.5));
-    }
-    @keyframes pulseLogo {
-      0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.06); }
+      animation: floatAstronaut 4s ease-in-out infinite;
+      filter: drop-shadow(0 0 25px rgba(139, 92, 246, 0.6));
     }
 
-    /* O número 404 gigante */
+    @keyframes floatAstronaut {
+      0%, 100% { transform: translateY(0) rotate(-5deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    /* Número 404 com Efeito Glitch */
     .error-code {
-      font-size: clamp(6rem, 18vw, 11rem);
-      font-weight: 900;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(7rem, 20vw, 12rem);
+      font-weight: 700;
       line-height: 1;
-      letter-spacing: -6px;
-      background: linear-gradient(135deg, #6366f1 0%, #22d3ee 50%, #6366f1 100%);
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: shimmer 4s linear infinite;
-      margin: 0;
-      text-shadow: 0 20px 60px rgba(34,211,238,0.3);
-    }
-    @keyframes shimmer {
-      0%   { background-position: 0% center; }
-      100% { background-position: 200% center; }
-    }
-
-    /* Título */
-    .error-title {
-      font-size: clamp(1.4rem, 3vw, 2rem);
-      font-weight: 800;
       color: #fff;
-      margin-top: 10px;
-      margin-bottom: 12px;
+      text-shadow: 
+        0 0 10px rgba(139, 92, 246, 0.8),
+        0 0 30px rgba(6, 182, 212, 0.6),
+        0 0 60px rgba(139, 92, 246, 0.4);
+      position: relative;
+      display: inline-block;
+      animation: glitch 4s infinite;
+      margin-bottom: 10px;
     }
 
-    /* Subtítulo */
+    @keyframes glitch {
+      0%, 100% { transform: translate(0); }
+      5% { transform: translate(-3px, 2px); text-shadow: -3px 0 #ef4444, 3px 3px #06b6d4; }
+      10% { transform: translate(3px, -2px); text-shadow: 3px 0 #ef4444, -3px -3px #06b6d4; }
+      15% { transform: translate(-2px, -2px); text-shadow: -2px 0 #ef4444, 2px 2px #06b6d4; }
+      20% { transform: translate(2px, 2px); text-shadow: 2px 0 #ef4444, -2px -2px #06b6d4; }
+      25% { transform: translate(0); }
+    }
+
+    /* Títulos */
+    .error-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
     .error-subtitle {
       font-size: 1.05rem;
-      color: #94a3b8;
-      max-width: 480px;
-      margin: 0 auto 30px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto 35px;
       line-height: 1.6;
     }
 
-    /* Mostrar a rota pedida */
-    .error-path {
-      display: inline-block;
-      background: rgba(99,102,241,0.1);
-      border: 1px solid rgba(99,102,241,0.3);
-      color: #a5b4fc;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-family: 'Consolas', monospace;
-      font-size: 0.85rem;
-      margin-bottom: 30px;
-      word-break: break-all;
+    /* Barra de Pesquisa */
+    .search-wrapper {
+      position: relative;
+      max-width: 400px;
+      margin: 0 auto 35px;
     }
-    .error-path i { margin-right: 6px; opacity: 0.7; }
+    .search-wrapper input {
+      width: 100%;
+      padding: 14px 20px 14px 45px;
+      border-radius: 50px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: #fff;
+      font-size: 0.95rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      outline: none;
+    }
+    .search-wrapper input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .search-wrapper input::placeholder {
+      color: #64748b;
+    }
+    .search-wrapper i {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
 
     /* Botões */
-    .btn-home {
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .btn-custom {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
-      color: #fff;
-      padding: 14px 32px;
+      padding: 14px 30px;
       border-radius: 50px;
+      font-weight: 600;
+      font-size: 0.95rem;
       text-decoration: none;
-      font-weight: 700;
-      font-size: 1rem;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      border: none;
-      box-shadow: 0 10px 25px rgba(99,102,241,0.35);
-      margin: 0 6px 12px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
     }
-    .btn-home:hover {
-      transform: translateY(-3px) scale(1.03);
-      box-shadow: 0 15px 35px rgba(99,102,241,0.55);
+
+    .btn-primary-custom {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+    }
+    .btn-primary-custom:hover {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 15px 35px rgba(139, 92, 246, 0.6);
       color: #fff;
     }
 
-    .btn-products {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: transparent;
-      color: #22d3ee;
-      padding: 13px 30px;
-      border-radius: 50px;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-      border: 2px solid rgba(34,211,238,0.4);
-      margin: 0 6px 12px;
+    .btn-outline-custom {
+      background: var(--glass-bg);
+      color: var(--text-main);
+      border: 1px solid var(--glass-border);
     }
-    .btn-products:hover {
-      background: rgba(34,211,238,0.1);
-      border-color: #22d3ee;
-      transform: translateY(-3px);
-      color: #22d3ee;
+    .btn-outline-custom:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--secondary);
+      color: var(--secondary);
+      transform: translateY(-4px) scale(1.03);
+    }
+
+    .btn-discord-custom {
+      background: rgba(88, 101, 242, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(88, 101, 242, 0.4);
+    }
+    .btn-discord-custom:hover {
+      background: #5865F2;
+      color: #fff;
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 10px 25px rgba(88, 101, 242, 0.5);
     }
 
     /* Footer */
     .error-footer {
-      margin-top: 40px;
+      margin-top: 50px;
       font-size: 0.85rem;
-      color: #64748b;
-    }
-    .error-footer a {
-      color: #a5b4fc;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .error-footer a:hover { color: #22d3ee; }
-
-    /* Animação de entrada */
-    .error-wrapper > * {
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeUp 0.7s forwards;
-    }
-    .error-wrapper > *:nth-child(1) { animation-delay: 0.05s; }
-    .error-wrapper > *:nth-child(2) { animation-delay: 0.15s; }
-    .error-wrapper > *:nth-child(3) { animation-delay: 0.25s; }
-    .error-wrapper > *:nth-child(4) { animation-delay: 0.35s; }
-    .error-wrapper > *:nth-child(5) { animation-delay: 0.45s; }
-    .error-wrapper > *:nth-child(6) { animation-delay: 0.55s; }
-    .error-wrapper > *:nth-child(7) { animation-delay: 0.65s; }
-
-    @keyframes fadeUp {
-      to { opacity: 1; transform: translateY(0); }
+      color: #475569;
     }
 
-    /* Detalhe decorativo */
-    .grid-lines {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
-      background-size: 50px 50px;
-      z-index: 1;
-      pointer-events: none;
-      mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
-      -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+    /* Responsividade */
+    @media (max-width: 576px) {
+      .action-buttons { flex-direction: column; width: 100%; }
+      .btn-custom { width: 100%; justify-content: center; }
+      .error-code { font-size: 6rem; }
     }
   </style>
 </head>
 <body>
-  <!-- Fundo decorativo -->
-  <div class="grid-lines"></div>
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
+  <!-- Fundo Decorativo -->
+  <div class="grid-overlay"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
 
-  <div class="error-wrapper">
-
-    <!-- Logo -->
+  <div class="error-container">
+    
+    <!-- Ícone / Logo -->
     <% if (siteSettings.logo_url) { %>
-      <img src="<%= siteSettings.logo_url %>" alt="Logo" class="error-logo">
+      <img src="<%= siteSettings.logo_url %>" alt="Logo" class="astronaut-icon" style="width: 80px; height: 80px; object-fit: contain;">
     <% } else { %>
-      <i class="fa-solid fa-cube error-logo-icon"></i>
+      <i class="fa-solid fa-user-astronaut astronaut-icon"></i>
     <% } %>
 
     <!-- Número 404 -->
@@ -252,33 +292,47 @@
 
     <!-- Subtítulo -->
     <p class="error-subtitle">
-      A página que estás à procura não existe, foi movida ou já não está disponível.
+      Parece que te perdeste no espaço digital. A página que procuras não existe, foi movida ou está temporariamente indisponível.
     </p>
 
-    <!-- Rota pedida -->
-    <div class="error-path">
-      <i class="fa-solid fa-link"></i>
-      <%= requestedPath %>
+    <!-- Barra de Pesquisa -->
+    <div class="search-wrapper">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="searchInput" placeholder="Procurar produtos..." onkeypress="handleSearch(event)">
     </div>
 
     <!-- Botões -->
-    <div>
-      <a href="/" class="btn-home">
+    <div class="action-buttons">
+      <a href="/" class="btn-custom btn-primary-custom">
         <i class="fa-solid fa-house"></i> Voltar ao Início
       </a>
-      <a href="/products" class="btn-products">
+      <a href="/products" class="btn-custom btn-outline-custom">
         <i class="fa-solid fa-cart-shopping"></i> Ver Produtos
+      </a>
+      <a href="<%= siteSettings.discord_link || 'https://discord.gg/8GyNS5vRgt' %>" target="_blank" class="btn-custom btn-discord-custom">
+        <i class="fa-brands fa-discord"></i> Reportar Erro
       </a>
     </div>
 
     <!-- Footer -->
     <p class="error-footer">
-      Se acreditas que isto é um erro, contacta-nos no
-      <a href="<%= siteSettings.discord_link || 'https://discord.gg/8GyNS5vRgt' %>" target="_blank">
-        <i class="fa-brands fa-discord"></i> Discord
-      </a>
+      &copy; <%= new Date().getFullYear() %> Santos Resources. Todos os direitos reservados.
     </p>
 
   </div>
+
+  <script>
+    function handleSearch(event) {
+      if (event.key === 'Enter') {
+        const query = document.getElementById('searchInput').value.trim();
+        if (query) {
+
+          window.location.href = `/products?search=${encodeURIComponent(query)}`;
+        } else {
+          window.location.href = '/products';
+        }
+      }
+    }
+  </script>
 </body>
 </html>
