@@ -73,7 +73,8 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
-        icon TEXT, -- classe FontAwesome (ex: fa-credit-card)
+        icon TEXT,
+        image_base64 TEXT, -- NOVO: imagem em base64
         display_order INTEGER DEFAULT 0,
         is_active INTEGER DEFAULT 1
       );
@@ -86,6 +87,19 @@ const initDB = async () => {
         admin_username TEXT NOT NULL,
         action TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS purchases (
+        id SERIAL PRIMARY KEY,
+        user_discord_id TEXT NOT NULL,
+        product_id INTEGER,
+        product_name TEXT NOT NULL,
+        product_category TEXT,
+        price REAL NOT NULL DEFAULT 0.00,
+        status TEXT DEFAULT 'completed',
+        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 

@@ -225,6 +225,87 @@ async function getApp() {
         }
       });
 
+      // ══════════════════════════════════════════
+      // ÁREA DO CLIENTE
+      // ══════════════════════════════════════════
+      app.get('/client-area', async (req, res) => {
+        if (!req.session.user) return res.redirect('/');
+
+        let isAdmin = false;
+        if (config.ADMIN_IDS.includes(req.session.user.id)) {
+          isAdmin = true;
+        } else {
+          const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+          if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
+            isAdmin = true;
+          }
+        }
+
+        try {
+          // Sistemas distintos (última compra por produto)
+          const systemsResult = await pool.query(
+            `SELECT DISTINCT ON (product_id) *
+            FROM purchases
+            WHERE user_discord_id = $1 AND status = 'completed'
+            ORDER BY product_id, purchased_at DESC`,
+            [req.session.user.id]
+          );
+
+          // Histórico completo
+          const purchasesResult = await pool.query(
+            `SELECT * FROM purchases
+            WHERE user_discord_id = $1
+            ORDER BY purchased_at DESC`,
+            [req.session.user.id]
+          );
+
+          res.render('client/dashboard', {
+            user: req.session.user,
+            isAdmin: isAdmin,
+            systems: systemsResult.rows,
+            purchases: purchasesResult.rows
+          });
+        } catch (err) {
+          console.error('❌ Erro ao carregar área cliente:', err);
+          res.render('client/dashboard', {
+            user: req.session.user,
+            isAdmin: isAdmin,
+            systems: [],
+            purchases: []
+          });
+        }
+      });
+
+      // ══════════════════════════════════════════
+      // CHECKOUT
+      // ══════════════════════════════════════════
+      app.post('/api/checkout', async (req, res) => {
+        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+
+        try {
+          const userResult = await pool.query('SELECT cart FROM users WHERE discord_id = $1', [req.session.user.id]);
+          const cart = userResult.rows[0]?.cart || [];
+
+          if (cart.length === 0) return res.status(400).json({ error: 'Carrinho vazio' });
+
+          for (const item of cart) {
+            await pool.query(
+              `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status)
+               VALUES ($1, $2, $3, $4, $5, 'completed')`,
+              [req.session.user.id, item.id, item.name, item.category, item.price]
+            );
+          }
+
+          await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', ['[]', req.session.user.id]);
+          req.session.coupon = null;
+
+          res.json({ success: true, message: 'Compra registada com sucesso!' });
+        } catch (err) {
+          console.error('❌ Erro no checkout:', err);
+          res.status(500).json({ error: 'Erro ao processar a compra' });
+        }
+      });
+
       app.get('/auth/discord', (req, res) => {
         res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
       });
