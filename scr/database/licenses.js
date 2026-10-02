@@ -1,5 +1,4 @@
 const supabase = require('../supabase/client');
-const logger = require('../utils/logger'); // Se não tiveres o logger no site, podes usar console.log
 
 async function createLicense(discordId, usuario, chave) {
     if (!supabase) throw new Error('Supabase não configurado');
