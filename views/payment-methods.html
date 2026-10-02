@@ -415,6 +415,10 @@
         return;
       }
 
+      // Abre o Discord imediatamente (tem de ser no gesto do clique)
+      const discordUrl = '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
+      window.open(discordUrl, '_blank');
+
       try {
         const response = await fetch('/api/checkout', { method: 'POST' });
         const data = await response.json();
@@ -426,9 +430,8 @@
 
         cart = [];
         updateCartUI();
-        alert('✅ Compra registada! Vais ser redirecionado para a tua Área Cliente.');
 
-        window.location.href = '/client-area';
+        alert('✅ Pedido registado!\n\nDirige-te ao nosso Discord para concluir o pagamento. Após confirmação, o sistema será adicionado à tua conta.');
       } catch (err) {
         console.error(err);
         alert('Erro ao comunicar com o servidor.');
