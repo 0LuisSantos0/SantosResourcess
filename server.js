@@ -12,18 +12,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 let licensesModule = null;
+let loadError = null;
 try {
   licensesModule = require('./src/database/licenses');
 } catch (err) {
+  loadError = err;
   console.error('⚠️ AVISO: Não foi possível carregar o módulo de licenças. O site vai continuar sem essa funcionalidade.', err.message);
 }
 
-const createLicense = licensesModule?.createLicense || (async () => { throw new Error('Licenças indisponíveis'); });
+const createLicense = licensesModule?.createLicense || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 const getLicenseByDiscordId = licensesModule?.getLicenseByDiscordId || (async () => null);
 const getAllLicenses = licensesModule?.getAllLicenses || (async () => []);
-const updateLicenseIP = licensesModule?.updateLicenseIP || (async () => { throw new Error('Licenças indisponíveis'); });
-const toggleLicenseStatus = licensesModule?.toggleLicenseStatus || (async () => { throw new Error('Licenças indisponíveis'); });
-const deleteLicense = licensesModule?.deleteLicense || (async () => { throw new Error('Licenças indisponíveis'); });
+const updateLicenseIP = licensesModule?.updateLicenseIP || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
+const toggleLicenseStatus = licensesModule?.toggleLicenseStatus || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
+const deleteLicense = licensesModule?.deleteLicense || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 
 // ══════════════════════════════════════════
 // VIEW ENGINE - Usa .html mas processa EJS
@@ -867,7 +869,7 @@ async function getApp() {
       });
 
       app.post('/admin/purchases/approve/:id', isAdmin, async (req, res) => {
-          try { q 
+          try { // 🔥 REMOVIDO O "q" QUE ESTAVA AQUI
               const result = await pool.query('SELECT product_name, user_discord_id FROM purchases WHERE id = $1', [req.params.id]);
               const purchase = result.rows[0];
 
