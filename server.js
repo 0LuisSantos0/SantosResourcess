@@ -712,6 +712,21 @@ async function getApp() {
         }
       });
 
+      // ══════════════════════════════════════════
+      // 404 — Página não encontrada (personalizada)
+      // ══════════════════════════════════════════
+      app.use((req, res) => {
+        console.warn(`⚠️  404 - ${req.method} ${req.originalUrl}`);
+        res.status(404).render('404', {
+          requestedPath: req.originalUrl,
+          siteSettings: res.locals.siteSettings || {
+            site_name: 'Santos Resources',
+            discord_link: 'https://discord.gg/8GyNS5vRgt',
+            logo_url: ''
+          }
+        });
+      });
+
       console.log('🚀 Santos Resources configurado e a aguardar pedidos.');
       return app;
     })();

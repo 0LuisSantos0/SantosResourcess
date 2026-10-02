@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Página não encontrada | Santos Resources</title>
+  
+  <link rel="icon" href="<%= siteSettings.logo_url ? siteSettings.logo_url : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>' %>" />
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f172a 60%, #0b1120 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Bolhas decorativas animadas */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.5;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .blob-1 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #6366f1, transparent 70%);
+      top: -10%; left: -10%;
+      animation: floatBlob 18s infinite ease-in-out;
+    }
+    .blob-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #22d3ee, transparent 70%);
+      bottom: -15%; right: -10%;
+      animation: floatBlob 22s infinite ease-in-out reverse;
+    }
+    @keyframes floatBlob {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50%      { transform: translate(40px, -30px) scale(1.1); }
+    }
+
+    /* Container principal */
+    .error-wrapper {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 40px 20px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* Logo no topo */
+    .error-logo {
+      max-height: 60px;
+      max-width: 60px;
+      object-fit: contain;
+      margin-bottom: 20px;
+      animation: pulseLogo 2.4s infinite ease-in-out;
+      filter: drop-shadow(0 0 15px rgba(99,102,241,0.5));
+    }
+    .error-logo-icon {
+      font-size: 3rem;
+      color: #6366f1;
+      margin-bottom: 20px;
+      display: inline-block;
+      animation: pulseLogo 2.4s infinite ease-in-out;
+      filter: drop-shadow(0 0 15px rgba(99,102,241,0.5));
+    }
+    @keyframes pulseLogo {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.06); }
+    }
+
+    /* O número 404 gigante */
+    .error-code {
+      font-size: clamp(6rem, 18vw, 11rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -6px;
+      background: linear-gradient(135deg, #6366f1 0%, #22d3ee 50%, #6366f1 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 4s linear infinite;
+      margin: 0;
+      text-shadow: 0 20px 60px rgba(34,211,238,0.3);
+    }
+    @keyframes shimmer {
+      0%   { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
+
+    /* Título */
+    .error-title {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 800;
+      color: #fff;
+      margin-top: 10px;
+      margin-bottom: 12px;
+    }
+
+    /* Subtítulo */
+    .error-subtitle {
+      font-size: 1.05rem;
+      color: #94a3b8;
+      max-width: 480px;
+      margin: 0 auto 30px;
+      line-height: 1.6;
+    }
+
+    /* Mostrar a rota pedida */
+    .error-path {
+      display: inline-block;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.85rem;
+      margin-bottom: 30px;
+      word-break: break-all;
+    }
+    .error-path i { margin-right: 6px; opacity: 0.7; }
+
+    /* Botões */
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1rem;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: none;
+      box-shadow: 0 10px 25px rgba(99,102,241,0.35);
+      margin: 0 6px 12px;
+    }
+    .btn-home:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 15px 35px rgba(99,102,241,0.55);
+      color: #fff;
+    }
+
+    .btn-products {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: transparent;
+      color: #22d3ee;
+      padding: 13px 30px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      border: 2px solid rgba(34,211,238,0.4);
+      margin: 0 6px 12px;
+    }
+    .btn-products:hover {
+      background: rgba(34,211,238,0.1);
+      border-color: #22d3ee;
+      transform: translateY(-3px);
+      color: #22d3ee;
+    }
+
+    /* Footer */
+    .error-footer {
+      margin-top: 40px;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .error-footer a {
+      color: #a5b4fc;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .error-footer a:hover { color: #22d3ee; }
+
+    /* Animação de entrada */
+    .error-wrapper > * {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeUp 0.7s forwards;
+    }
+    .error-wrapper > *:nth-child(1) { animation-delay: 0.05s; }
+    .error-wrapper > *:nth-child(2) { animation-delay: 0.15s; }
+    .error-wrapper > *:nth-child(3) { animation-delay: 0.25s; }
+    .error-wrapper > *:nth-child(4) { animation-delay: 0.35s; }
+    .error-wrapper > *:nth-child(5) { animation-delay: 0.45s; }
+    .error-wrapper > *:nth-child(6) { animation-delay: 0.55s; }
+    .error-wrapper > *:nth-child(7) { animation-delay: 0.65s; }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Detalhe decorativo */
+    .grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+      background-size: 50px 50px;
+      z-index: 1;
+      pointer-events: none;
+      mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+    }
+  </style>
+</head>
+<body>
+  <!-- Fundo decorativo -->
+  <div class="grid-lines"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <div class="error-wrapper">
+
+    <!-- Logo -->
+    <% if (siteSettings.logo_url) { %>
+      <img src="<%= siteSettings.logo_url %>" alt="Logo" class="error-logo">
+    <% } else { %>
+      <i class="fa-solid fa-cube error-logo-icon"></i>
+    <% } %>
+
+    <!-- Número 404 -->
+    <h1 class="error-code">404</h1>
+
+    <!-- Título -->
+    <h2 class="error-title">Página não encontrada</h2>
+
+    <!-- Subtítulo -->
+    <p class="error-subtitle">
+      A página que estás à procura não existe, foi movida ou já não está disponível.
+    </p>
+
+    <!-- Rota pedida -->
+    <div class="error-path">
+      <i class="fa-solid fa-link"></i>
+      <%= requestedPath %>
+    </div>
+
+    <!-- Botões -->
+    <div>
+      <a href="/" class="btn-home">
+        <i class="fa-solid fa-house"></i> Voltar ao Início
+      </a>
+      <a href="/products" class="btn-products">
+        <i class="fa-solid fa-cart-shopping"></i> Ver Produtos
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <p class="error-footer">
+      Se acreditas que isto é um erro, contacta-nos no
+      <a href="<%= siteSettings.discord_link || 'https://discord.gg/8GyNS5vRgt' %>" target="_blank">
+        <i class="fa-brands fa-discord"></i> Discord
+      </a>
+    </p>
+
+  </div>
+</body>
+</html>
