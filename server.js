@@ -944,24 +944,32 @@ async function getApp() {
       });
 
       app.post('/admin/purchases/approve/:id', isAdmin, async (req, res) => {
-          try { // 🔥 REMOVIDO O "q" QUE ESTAVA AQUI
-              const result = await pool.query('SELECT product_name, user_discord_id FROM purchases WHERE id = $1', [req.params.id]);
+          try {
+              const result = await pool.query(
+                'SELECT product_name, product_category, user_discord_id FROM purchases WHERE id = $1',
+                [req.params.id]
+              );
               const purchase = result.rows[0];
 
               await pool.query(`UPDATE purchases SET status = 'completed' WHERE id = $1`, [req.params.id]);
 
               if (purchase && purchase.user_discord_id) {
-                  const existingLicense = await getLicenseByDiscordId(purchase.user_discord_id);
-                  if (!existingLicense) {
-                      const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
-                      const randomPart = () => Math.random().toString(36).substring(2, 10);
-                      const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
-                      
-                      await createLicense(purchase.user_discord_id, usuario, chave);
-                      console.log(`✅ Licença gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`);
-                      await logActivity(req, `Aprovou compra e gerou licença automática para: ${purchase.user_discord_id}`);
+                  if (purchase.product_category === 'MTA') {
+                      const existingLicense = await getLicenseByDiscordId(purchase.user_discord_id);
+                      if (!existingLicense) {
+                          const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+                          const randomPart = () => Math.random().toString(36).substring(2, 10);
+                          const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+
+                          await createLicense(purchase.user_discord_id, usuario, chave);
+                          console.log(`✅ Licença MTA gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`);
+                          await logActivity(req, `Aprovou compra MTA e gerou licença automática para: ${purchase.user_discord_id}`);
+                      } else {
+                          await logActivity(req, `Aprovou a compra MTA: ${purchase.product_name}`);
+                      }
                   } else {
-                      await logActivity(req, `Aprovou a compra: ${purchase.product_name}`);
+                      console.log(`ℹ️ Compra aprovada sem gerar licença (categoria: ${purchase.product_category || 'desconhecida'})`);
+                      await logActivity(req, `Aprovou a compra (sem licença — categoria ${purchase.product_category || 'N/A'}): ${purchase.product_name}`);
                   }
               } else {
                   await logActivity(req, `Aprovou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
