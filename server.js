@@ -932,6 +932,38 @@ async function getApp() {
         res.render('admin/logs', { logs: result.rows, activeTab: 'logs', error: null, user: req.session.user });
       });
 
+      app.get('/admin/settings', isAdmin, async (req, res) => {
+        try {
+          const result = await pool.query('SELECT * FROM settings WHERE id = 1');
+          const settings = result.rows[0] || {
+            site_name: 'Santos Resources',
+            discord_link: 'https://discord.gg/8GyNS5vRgt',
+            logo_url: '',
+            maintenance_mode: 0
+          };
+
+          res.render('admin/settings', {
+            settings,
+            activeTab: 'settings',
+            error: null,
+            user: req.session.user
+          });
+        } catch (err) {
+          console.error('❌ Erro ao carregar configurações:', err);
+          res.render('admin/settings', {
+            settings: {
+              site_name: 'Santos Resources',
+              discord_link: 'https://discord.gg/8GyNS5vRgt',
+              logo_url: '',
+              maintenance_mode: 0
+            },
+            activeTab: 'settings',
+            error: 'Erro ao carregar configurações',
+            user: req.session.user
+          });
+        }
+      });
+
       app.post('/admin/settings/update', isAdmin, async (req, res) => {
         try {
           const { site_name, discord_link, logo_url, maintenance_mode } = req.body;
@@ -949,19 +981,7 @@ async function getApp() {
         }
       });
 
-      app.post('/admin/settings/update', isAdmin, async (req, res) => {
-        try {
-          const { site_name, discord_link, logo_url } = req.body;
-          await pool.query('UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3 WHERE id = 1', [site_name, discord_link, logo_url]);
-          await logActivity(req, `Atualizou as configurações do site.`);
-          res.redirect(303, '/admin/settings');
-        } catch (err) {
-          console.error('❌ Erro ao atualizar configurações:', err);
-          res.status(500).send(`<h3>Erro ao salvar configurações</h3><p>${err.message}</p><a href="/admin/settings">Voltar</a>`);
-        }
-      });
-
-            // ══════════════════════════════════════════
+      // ══════════════════════════════════════════
       // ADMIN — COMPRAS / PEDIDOS
       // ══════════════════════════════════════════
 
