@@ -114,13 +114,54 @@ async function getApp() {
           const result = await pool.query('SELECT * FROM settings WHERE id = 1');
           let settings = result.rows[0];
           if (!settings) {
-            settings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '' };
+            settings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '', maintenance_mode: 0 };
           }
           res.locals.siteSettings = settings;
           next();
         } catch (err) {
           console.error("⚠️ Erro ao carregar configurações:", err);
-          res.locals.siteSettings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '' };
+          res.locals.siteSettings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '', maintenance_mode: 0 };
+          next();
+        }
+      });
+
+      app.use(async (req, res, next) => {
+        try {
+          const maintenance = Number(res.locals.siteSettings?.maintenance_mode) === 1;
+          if (!maintenance) return next();
+
+          const alwaysAllowed = ['/auth/discord', '/auth/discord/callback', '/logout'];
+          if (alwaysAllowed.some(p => req.path === p || req.path.startsWith(p + '/'))) {
+            return next();
+          }
+
+          let isAdmin = false;
+          if (req.session?.user) {
+            if (config.ADMIN_IDS.includes(req.session.user.id)) {
+              isAdmin = true;
+            } else {
+              try {
+                const r = await pool.query(
+                  'SELECT is_admin FROM users WHERE discord_id = $1',
+                  [req.session.user.id]
+                );
+                if (r.rows[0]?.is_admin === 1) isAdmin = true;
+              } catch (e) { /* ignora */ }
+            }
+          }
+
+          if (isAdmin) return next();
+
+          if (req.path.startsWith('/api/')) {
+            return res.status(503).json({ error: 'Site em manutenção. Volte em breve.' });
+          }
+
+          return res.status(503).render('maintenance', {
+            siteSettings: res.locals.siteSettings,
+            user: req.session?.user || null
+          });
+        } catch (err) {
+          console.error('⚠️ Erro no middleware de manutenção (ignorado):', err.message);
           next();
         }
       });
@@ -891,13 +932,21 @@ async function getApp() {
         res.render('admin/logs', { logs: result.rows, activeTab: 'logs', error: null, user: req.session.user });
       });
 
-      app.get('/admin/settings', isAdmin, async (req, res) => {
-        res.render('admin/settings', { 
-          settings: res.locals.siteSettings, 
-          activeTab: 'settings', 
-          error: null, 
-          user: req.session.user 
-        });
+      app.post('/admin/settings/update', isAdmin, async (req, res) => {
+        try {
+          const { site_name, discord_link, logo_url, maintenance_mode } = req.body;
+          const mm = (maintenance_mode === 'on' || maintenance_mode === '1') ? 1 : 0;
+
+          await pool.query(
+            'UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3, maintenance_mode = $4 WHERE id = 1',
+            [site_name, discord_link, logo_url, mm]
+          );
+          await logActivity(req, `Atualizou as configurações do site (manutenção: ${mm ? 'ON' : 'OFF'}).`);
+          res.redirect(303, '/admin/settings');
+        } catch (err) {
+          console.error('❌ Erro ao atualizar configurações:', err);
+          res.status(500).send(`<h3>Erro ao salvar configurações</h3><p>${err.message}</p><a href="/admin/settings">Voltar</a>`);
+        }
       });
 
       app.post('/admin/settings/update', isAdmin, async (req, res) => {
@@ -1013,11 +1062,7 @@ async function getApp() {
         console.warn(`⚠️  404 - ${req.method} ${req.originalUrl}`);
         res.status(404).render('404', {
           requestedPath: req.originalUrl,
-          siteSettings: res.locals.siteSettings || {
-            site_name: 'Santos Resources',
-            discord_link: 'https://discord.gg/8GyNS5vRgt',
-            logo_url: ''
-          }
+          siteSettings: res.locals.siteSettings || { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '', maintenance_mode: 0 }
         });
       });
 

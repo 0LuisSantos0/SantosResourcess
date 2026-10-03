@@ -67,6 +67,25 @@
                 </div>
               <% } %>
             </div>
+
+            <div class="mb-4 p-3 rounded-3" style="background: #fef3c7; border: 1px solid #fcd34d;">
+              <label class="form-label fw-bold mb-2" style="color: #78350f;">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i> Modo Manutenção
+              </label>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="maintenance_mode" name="maintenance_mode"
+                       <%= settings.maintenance_mode === 1 ? 'checked' : '' %>>
+                <label class="form-check-label fw-semibold" for="maintenance_mode" style="color: #78350f;">
+                  Ativar modo manutenção
+                </label>
+              </div>
+              <div class="form-text small" style="color: #92400e;">
+                Quando ativo, os visitantes veem uma página a informar que o site está em manutenção.
+                <strong>Admins continuam a aceder normalmente.</strong>
+              </div>
+            </div>
+            
             
             <button type="submit" class="btn btn-primary fw-bold px-5 rounded-pill shadow-sm">Guardar Alterações</button>
           </form>

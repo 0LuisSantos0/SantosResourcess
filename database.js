@@ -121,6 +121,11 @@ const initDB = async () => {
       ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
     `);
 
+    // 🔥 MODO MANUTENÇÃO
+    await pool.query(`
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_mode INTEGER DEFAULT 0;
+    `);
+
     await pool.query(`
       INSERT INTO settings (id, site_name, discord_link)
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt'
