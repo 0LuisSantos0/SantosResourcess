@@ -142,21 +142,13 @@
     }
 
     .product-badge {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: #0b1120;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      z-index: 10;
-      border: 2px solid #94a3b8;
-      color: #94a3b8;
-      font-family: 'Inter', sans-serif;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      position: absolute; top: 12px; left: 12px; background: #0b1120; padding: 6px 12px; border-radius: 4px;
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; z-index: 10;
+      border: 2px solid #94a3b8; color: #94a3b8; font-family: 'Inter', sans-serif; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      max-width: calc(100% - 80px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* ÁREA DA IMAGEM - FUNDO BRANCO COM BORDA ÍNDIGO (STROKE) */
@@ -238,22 +230,11 @@
     }
 
     .product-card-ref .btn-info {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: #f1f5f9;
-      color: #000;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid #e2e8f0;
-      transition: 0.2s;
-      z-index: 10;
-      opacity: 0;
-      pointer-events: none;
+      position: absolute; top: 55px; right: 15px; background: #f1f5f9; color: #000;
+      border-radius: 50%; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #e2e8f0; transition: 0.2s; z-index: 20;
+      opacity: 0; pointer-events: none;
     }
     .product-card-ref:hover .btn-info {
       opacity: 1;
@@ -263,9 +244,20 @@
     .btn-glow { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; }
     .btn-glow:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 25px rgba(34, 211, 238, 0.5); }
 
-    .search-input { border-radius: 50px; padding: 12px 20px; border: 1px solid #e2e8f0; transition: 0.2s; }
+    .search-input {
+      border-radius: 50px; padding: 12px 20px;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+      background: #fff;
+      transition: 0.2s;
+    }
     .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-    .filter-select { border-radius: 50px; padding: 10px 20px; border: 1px solid #e2e8f0; background: white; }
+    .filter-select {
+      border-radius: 50px; padding: 10px 20px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #1e293b;
+    }
 
     .cart-floating-btn { position: fixed; bottom: 30px; right: 30px; z-index: 999; background: #0f172a; color: white; border-radius: 50px; padding: 16px 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: none; transition: all 0.3s ease; }
     .cart-floating-btn:hover { transform: scale(1.05); background: #1e293b; box-shadow: 0 8px 30px rgba(15, 23, 42, 0.6); }
@@ -453,9 +445,9 @@
 
     /* ═══════ BOTÃO WISHLIST (coração) ═══════ */
     .btn-wish {
-      position: absolute; top: 15px; left: 15px; background: #f1f5f9; color: #ef4444;
+      position: absolute; top: 15px; right: 15px; background: #f1f5f9; color: #ef4444;
       border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center;
-      justify-content: center; border: 1px solid #e2e8f0; transition: 0.2s; z-index: 10;
+      justify-content: center; border: 1px solid #e2e8f0; transition: 0.2s; z-index: 20;
       cursor: pointer;
     }
     .btn-wish:hover { transform: scale(1.12); background: #fee2e2; }
@@ -528,8 +520,8 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mx-auto">
-          <li class="nav-item"><a class="nav-link active" href="/">Início</a></li>
-          <li class="nav-item"><a class="nav-link" href="/products">Produtos</a></li>
+          <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/products">Produtos</a></li>
           <li class="nav-item"><a class="nav-link" href="/about">Sobre Nós</a></li>
           <li class="nav-item"><a class="nav-link" href="/payment-methods">Pagamentos</a></li>
           <li class="nav-item"><a class="nav-link" href="https://discord.gg/8GyNS5vRgt" target="_blank"><i class="fa-brands fa-discord me-1"></i> Discord</a></li>
@@ -545,7 +537,7 @@
               <div class="notif-dropdown-menu" id="notifDropdown">
                 <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
                   <strong class="text-white small"><i class="fa-solid fa-bell text-warning me-2"></i>Novidades</strong>
-                  <small class="text-muted" id="notifCount">0 novos</small>
+                  <small id="notifCount" style="color:#94a3b8;">0 novos</small>
                 </div>
                 <div id="notifList" class="p-2">
                   <div class="text-center text-muted small py-4">
@@ -1104,22 +1096,20 @@
 
     const productItems = document.querySelectorAll('.product-item');
     function filterAndSort() {
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const priceSort = document.getElementById('sortPrice').value;
+      const searchTerm   = document.getElementById('searchInput').value.toLowerCase();
+      const priceSort    = document.getElementById('sortPrice').value;
       const categorySort = document.getElementById('sortCategory').value;
+
+      // 1) FILTRAR (nome + categoria)
       let visible = Array.from(productItems).filter(item => {
         const name = item.getAttribute('data-name');
-        return name.includes(searchTerm);
+        const cat  = item.getAttribute('data-category');
+        const matchName = name.includes(searchTerm);
+        const matchCat  = (categorySort === 'default') || (cat === categorySort);
+        return matchName && matchCat;
       });
-      if (categorySort !== 'default') {
-        visible.sort((a,b) => {
-          const catA = a.getAttribute('data-category');
-          const catB = b.getAttribute('data-category');
-          if (categorySort === 'MTA') return (catA === 'MTA' ? 0 : 1) - (catB === 'MTA' ? 0 : 1);
-          if (categorySort === 'Discord Bot') return (catA === 'Discord Bot' ? 0 : 1) - (catB === 'Discord Bot' ? 0 : 1);
-          return 0;
-        });
-      }
+
+      // 2) ORDENAR por preço
       if (priceSort !== 'default') {
         visible.sort((a,b) => {
           const priceA = parseFloat(a.getAttribute('data-price'));
@@ -1127,8 +1117,14 @@
           return priceSort === 'low-high' ? priceA - priceB : priceB - priceA;
         });
       }
+
+      // 3) Renderizar
       const grid = document.getElementById('productsGrid');
       grid.innerHTML = '';
+      if (visible.length === 0) {
+        grid.innerHTML = '<div class="col-12 text-center text-muted py-5"><h5><i class="fa-regular fa-face-frown me-2"></i>Nenhum produto encontrado.</h5></div>';
+        return;
+      }
       visible.forEach(item => grid.appendChild(item));
     }
     document.getElementById('searchInput').addEventListener('input', filterAndSort);
@@ -1227,7 +1223,7 @@
         const countEl = document.getElementById('notifCount');
         if (!list) return;
         if (data.count === 0) {
-          list.innerHTML = '<div class="text-center text-muted small py-4"><i class="fa-regular fa-circle-check me-2"></i>Sem novidades de momento</div>';
+          list.innerHTML = '<div class="text-center small py-4" style="color:#cbd5e1;"><i class="fa-regular fa-circle-check me-2"></i>Sem novidades de momento</div>';
           if (countEl) countEl.textContent = '0 novos';
           if (badge) badge.style.display = 'none';
         } else {

@@ -147,24 +147,90 @@
     </div>
   </div>
 
+  <!-- MODAL GENÉRICO (substitui confirm/alert do browser) -->
+  <div class="modal fade" id="customAlertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-0" style="border-radius:18px; overflow:hidden;">
+        <div class="modal-body text-center p-4">
+          <div id="customAlertIcon" style="font-size:2.5rem; margin-bottom:10px;"></div>
+          <h5 class="fw-bold mb-2" id="customAlertTitle">Aviso</h5>
+          <p class="text-muted mb-4" id="customAlertMessage">Mensagem</p>
+          <div class="d-flex gap-2 justify-content-center">
+            <button type="button" class="btn btn-secondary rounded-pill px-4 d-none" id="customAlertCancel">Cancelar</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" id="customAlertConfirm">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // ── Funções do modal genérico ──
+    let _customAlertCallback = null;
+
+    function showCustomAlert(message, type = 'info', title = 'Aviso', onConfirm = null) {
+      const modalEl = document.getElementById('customAlertModal');
+      const iconEl  = document.getElementById('customAlertIcon');
+      const titleEl = document.getElementById('customAlertTitle');
+      const msgEl   = document.getElementById('customAlertMessage');
+      const btnConf = document.getElementById('customAlertConfirm');
+      const btnCanc = document.getElementById('customAlertCancel');
+
+      const icons = {
+        info:    '<i class="fa-solid fa-circle-info text-primary"></i>',
+        success: '<i class="fa-solid fa-circle-check text-success"></i>',
+        warning: '<i class="fa-solid fa-triangle-exclamation text-warning"></i>',
+        danger:  '<i class="fa-solid fa-circle-exclamation text-danger"></i>',
+        question:'<i class="fa-solid fa-circle-question text-primary"></i>'
+      };
+      iconEl.innerHTML = icons[type] || icons.info;
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+
+      if (type === 'question') {
+        btnCanc.classList.remove('d-none');
+        btnConf.textContent = 'Confirmar';
+        btnConf.className = 'btn btn-danger rounded-pill px-4 fw-bold';
+      } else {
+        btnCanc.classList.add('d-none');
+        btnConf.textContent = 'OK';
+        btnConf.className = 'btn btn-primary rounded-pill px-4 fw-bold';
+      }
+
+      _customAlertCallback = onConfirm;
+      new bootstrap.Modal(modalEl).show();
+    }
+
+    document.getElementById('customAlertConfirm').addEventListener('click', function () {
+      bootstrap.Modal.getInstance(document.getElementById('customAlertModal')).hide();
+      if (_customAlertCallback) { _customAlertCallback(); _customAlertCallback = null; }
+    });
+
+    function customConfirm(message, onConfirm, title = 'Confirmar') {
+      showCustomAlert(message, 'question', title, onConfirm);
+    }
+
     async function removeWish(id, btn) {
-      if (!confirm('Remover este produto dos favoritos?')) return;
-      try {
-        const res = await fetch('/api/wishlist/toggle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, name: '', price: 0, category: '', thumbnail: '' })
-        });
-        const data = await res.json();
-        if (data.success) {
-          const card = btn.closest('.col-md-6, .col-xl-4');
-          card.style.transition = 'all 0.3s';
-          card.style.opacity = '0';
-          card.style.transform = 'scale(0.9)';
-          setTimeout(() => card.remove(), 300);
+      customConfirm('Remover este produto dos favoritos?', async function () {
+        try {
+          const res = await fetch('/api/wishlist/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name: '', price: 0, category: '', thumbnail: '' })
+          });
+          const data = await res.json();
+          if (data.success) {
+            const card = btn.closest('.col-md-6, .col-xl-4');
+            card.style.transition = 'all 0.3s';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            setTimeout(() => card.remove(), 300);
+          }
+        } catch (err) {
+          showCustomAlert('Erro ao remover.', 'danger', 'Erro');
         }
-      } catch (err) { alert('Erro ao remover.'); }
+      });
     }
   </script>
 </body>
