@@ -172,6 +172,65 @@ async function getApp() {
         res.json({ success: true });
       });
 
+      app.get('/api/wishlist', async (req, res) => {
+        if (!req.session.user) return res.json([]);
+        try {
+          const result = await pool.query('SELECT wishlist FROM users WHERE discord_id = $1', [req.session.user.id]);
+          res.json(result.rows[0]?.wishlist || []);
+        } catch (err) { res.json([]); }
+      });
+
+      app.post('/api/wishlist/toggle', async (req, res) => {
+        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+        try {
+          const { id, name, price, category, thumbnail } = req.body;
+          const result = await pool.query('SELECT wishlist FROM users WHERE discord_id = $1', [req.session.user.id]);
+          let wishlist = result.rows[0]?.wishlist || [];
+          const idx = wishlist.findIndex(w => w.id === id);
+          let added = false;
+          if (idx >= 0) {
+            wishlist.splice(idx, 1);
+          } else {
+            wishlist.push({ id, name, price, category, thumbnail: thumbnail || '' });
+            added = true;
+          }
+          await pool.query('UPDATE users SET wishlist = $1 WHERE discord_id = $2', [JSON.stringify(wishlist), req.session.user.id]);
+          res.json({ success: true, added, wishlist });
+        } catch (err) {
+          console.error('Erro wishlist:', err);
+          res.status(500).json({ error: 'Erro' });
+        }
+      });
+
+      app.get('/api/notifications', async (req, res) => {
+        if (!req.session.user) return res.json({ count: 0, products: [] });
+        try {
+          const userResult = await pool.query('SELECT last_seen_products_at FROM users WHERE discord_id = $1', [req.session.user.id]);
+          const lastSeen = userResult.rows[0]?.last_seen_products_at;
+
+          let query, params = [];
+          if (lastSeen) {
+            query = 'SELECT id, name, price, category, thumbnail FROM products WHERE is_active = 1 AND created_at > $1 ORDER BY created_at DESC LIMIT 10';
+            params = [lastSeen];
+          } else {
+            query = 'SELECT id, name, price, category, thumbnail FROM products WHERE is_active = 1 ORDER BY created_at DESC LIMIT 10';
+          }
+          const result = await pool.query(query, params);
+          res.json({ count: result.rows.length, products: result.rows });
+        } catch (err) {
+          console.error('Erro notificações:', err);
+          res.json({ count: 0, products: [] });
+        }
+      });
+
+      app.post('/api/notifications/seen', async (req, res) => {
+        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+        try {
+          await pool.query('UPDATE users SET last_seen_products_at = CURRENT_TIMESTAMP WHERE discord_id = $1', [req.session.user.id]);
+          res.json({ success: true });
+        } catch (err) { res.status(500).json({ error: 'Erro' }); }
+      });
+
       app.get('/', async (req, res) => {
         try {
           const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
@@ -309,6 +368,19 @@ async function getApp() {
         } catch (err) {
           console.error('❌ Erro ao carregar histórico:', err);
           res.render('client/purchases', { user: req.session.user, isAdmin: false, systems: [], purchases: [] });
+        }
+      });
+
+      app.get('/client-area/wishlist', async (req, res) => {
+        if (!req.session.user) return res.redirect('/');
+        try {
+          const data = await getClientData(req);
+          const w = await pool.query('SELECT wishlist FROM users WHERE discord_id = $1', [req.session.user.id]);
+          data.wishlist = w.rows[0]?.wishlist || [];
+          res.render('client/wishlist', data);
+        } catch (err) {
+          console.error('❌ Erro ao carregar favoritos:', err);
+          res.render('client/wishlist', { user: req.session.user, isAdmin: false, systems: [], purchases: [], wishlist: [] });
         }
       });
 

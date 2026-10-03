@@ -363,11 +363,46 @@
         animation: spin 0.8s linear infinite;
         box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
       }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .dropdown-notif { position: relative; }
+    .notif-badge {
+      position: absolute; top: -6px; right: -10px; background: #ef4444; color: #fff;
+      border-radius: 50%; min-width: 18px; height: 18px; padding: 0 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; box-shadow: 0 2px 6px rgba(239,68,68,0.5);
+      animation: pulseNotif 2s infinite;
+    }
+    @keyframes pulseNotif {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+      50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    }
+    .notif-dropdown-menu {
+      display: none;
+      position: absolute; top: 100%; right: 0;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      min-width: 340px;
+      max-height: 420px;
+      overflow-y: auto;
+      margin-top: 0.75rem;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+      z-index: 1100;
+    }
+    .notif-dropdown-menu.show { display: block; }
+    .notif-item {
+      display: flex; gap: 12px; padding: 10px; border-radius: 10px;
+      transition: 0.2s; text-decoration: none; color: inherit; align-items: center;
+    }
+    .notif-item:hover { background: rgba(255,255,255,0.06); }
+    .notif-thumb {
+      width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0;
+      background: #0f172a; display: flex; align-items: center; justify-content: center;
+      color: #475569;
+    }
       .cart-offcanvas {
         background-color: #1e293b !important;
         color: #f1f5f9;
@@ -511,6 +546,24 @@
           </ul>
           <div class="d-flex align-items-center gap-3">
             <% if (user) { %>
+            <div class="dropdown-notif">
+              <span class="text-light d-flex align-items-center position-relative" 
+                    style="cursor: pointer;" onclick="toggleNotifications(event)">
+                <i class="fa-solid fa-bell fa-lg"></i>
+                <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+              </span>
+              <div class="notif-dropdown-menu" id="notifDropdown">
+                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                  <strong class="text-white small"><i class="fa-solid fa-bell text-warning me-2"></i>Novidades</strong>
+                  <small class="text-muted" id="notifCount">0 novos</small>
+                </div>
+                <div id="notifList" class="p-2">
+                  <div class="text-center text-muted small py-4">
+                    <i class="fa-solid fa-spinner fa-spin me-2"></i> A carregar...
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="dropdown">
               <span
                 class="text-light small dropdown-toggle d-flex align-items-center gap-2"
@@ -1074,6 +1127,64 @@
           const splash = document.getElementById("splashScreen");
           if (splash) splash.classList.add("hidden");
         }, 1000);
+      });
+
+      // ══════════════════════════════════════════
+      // NOTIFICAÇÕES
+      // ══════════════════════════════════════════
+      function toggleNotifications(e) {
+        e.stopPropagation();
+        const dd = document.getElementById('notifDropdown');
+        if (!dd) return;
+        if (dd.classList.contains('show')) dd.classList.remove('show');
+        else { dd.classList.add('show'); loadNotifications(); }
+      }
+      document.addEventListener('click', function (e) {
+        const dd = document.getElementById('notifDropdown');
+        if (!dd) return;
+        if (!e.target.closest('.dropdown-notif')) dd.classList.remove('show');
+      });
+      async function loadNotifications() {
+        try {
+          const res = await fetch('/api/notifications');
+          const data = await res.json();
+          const list = document.getElementById('notifList');
+          const badge = document.getElementById('notifBadge');
+          const countEl = document.getElementById('notifCount');
+          if (!list) return;
+          if (data.count === 0) {
+            list.innerHTML = '<div class="text-center text-muted small py-4"><i class="fa-regular fa-circle-check me-2"></i>Sem novidades de momento</div>';
+            if (countEl) countEl.textContent = '0 novos';
+            if (badge) badge.style.display = 'none';
+          } else {
+            if (countEl) countEl.textContent = data.count + ' novo' + (data.count > 1 ? 's' : '');
+            if (badge) { badge.textContent = data.count; badge.style.display = 'flex'; }
+            list.innerHTML = data.products.map(p => `
+              <a href="/products" class="notif-item">
+                ${p.thumbnail && p.thumbnail.trim() !== ''
+                  ? `<img src="${p.thumbnail}" class="notif-thumb" alt="">`
+                  : `<div class="notif-thumb"><i class="fa-solid fa-box"></i></div>`}
+                <div class="flex-grow-1">
+                  <div class="text-white small fw-semibold">${p.name}</div>
+                  <div class="text-muted" style="font-size:0.72rem;">${p.category} • €${parseFloat(p.price).toFixed(2)}</div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-muted align-self-center small"></i>
+              </a>
+            `).join('');
+          }
+          await fetch('/api/notifications/seen', { method: 'POST' });
+        } catch (err) {}
+      }
+      async function checkNotifications() {
+        try {
+          const res = await fetch('/api/notifications');
+          const data = await res.json();
+          const badge = document.getElementById('notifBadge');
+          if (badge && data.count > 0) { badge.textContent = data.count; badge.style.display = 'flex'; }
+        } catch (err) {}
+      }
+      document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('notifBadge')) checkNotifications();
       });
     </script>
   </body>
