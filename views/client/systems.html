@@ -192,8 +192,9 @@
                       Adquirido em <%= new Date(s.purchased_at + 'Z').toLocaleDateString('pt-PT') %>
                     </p>
                     <div class="mt-auto">
-                      <button class="btn btn-primary w-100 rounded-pill fw-bold" onclick="alert('Funcionalidade de download em breve!')">
-                        <i class="fa-solid fa-download me-2"></i> Aceder
+                      <button class="btn btn-primary w-100 rounded-pill fw-bold"
+                              onclick="openDownloadModal('<%= s.product_name.replace(/'/g, "\\'") %>')">
+                        <i class="fa-solid fa-download me-2"></i> Download
                       </button>
                     </div>
                   </div>
@@ -205,5 +206,49 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="downloadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0" style="border-radius:20px; overflow:hidden;">
+        <div class="modal-header border-0" style="background:linear-gradient(135deg,#0f172a,#1e1b4b); color:white; padding:20px 24px;">
+          <h5 class="modal-title fw-bold">
+            <i class="fa-solid fa-download me-2"></i> Download do Sistema
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <div class="mb-3" style="font-size:3.5rem;">
+            <i class="fa-brands fa-discord" style="color:#5865F2;"></i>
+          </div>
+          <h5 class="fw-bold mb-2" id="downloadProductName">Sistema</h5>
+          <p class="text-muted mb-4" style="font-size:0.95rem; line-height:1.6;">
+            Para obter o download do teu sistema, abre um <strong>ticket no nosso Discord</strong>.
+            A equipa vai fornecer o ficheiro e as instruções de instalação.
+          </p>
+          <a href="<%= siteSettings.discord_link %>" target="_blank"
+            class="btn btn-primary rounded-pill px-4 fw-bold w-100 py-2">
+            <i class="fa-brands fa-discord me-2"></i> Pedir Download no Discord
+          </a>
+          <button type="button" class="btn btn-link text-muted mt-3 small text-decoration-none"
+                  data-bs-dismiss="modal">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    let downloadModalInstance = null;
+
+    function openDownloadModal(productName) {
+      const nameEl = document.getElementById('downloadProductName');
+      if (nameEl) nameEl.textContent = productName;
+
+      const modalEl = document.getElementById('downloadModal');
+      if (!downloadModalInstance) {
+        downloadModalInstance = new bootstrap.Modal(modalEl);
+      }
+      downloadModalInstance.show();
+    }
+  </script>
 </body>
 </html>
