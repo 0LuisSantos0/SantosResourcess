@@ -547,7 +547,7 @@ async function getApp() {
                   [user.discord_id]
               );
 
-              const license = await getLicenseByDiscordId(user.discord_id);
+              const license = await getLicenseByDiscordIdRaw(user.discord_id);
               const mta_config = license ? { ip: license.ip_permitido } : null;
 
               // 🔥 NOVO: lista de todos os produtos (ativos e inativos) para o select
