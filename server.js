@@ -117,6 +117,51 @@ async function sendPurchaseWebhook(user, cartItems) {
   }
 }
 
+async function sendPurchaseApprovedWebhook(user, purchase, paymentMethod) {
+  try {
+    const result = await pool.query('SELECT discord_purchase_webhook_url FROM settings WHERE id = 1');
+    const webhookUrl = result.rows[0]?.discord_purchase_webhook_url;
+
+    if (!webhookUrl || webhookUrl.trim() === '') {
+      console.log('ℹ️ Webhook de compras aprovadas não configurado. Log ignorado.');
+      return;
+    }
+
+    const metodo = paymentMethod || 'Discord Ticket';
+
+    const payload = {
+      username: 'Santos Resources',
+      embeds: [
+        {
+          title: '- Nova compra Realizada!',
+          description: `Obrigado **${user.username}** pela preferência! Esperemos que desfrute do seu produto e volte sempre!`,
+          color: 0x6366f1,
+          thumbnail: user.avatar
+            ? { url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` }
+            : undefined,
+          fields: [
+            { name: 'Status', value: '✅ **Pago**', inline: true },
+            { name: 'Método', value: metodo, inline: true },
+            { name: '\u200B', value: '\u200B', inline: true },
+            {
+              name: 'Produtos',
+              value: `\`\`\`\n${purchase.product_name}\n\`\`\``,
+              inline: false
+            }
+          ],
+          footer: { text: 'Santos Resources • Sistema de Compras' },
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+
+    await axios.post(webhookUrl, payload);
+    console.log(`✅ Log de compra aprovada enviado para o Discord (${user.username}).`);
+  } catch (err) {
+    console.error('⚠️ Erro ao enviar webhook de compra aprovada:', err.response?.data || err.message);
+  }
+}
+
 async function isAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/');
   if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
@@ -1094,7 +1139,8 @@ async function getApp() {
             discord_link: 'https://discord.gg/8GyNS5vRgt',
             logo_url: '',
             maintenance_mode: 0,
-            discord_webhook_url: ''
+            discord_webhook_url: '',
+            discord_purchase_webhook_url: ''
           };
 
           res.render('admin/settings', {
@@ -1111,7 +1157,8 @@ async function getApp() {
               discord_link: 'https://discord.gg/8GyNS5vRgt',
               logo_url: '',
               maintenance_mode: 0,
-              discord_webhook_url: ''
+              discord_webhook_url: '',
+              discord_purchase_webhook_url: ''
             },
             activeTab: 'settings',
             error: 'Erro ao carregar configurações',
@@ -1122,12 +1169,26 @@ async function getApp() {
 
       app.post('/admin/settings/update', isAdmin, async (req, res) => {
         try {
-          const { site_name, discord_link, logo_url, maintenance_mode, discord_webhook_url } = req.body;
+          const {
+            site_name,
+            discord_link,
+            logo_url,
+            maintenance_mode,
+            discord_webhook_url,
+            discord_purchase_webhook_url
+          } = req.body;
           const mm = (maintenance_mode === 'on' || maintenance_mode === '1') ? 1 : 0;
 
           await pool.query(
-            'UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3, maintenance_mode = $4, discord_webhook_url = $5 WHERE id = 1',
-            [site_name, discord_link, logo_url, mm, discord_webhook_url || null]
+            `UPDATE settings
+            SET site_name = $1,
+                discord_link = $2,
+                logo_url = $3,
+                maintenance_mode = $4,
+                discord_webhook_url = $5,
+                discord_purchase_webhook_url = $6
+            WHERE id = 1`,
+            [site_name, discord_link, logo_url, mm, discord_webhook_url || null, discord_purchase_webhook_url || null]
           );
           await logActivity(req, `Atualizou as configurações do site (manutenção: ${mm ? 'ON' : 'OFF'}).`);
           res.redirect(303, '/admin/settings');
@@ -1169,42 +1230,56 @@ async function getApp() {
       });
 
       app.post('/admin/purchases/approve/:id', isAdmin, async (req, res) => {
-          try {
-              const result = await pool.query(
-                'SELECT product_name, product_category, user_discord_id FROM purchases WHERE id = $1',
-                [req.params.id]
-              );
-              const purchase = result.rows[0];
+        try {
+          const result = await pool.query(
+            'SELECT product_name, product_category, user_discord_id FROM purchases WHERE id = $1',
+            [req.params.id]
+          );
+          const purchase = result.rows[0];
 
-              await pool.query(`UPDATE purchases SET status = 'completed' WHERE id = $1`, [req.params.id]);
+          await pool.query(`UPDATE purchases SET status = 'completed' WHERE id = $1`, [req.params.id]);
 
-              if (purchase && purchase.user_discord_id) {
-                  if (purchase.product_category === 'MTA') {
-                      const existingLicense = await getLicenseByDiscordId(purchase.user_discord_id);
-                      if (!existingLicense) {
-                          const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
-                          const randomPart = () => Math.random().toString(36).substring(2, 10);
-                          const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+          if (purchase && purchase.user_discord_id) {
+            const userResult = await pool.query(
+              'SELECT discord_id, username, avatar FROM users WHERE discord_id = $1',
+              [purchase.user_discord_id]
+            );
+            const user = userResult.rows[0];
 
-                          await createLicense(purchase.user_discord_id, usuario, chave);
-                          console.log(`✅ Licença MTA gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`);
-                          await logActivity(req, `Aprovou compra MTA e gerou licença automática para: ${purchase.user_discord_id}`);
-                      } else {
-                          await logActivity(req, `Aprovou a compra MTA: ${purchase.product_name}`);
-                      }
-                  } else {
-                      console.log(`ℹ️ Compra aprovada sem gerar licença (categoria: ${purchase.product_category || 'desconhecida'})`);
-                      await logActivity(req, `Aprovou a compra (sem licença — categoria ${purchase.product_category || 'N/A'}): ${purchase.product_name}`);
-                  }
+            if (purchase.product_category === 'MTA') {
+              const existingLicense = await getLicenseByDiscordId(purchase.user_discord_id);
+              if (!existingLicense) {
+                const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+                const randomPart = () => Math.random().toString(36).substring(2, 10);
+                const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+
+                await createLicense(purchase.user_discord_id, usuario, chave);
+                console.log(`✅ Licença MTA gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`);
+                await logActivity(req, `Aprovou compra MTA e gerou licença automática para: ${purchase.user_discord_id}`);
               } else {
-                  await logActivity(req, `Aprovou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
+                await logActivity(req, `Aprovou a compra MTA: ${purchase.product_name}`);
               }
+            } else {
+              console.log(`ℹ️ Compra aprovada sem gerar licença (categoria: ${purchase.product_category || 'desconhecida'})`);
+              await logActivity(req, `Aprovou a compra (sem licença — categoria ${purchase.product_category || 'N/A'}): ${purchase.product_name}`);
+            }
 
-              res.redirect(303, '/admin/purchases');
-          } catch (err) {
-              console.error('Erro ao aprovar:', err);
-              res.redirect(303, '/admin/purchases');
+            if (user) {
+              await sendPurchaseApprovedWebhook(
+                { id: user.discord_id, username: user.username, avatar: user.avatar },
+                purchase,
+                'Discord Ticket'
+              );
+            }
+          } else {
+            await logActivity(req, `Aprovou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
           }
+
+          res.redirect(303, '/admin/purchases');
+        } catch (err) {
+          console.error('Erro ao aprovar:', err);
+          res.redirect(303, '/admin/purchases');
+        }
       });
 
       app.post('/admin/purchases/reject/:id', isAdmin, async (req, res) => {

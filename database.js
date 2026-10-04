@@ -130,6 +130,10 @@ const initDB = async () => {
     `);
 
     await pool.query(`
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS discord_purchase_webhook_url TEXT;
+    `);
+
+    await pool.query(`
       INSERT INTO settings (id, site_name, discord_link)
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt'
       WHERE NOT EXISTS (SELECT 1 FROM settings WHERE id = 1);
