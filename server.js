@@ -56,9 +56,20 @@ async function logActivity(req, action) {
   }
 }
 
-// ══════════════════════════════════════════
-// 🔥 WEBHOOK: Envia log de pedido para o Discord
-// ══════════════════════════════════════════
+async function getWebhookAvatarUrl(webhookUrl) {
+  try {
+    const response = await axios.get(webhookUrl);
+    const { id, avatar } = response.data;
+    if (id && avatar) {
+      return `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=128`;
+    }
+    return null;
+  } catch (err) {
+    console.error('⚠️ Não foi possível obter o avatar do webhook:', err.message);
+    return null;
+  }
+}
+
 async function sendPurchaseWebhook(user, cartItems) {
   try {
     const result = await pool.query('SELECT discord_webhook_url FROM settings WHERE id = 1');
@@ -69,6 +80,9 @@ async function sendPurchaseWebhook(user, cartItems) {
       return;
     }
 
+    // 🔥 Vai buscar o avatar definido no Discord para este webhook
+    const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
+
     const itemsList = cartItems
       .map(item => `• **${item.name}** x${item.quantity} — €${(item.price * item.quantity).toFixed(2)}`)
       .join('\n');
@@ -76,7 +90,8 @@ async function sendPurchaseWebhook(user, cartItems) {
     const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     const payload = {
-      username: 'Santos Resources',
+      username: 'Compras Pendentes', // 👈 NOME definido no SCRIPT
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}), // 👈 AVATAR vem do Discord
       embeds: [
         {
           title: '🛒 Novo Pedido de Compra!',
@@ -104,7 +119,7 @@ async function sendPurchaseWebhook(user, cartItems) {
               inline: true
             }
           ],
-          footer: { text: 'Santos Resources • Sistema de Pedidos' },
+          footer: { text: 'Santos Resources • ' },
           timestamp: new Date().toISOString()
         }
       ]
@@ -127,10 +142,14 @@ async function sendPurchaseApprovedWebhook(user, purchase, paymentMethod) {
       return;
     }
 
+    // 🔥 Vai buscar o avatar definido no Discord para este webhook
+    const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
+
     const metodo = paymentMethod || 'Discord Ticket';
 
     const payload = {
-      username: 'Santos Resources',
+      username: 'Compras',
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       embeds: [
         {
           title: '- Nova compra Realizada!',
@@ -140,16 +159,12 @@ async function sendPurchaseApprovedWebhook(user, purchase, paymentMethod) {
             ? { url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` }
             : undefined,
           fields: [
-            { name: 'Status', value: '✅ **Pago**', inline: true },
+            { name: 'Status', value: '**Pago**', inline: true },
             { name: 'Método', value: metodo, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            {
-              name: 'Produtos',
-              value: `\`\`\`\n${purchase.product_name}\n\`\`\``,
-              inline: false
-            }
+            { name: 'Produtos', value: `\`\`\`\n${purchase.product_name}\n\`\`\``, inline: false }
           ],
-          footer: { text: 'Santos Resources • Sistema de Compras' },
+          footer: { text: 'Santos Resources • ' },
           timestamp: new Date().toISOString()
         }
       ]
