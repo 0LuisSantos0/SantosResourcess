@@ -192,10 +192,17 @@
                       Adquirido em <%= new Date(s.purchased_at + 'Z').toLocaleDateString('pt-PT') %>
                     </p>
                     <div class="mt-auto">
-                      <button class="btn btn-primary w-100 rounded-pill fw-bold"
-                              onclick="openDownloadModal('<%= s.product_name.replace(/'/g, "\\'") %>')">
-                        <i class="fa-solid fa-download me-2"></i> Download
-                      </button>
+                      <% if (s.download_url && s.download_url.trim() !== '') { %>
+                        <a href="/api/download/<%= s.product_id %>"
+                          class="btn btn-primary w-100 rounded-pill fw-bold">
+                          <i class="fa-solid fa-download me-2"></i> Download
+                        </a>
+                      <% } else { %>
+                        <button class="btn btn-primary w-100 rounded-pill fw-bold"
+                                onclick="openDownloadModal('<%= s.product_name.replace(/'/g, "\\'") %>')">
+                          <i class="fa-solid fa-download me-2"></i> Download
+                        </button>
+                      <% } %>
                     </div>
                   </div>
                 </div>

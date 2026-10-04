@@ -78,6 +78,10 @@
               <input type="text" name="video_link" class="form-control bg-light border-0" placeholder="https://www.youtube.com/embed/ID_VIDEO">
             </div>
             <div class="col-md-4">
+              <label class="form-label small fw-bold text-muted">Link de Download</label>
+              <input type="text" name="download_url" class="form-control bg-light border-0" placeholder="https://drive.google.com/...">
+            </div>
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-muted">Etiqueta (Badge)</label>
               <input type="text" name="badge" class="form-control bg-light border-0" placeholder="Ex: Novo, Promoção, Top">
             </div>
@@ -173,7 +177,7 @@
                                   </select>
                                 </div>
                                 <div class="col-md-6"><label class="form-label small">Link da Imagem (URL)</label><input type="text" name="thumbnail" class="form-control" value="<%= p.thumbnail || '' %>" placeholder="https://..."></div>
-                                <div class="col-md-6"><label class="form-label small">Link Vídeo (YouTube Embed)</label><input type="text" name="video_link" class="form-control" value="<%= p.video_link || '' %>" placeholder="https://www.youtube.com/embed/..."></div>
+                                <div class="col-md-6"><label class="form-label small">Link de Download</label><input type="text" name="download_url" class="form-control" value="<%= p.download_url || '' %>" placeholder="https://drive.google.com/..."></div>
                                 <div class="col-md-6"><label class="form-label small">Etiqueta (Badge)</label><input type="text" name="badge" class="form-control" value="<%= p.badge || '' %>" placeholder="Ex: Novo, Promoção"></div>
                                 <div class="col-md-6">
                                   <label class="form-label small">Cor da Badge</label>
