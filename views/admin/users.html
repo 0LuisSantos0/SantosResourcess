@@ -178,7 +178,14 @@
             <i class="fa-solid fa-user-circle me-2"></i>
             <span id="modalUsername">Utilizador</span>
           </h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" id="openAddProductBtn"
+                    class="btn btn-success btn-sm rounded-pill px-3 fw-bold"
+                    style="display:none;">
+              <i class="fa-solid fa-plus me-1"></i> Adicionar Produto
+            </button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
         </div>
         <div class="modal-body p-4" id="modalBody" style="background:#f8fafc; max-height:70vh; overflow-y:auto;">
           <!-- Conteúdo carregado via AJAX -->
@@ -191,12 +198,52 @@
     </div>
   </div>
 
+  <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0" style="border-radius:20px; overflow:hidden;">
+        <div class="modal-header border-0" style="background:linear-gradient(135deg,#10b981,#059669); color:white; padding:20px 24px;">
+          <h5 class="modal-title fw-bold">
+            <i class="fa-solid fa-plus-circle me-2"></i> Adicionar Produto ao Utilizador
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" style="background:#f8fafc;">
+          <p class="text-muted small mb-3">
+            O produto será adicionado diretamente à conta de
+            <strong id="addProductUsername" class="text-dark"></strong>
+            e aparecerá em <em>"Meus Sistemas"</em>. Se for MTA e ainda não tiver licença, uma será gerada automaticamente.
+          </p>
+
+          <label class="form-label fw-bold small text-muted">Selecione o Produto</label>
+          <select id="addProductSelect" class="form-select" style="border-radius:10px; padding:12px;">
+            <option value="">-- Escolha um produto --</option>
+          </select>
+
+          <div id="addProductFeedback" class="small fw-bold mt-3"></div>
+        </div>
+        <div class="modal-footer border-0" style="background:#f8fafc; padding:15px 24px 20px;">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success rounded-pill px-4 fw-bold" id="confirmAddProductBtn">
+            <i class="fa-solid fa-check me-2"></i> Adicionar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let userDetailModal = null;
+    let addProductModal = null;
+    let currentUserId = null;
+    let currentUserName = null;
+    let allProductsCache = [];
 
     async function openUserDetail(userId, username) {
+      currentUserId = userId;
+      currentUserName = username;
       document.getElementById('modalUsername').textContent = username;
+      document.getElementById('openAddProductBtn').style.display = 'none';
 
       if (!userDetailModal) {
         userDetailModal = new bootstrap.Modal(document.getElementById('userDetailModal'));
@@ -216,12 +263,15 @@
 
         if (!res.ok) throw new Error(data.error || 'Erro ao carregar');
 
+        // Guarda os produtos para o select
+        allProductsCache = data.all_products || [];
+
         let html = '';
 
         // ── SISTEMAS ──
         html += `<div class="detail-section-title"><i class="fa-solid fa-cube"></i> Sistemas Comprados (${data.systems.length})</div>`;
         if (data.systems.length === 0) {
-          html += `<div class="empty-detail"><i class="fa-solid fa-box-open"></i>Este utilizador ainda não comprou nenhum sistema.</div>`;
+          html += `<div class="empty-detail"><i class="fa-solid fa-box-open"></i>Este utilizador ainda não tem nenhum sistema.</div>`;
         } else {
           data.systems.forEach(s => {
             html += `<div class="system-item">
@@ -239,7 +289,7 @@
 
         // ── LICENÇA ──
         html += `<div class="detail-section-title"><i class="fa-solid fa-key"></i> Licença do Utilizador</div>`;
-        if (data.license && data.license.chave) { 
+        if (data.license && data.license.chave) {
           html += `<div class="license-admin-box">License = {
       [<span class="code-key">"user"</span>] = <span class="code-value">"${data.license.usuario}"</span>,
       [<span class="code-key">"key"</span>] = <span class="code-value">"${data.license.chave}"</span>
@@ -252,7 +302,7 @@
         } else {
           html += `<div class="empty-detail">
             <i class="fa-solid fa-lock"></i>
-            Sem licença — nenhum sistema comprado.
+            Sem licença — nenhum sistema atribuído.
           </div>`;
         }
 
@@ -260,12 +310,15 @@
         if (data.mta_config && (data.mta_config.ip || data.mta_config.port)) {
           html += `<div class="detail-section-title"><i class="fa-solid fa-server"></i> Servidor MTA Configurado</div>`;
           html += `<div class="license-admin-box">
-  IP:   <span class="code-value">${data.mta_config.ip || '—'}</span>
-  Porta: <span class="code-value">${data.mta_config.port || '—'}</span>
-</div>`;
+    IP:   <span class="code-value">${data.mta_config.ip || '—'}</span>
+    Porta: <span class="code-value">${data.mta_config.port || '—'}</span>
+  </div>`;
         }
 
         modalBody.innerHTML = html;
+
+        // Mostra o botão de adicionar produto
+        document.getElementById('openAddProductBtn').style.display = 'inline-flex';
 
       } catch (err) {
         console.error(err);
@@ -276,6 +329,77 @@
           </div>`;
       }
     }
+
+    // ── Abrir modal de "Adicionar Produto" ──
+    document.getElementById('openAddProductBtn').addEventListener('click', function () {
+      document.getElementById('addProductUsername').textContent = currentUserName;
+
+      const sel = document.getElementById('addProductSelect');
+      sel.innerHTML = '<option value="">-- Escolha um produto --</option>';
+
+      if (!allProductsCache || allProductsCache.length === 0) {
+        sel.innerHTML = '<option value="">Nenhum produto disponível</option>';
+      } else {
+        allProductsCache.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          const inativo = (p.is_active === 1) ? '' : '  — INATIVO';
+          opt.textContent = `${p.name} — €${parseFloat(p.price).toFixed(2)} (${p.category})${inativo}`;
+          sel.appendChild(opt);
+        });
+      }
+
+      document.getElementById('addProductFeedback').textContent = '';
+
+      if (!addProductModal) {
+        addProductModal = new bootstrap.Modal(document.getElementById('addProductModal'));
+      }
+      addProductModal.show();
+    });
+
+    // ── Confirmar adição ──
+    document.getElementById('confirmAddProductBtn').addEventListener('click', async function () {
+      const productId = document.getElementById('addProductSelect').value;
+      const fb = document.getElementById('addProductFeedback');
+      const btn = this;
+
+      if (!productId) {
+        fb.className = 'small fw-bold mt-3 text-danger';
+        fb.textContent = 'Selecione um produto primeiro.';
+        return;
+      }
+
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> A adicionar...';
+
+      try {
+        const res = await fetch(`/admin/users/${currentUserId}/add-product`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: productId })
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Erro ao adicionar');
+
+        fb.className = 'small fw-bold mt-3 text-success';
+        fb.textContent = '✓ ' + (data.message || 'Produto adicionado com sucesso!');
+
+        // Fecha este modal e re-abre os detalhes atualizados
+        setTimeout(() => {
+          addProductModal.hide();
+          setTimeout(() => openUserDetail(currentUserId, currentUserName), 400);
+        }, 900);
+
+      } catch (err) {
+        fb.className = 'small fw-bold mt-3 text-danger';
+        fb.textContent = err.message;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    });
   </script>
 </body>
 </html>
