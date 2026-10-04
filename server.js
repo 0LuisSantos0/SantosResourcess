@@ -296,7 +296,7 @@ async function getApp() {
 
       app.get('/products', async (req, res) => {
         try {
-          const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+          // 1) Verificar primeiro se é admin
           let isAdmin = false;
           if (req.session.user) {
             if (config.ADMIN_IDS.includes(req.session.user.id)) {
@@ -308,8 +308,22 @@ async function getApp() {
               }
             }
           }
-          res.render('products', { products: result.rows, user: req.session.user || null, isAdmin: isAdmin, error: null });
+
+          // 2) Admin vê tudo (para gerir). Cliente vê só os ativos.
+          const query = isAdmin
+            ? 'SELECT * FROM products ORDER BY id ASC'
+            : 'SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC';
+
+          const result = await pool.query(query);
+
+          res.render('products', {
+            products: result.rows,
+            user: req.session.user || null,
+            isAdmin: isAdmin,
+            error: null
+          });
         } catch (err) {
+          console.error('❌ Erro ao carregar produtos:', err);
           res.render('products', { products: [], user: req.session.user || null, isAdmin: false, error: 'Erro ao carregar produtos' });
         }
       });
@@ -765,8 +779,13 @@ async function getApp() {
       });
 
       app.post('/admin/toggle/:id', isAdmin, async (req, res) => {
-        await pool.query('UPDATE products SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
-        res.redirect(303, '/admin');
+        try {
+          await pool.query('UPDATE products SET is_active = 1 - is_active WHERE id = $1', [req.params.id]);
+          res.redirect(303, '/admin');
+        } catch (err) {
+          console.error('❌ Erro ao alternar produto:', err);
+          res.redirect(303, '/admin');
+        }
       });
 
       app.post('/admin/products/feature/:id', isAdmin, async (req, res) => {
@@ -851,8 +870,13 @@ async function getApp() {
       });
 
       app.post('/admin/discounts/toggle/:id', isAdmin, async (req, res) => {
-        await pool.query('UPDATE discounts SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
-        res.redirect(303, '/admin/discounts');
+        try {
+          await pool.query('UPDATE discounts SET is_active = 1 - is_active WHERE id = $1', [req.params.id]);
+          res.redirect(303, '/admin/discounts');
+        } catch (err) {
+          console.error('❌ Erro ao alternar desconto:', err);
+          res.redirect(303, '/admin/discounts');
+        }
       });
 
       app.post('/admin/upload-image', isAdmin, (req, res) => {
@@ -903,10 +927,10 @@ async function getApp() {
 
       app.post('/admin/payment-methods/toggle/:id', isAdmin, async (req, res) => {
         try {
-          await pool.query('UPDATE payment_methods SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
+          await pool.query('UPDATE payment_methods SET is_active = 1 - is_active WHERE id = $1', [req.params.id]);
           res.redirect(303, '/admin/payment-methods');
         } catch (err) {
-          console.error('Erro ao alternar método:', err);
+          console.error('❌ Erro ao alternar método:', err);
           res.redirect(303, '/admin/payment-methods');
         }
       });
