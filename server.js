@@ -781,6 +781,110 @@ async function getApp() {
           }
       });
 
+      app.get('/api/download/:productId', async (req, res) => {
+        if (!req.session.user) return res.status(401).send('Não autorizado.');
+
+        try {
+          const { productId } = req.params;
+
+          // 1) Verificar se o utilizador tem direito ao produto
+          const hasProduct = await pool.query(
+            `SELECT 1 FROM purchases 
+            WHERE user_discord_id = $1 AND product_id = $2 AND status = 'completed' 
+            LIMIT 1`,
+            [req.session.user.id, productId]
+          );
+
+          // Admins podem sempre descarregar
+          let isAdmin = false;
+          if (config.ADMIN_IDS.includes(req.session.user.id)) {
+            isAdmin = true;
+          } else {
+            const dbCheck = await pool.query(
+              'SELECT is_admin FROM users WHERE discord_id = $1',
+              [req.session.user.id]
+            );
+            if (dbCheck.rows[0]?.is_admin === 1) isAdmin = true;
+          }
+
+          if (hasProduct.rows.length === 0 && !isAdmin) {
+            return res.status(403).send('Não tens acesso a este produto.');
+          }
+
+          // 2) Buscar o URL do produto
+          const productResult = await pool.query(
+            'SELECT name, download_url FROM products WHERE id = $1',
+            [productId]
+          );
+          if (productResult.rows.length === 0) {
+            return res.status(404).send('Produto não encontrado.');
+          }
+
+          const product = productResult.rows[0];
+          if (!product.download_url || product.download_url.trim() === '') {
+            return res.status(404).send('Este produto não tem ficheiro associado.');
+          }
+
+          // 3) Converter links especiais para links de download direto
+          let downloadUrl = product.download_url.trim();
+
+          // Google Drive → transformar para download direto
+          const gdMatch = downloadUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+          if (gdMatch) {
+            downloadUrl = `https://drive.google.com/uc?export=download&id=${gdMatch[1]}`;
+          } else {
+            const gdMatch2 = downloadUrl.match(/drive\.google\.com\/open\?id=([^&]+)/);
+            if (gdMatch2) {
+              downloadUrl = `https://drive.google.com/uc?export=download&id=${gdMatch2[1]}`;
+            }
+          }
+
+          // Dropbox → adicionar ?dl=1
+          if (downloadUrl.includes('dropbox.com') && !downloadUrl.includes('dl=1')) {
+            downloadUrl = downloadUrl.includes('?')
+              ? downloadUrl + '&dl=1'
+              : downloadUrl + '?dl=1';
+          }
+
+          // 4) Fetch do ficheiro original
+          const fileRes = await axios.get(downloadUrl, {
+            responseType: 'stream',
+            maxRedirects: 10,
+            timeout: 120000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; SantosResources/1.0)'
+            },
+            validateStatus: () => true
+          });
+
+          if (fileRes.status >= 400) {
+            console.error('❌ Download falhou com status', fileRes.status);
+            return res.status(fileRes.status).send('Não foi possível obter o ficheiro de origem.');
+          }
+
+          // 5) Nome de ficheiro para o download
+          const safeName = String(product.name).replace(/[^a-zA-Z0-9._-]/g, '_');
+          const filename = `${safeName}.zip`;
+
+          // 6) Devolver como download
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          if (fileRes.headers['content-type']) {
+            res.setHeader('Content-Type', fileRes.headers['content-type']);
+          } else {
+            res.setHeader('Content-Type', 'application/octet-stream');
+          }
+          if (fileRes.headers['content-length']) {
+            res.setHeader('Content-Length', fileRes.headers['content-length']);
+          }
+
+          fileRes.data.pipe(res);
+
+        } catch (err) {
+          console.error('❌ Erro no proxy de download:', err.message);
+          res.status(500).send('Erro ao preparar o download.');
+        }
+      });
+
       app.post('/api/client/mta-config', async (req, res) => {
           if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
           const { ip } = req.body;
@@ -930,12 +1034,12 @@ async function getApp() {
 
       app.post('/admin/products/add', isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color } = req.body;
+          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color, download_url } = req.body;
           if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
 
           await pool.query(
-            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features, badge, badge_color) VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8, $9)',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8']
+            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features, badge, badge_color, download_url) VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8, $9, $10)',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8', download_url || null]
           );
           await logActivity(req, `Criou o produto: ${name}`);
           res.redirect(303, '/admin');
@@ -947,11 +1051,11 @@ async function getApp() {
 
       app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color } = req.body;
+          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color, download_url } = req.body;
 
           await pool.query(
-            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7, badge = $8, badge_color = $9 WHERE id = $10',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8', req.params.id]
+            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7, badge = $8, badge_color = $9, download_url = $10 WHERE id = $11',
+            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8', download_url || null, req.params.id]
           );
           await logActivity(req, `Editou o produto: ${name}`);
           res.redirect(303, '/admin'); 
