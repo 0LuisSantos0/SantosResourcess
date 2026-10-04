@@ -814,7 +814,7 @@ async function getApp() {
             return res.status(403).send('Não tens acesso a este produto.');
           }
 
-          // 2) Buscar o URL do produto
+          // 2) Buscar o URL
           const productResult = await pool.query(
             'SELECT name, download_url FROM products WHERE id = $1',
             [productId]
@@ -828,62 +828,32 @@ async function getApp() {
             return res.status(404).send('Este produto não tem ficheiro associado.');
           }
 
-          // 3) Converter links especiais para links de download direto
+          // 3) Converter links especiais
           let downloadUrl = product.download_url.trim();
 
-          // Google Drive → transformar para download direto
+          // ── Google Drive ──
+          // Usa drive.usercontent.google.com (evita a página de "vírus")
           const gdMatch = downloadUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
           if (gdMatch) {
-            downloadUrl = `https://drive.google.com/uc?export=download&id=${gdMatch[1]}`;
+            downloadUrl = `https://drive.usercontent.google.com/download?id=${gdMatch[1]}&export=download&confirm=t`;
           } else {
             const gdMatch2 = downloadUrl.match(/drive\.google\.com\/open\?id=([^&]+)/);
             if (gdMatch2) {
-              downloadUrl = `https://drive.google.com/uc?export=download&id=${gdMatch2[1]}`;
+              downloadUrl = `https://drive.usercontent.google.com/download?id=${gdMatch2[1]}&export=download&confirm=t`;
             }
           }
 
-          // Dropbox → adicionar ?dl=1
+          // ── Dropbox ──
           if (downloadUrl.includes('dropbox.com') && !downloadUrl.includes('dl=1')) {
             downloadUrl = downloadUrl.includes('?')
               ? downloadUrl + '&dl=1'
               : downloadUrl + '?dl=1';
           }
 
-          // 4) Fetch do ficheiro original
-          const fileRes = await axios.get(downloadUrl, {
-            responseType: 'stream',
-            maxRedirects: 10,
-            timeout: 120000,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (compatible; SantosResources/1.0)'
-            },
-            validateStatus: () => true
-          });
-
-          if (fileRes.status >= 400) {
-            console.error('❌ Download falhou com status', fileRes.status);
-            return res.status(fileRes.status).send('Não foi possível obter o ficheiro de origem.');
-          }
-
-          // 5) Nome de ficheiro para o download
-          const safeName = String(product.name).replace(/[^a-zA-Z0-9._-]/g, '_');
-          const filename = `${safeName}.zip`;
-
-          // 6) Devolver como download
-          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-          if (fileRes.headers['content-type']) {
-            res.setHeader('Content-Type', fileRes.headers['content-type']);
-          } else {
-            res.setHeader('Content-Type', 'application/octet-stream');
-          }
-          if (fileRes.headers['content-length']) {
-            res.setHeader('Content-Length', fileRes.headers['content-length']);
-          }
-
-          fileRes.data.pipe(res);
+          return res.redirect(302, downloadUrl);
 
         } catch (err) {
-          console.error('❌ Erro no proxy de download:', err.message);
+          console.error('❌ Erro no download:', err.message);
           res.status(500).send('Erro ao preparar o download.');
         }
       });
