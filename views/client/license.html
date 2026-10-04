@@ -420,7 +420,7 @@
                 </button>
 <% if (license) { %>
 <pre style="margin:0; color:inherit; font-family:inherit;">License = {
-  [<span class="code-key">"user"</span>] = <span class="code-value">"<%= user.id %>"</span>,
+  [<span class="code-key">"user"</span>] = <span class="code-value">"<%= license.usuario %>"</span>,
   [<span class="code-key">"key"</span>] = <span class="code-value">"<%= license.chave %>"</span>
 }</pre>
 <% } else { %>
@@ -500,7 +500,7 @@
       const box = document.getElementById('licenseBox');
       if (!box) return;
       <% if (license) { %>
-        const text = `License = {\n  ["user"] = "<%= user.id %>",\n  ["key"] = "<%= license.chave %>"\n}`;
+        const text = `License = {\n  ["user"] = "<%= license.usuario %>",\n  ["key"] = "<%= license.chave %>"\n}`;
       <% } else { %>
         const text = 'Licença ainda não gerada.';
       <% } %>
