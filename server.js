@@ -533,9 +533,6 @@ async function getApp() {
           }
       });
 
-      // ══════════════════════════════════════════
-      // ADMIN — DETALHES DO UTILIZADOR (MODAL)
-      // ══════════════════════════════════════════
       app.get('/admin/users/:id/details', isAdmin, async (req, res) => {
           try {
               const userId = req.params.id;
@@ -545,23 +542,80 @@ async function getApp() {
 
               const systemsResult = await pool.query(
                   `SELECT DISTINCT ON (product_id) * FROM purchases 
-                   WHERE user_discord_id = $1 AND status = 'completed' 
-                   ORDER BY product_id, purchased_at DESC`,
+                  WHERE user_discord_id = $1 AND status = 'completed' 
+                  ORDER BY product_id, purchased_at DESC`,
                   [user.discord_id]
               );
 
               const license = await getLicenseByDiscordId(user.discord_id);
               const mta_config = license ? { ip: license.ip_permitido } : null;
 
+              // 🔥 NOVO: lista de todos os produtos (ativos e inativos) para o select
+              const productsResult = await pool.query(
+                  'SELECT id, name, price, category, is_active FROM products ORDER BY name ASC'
+              );
+
               res.json({
                   user_discord_id: user.discord_id,
                   systems: systemsResult.rows,
                   license: license || null,
-                  mta_config: mta_config
+                  mta_config: mta_config,
+                  all_products: productsResult.rows  // 🔥 NOVO
               });
           } catch (err) {
               console.error('❌ Erro ao buscar detalhes do utilizador:', err);
               res.status(500).json({ error: 'Erro interno do servidor.' });
+          }
+      });
+
+      app.post('/admin/users/:id/add-product', isAdmin, async (req, res) => {
+          try {
+              const userId = req.params.id;
+              const { product_id } = req.body;
+
+              if (!product_id) return res.status(400).json({ error: 'Produto não especificado' });
+
+              const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+              if (userResult.rows.length === 0) return res.status(404).json({ error: 'Utilizador não encontrado' });
+              const user = userResult.rows[0];
+
+              const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
+              if (productResult.rows.length === 0) return res.status(404).json({ error: 'Produto não encontrado' });
+              const product = productResult.rows[0];
+
+              // Verificar se o utilizador já tem este produto
+              const existing = await pool.query(
+                  `SELECT id FROM purchases WHERE user_discord_id = $1 AND product_id = $2 AND status = 'completed'`,
+                  [user.discord_id, product.id]
+              );
+              if (existing.rows.length > 0) {
+                  return res.status(400).json({ error: 'Este utilizador já possui este produto' });
+              }
+
+              // Inserir na tabela purchases com status = completed
+              await pool.query(
+                  `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status)
+                  VALUES ($1, $2, $3, $4, $5, 'completed')`,
+                  [user.discord_id, product.id, product.name, product.category, product.price]
+              );
+
+              // Se for MTA, gerar licença automática (caso ainda não tenha)
+              if (product.category === 'MTA') {
+                  const existingLicense = await getLicenseByDiscordId(user.discord_id);
+                  if (!existingLicense) {
+                      const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+                      const randomPart = () => Math.random().toString(36).substring(2, 10);
+                      const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+                      await createLicense(user.discord_id, usuario, chave);
+                      console.log(`✅ Licença MTA gerada automaticamente para o utilizador ${user.discord_id}`);
+                  }
+              }
+
+              await logActivity(req, `Adicionou o produto "${product.name}" ao utilizador ${user.username}`);
+              res.json({ success: true, message: `Produto "${product.name}" adicionado com sucesso!` });
+          } catch (err) {
+              console.error('❌ Erro ao adicionar produto ao utilizador:', err);
+              res.status(500).json({ error: err.message || 'Erro interno' });
           }
       });
 
