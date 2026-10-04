@@ -121,9 +121,12 @@ const initDB = async () => {
       ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
     `);
 
-    // 🔥 MODO MANUTENÇÃO
     await pool.query(`
       ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_mode INTEGER DEFAULT 0;
+    `);
+
+    await pool.query(`
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS discord_webhook_url TEXT;
     `);
 
     await pool.query(`

@@ -56,6 +56,67 @@ async function logActivity(req, action) {
   }
 }
 
+// ══════════════════════════════════════════
+// 🔥 WEBHOOK: Envia log de pedido para o Discord
+// ══════════════════════════════════════════
+async function sendPurchaseWebhook(user, cartItems) {
+  try {
+    const result = await pool.query('SELECT discord_webhook_url FROM settings WHERE id = 1');
+    const webhookUrl = result.rows[0]?.discord_webhook_url;
+
+    if (!webhookUrl || webhookUrl.trim() === '') {
+      console.log('ℹ️ Webhook Discord não configurado. Log do pedido ignorado.');
+      return;
+    }
+
+    const itemsList = cartItems
+      .map(item => `• **${item.name}** x${item.quantity} — €${(item.price * item.quantity).toFixed(2)}`)
+      .join('\n');
+
+    const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    const payload = {
+      username: 'Santos Resources',
+      embeds: [
+        {
+          title: '🛒 Novo Pedido de Compra!',
+          description: 'Um novo pedido foi registado e aguarda pagamento/confirmação.',
+          color: 0x22d3ee,
+          fields: [
+            {
+              name: '👤 Cliente',
+              value: `${user.username}\n\`${user.id}\``,
+              inline: true
+            },
+            {
+              name: '📦 Produtos',
+              value: itemsList || '—',
+              inline: false
+            },
+            {
+              name: '💰 Total',
+              value: `**€${total.toFixed(2)}**`,
+              inline: true
+            },
+            {
+              name: '📊 Estado',
+              value: '⏳ Pendente',
+              inline: true
+            }
+          ],
+          footer: { text: 'Santos Resources • Sistema de Pedidos' },
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+
+    await axios.post(webhookUrl, payload);
+    console.log(`✅ Log do pedido enviado para o Discord (${user.username}).`);
+  } catch (err) {
+    console.error('⚠️ Erro ao enviar webhook do Discord:', err.response?.data || err.message);
+  }
+}
+
 async function isAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/');
   if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
@@ -698,6 +759,9 @@ async function getApp() {
           await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', ['[]', req.session.user.id]);
           req.session.coupon = null;
 
+          // 🔥 Enviar log para o Discord
+          await sendPurchaseWebhook(req.session.user, cart);
+
           res.json({ success: true, message: 'Pedido registado! Abre Ticket no Discord para pagar.' });
         } catch (err) {
           console.error('❌ Erro no checkout:', err);
@@ -1029,7 +1093,8 @@ async function getApp() {
             site_name: 'Santos Resources',
             discord_link: 'https://discord.gg/8GyNS5vRgt',
             logo_url: '',
-            maintenance_mode: 0
+            maintenance_mode: 0,
+            discord_webhook_url: ''
           };
 
           res.render('admin/settings', {
@@ -1045,7 +1110,8 @@ async function getApp() {
               site_name: 'Santos Resources',
               discord_link: 'https://discord.gg/8GyNS5vRgt',
               logo_url: '',
-              maintenance_mode: 0
+              maintenance_mode: 0,
+              discord_webhook_url: ''
             },
             activeTab: 'settings',
             error: 'Erro ao carregar configurações',
@@ -1056,12 +1122,12 @@ async function getApp() {
 
       app.post('/admin/settings/update', isAdmin, async (req, res) => {
         try {
-          const { site_name, discord_link, logo_url, maintenance_mode } = req.body;
+          const { site_name, discord_link, logo_url, maintenance_mode, discord_webhook_url } = req.body;
           const mm = (maintenance_mode === 'on' || maintenance_mode === '1') ? 1 : 0;
 
           await pool.query(
-            'UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3, maintenance_mode = $4 WHERE id = 1',
-            [site_name, discord_link, logo_url, mm]
+            'UPDATE settings SET site_name = $1, discord_link = $2, logo_url = $3, maintenance_mode = $4, discord_webhook_url = $5 WHERE id = 1',
+            [site_name, discord_link, logo_url, mm, discord_webhook_url || null]
           );
           await logActivity(req, `Atualizou as configurações do site (manutenção: ${mm ? 'ON' : 'OFF'}).`);
           res.redirect(303, '/admin/settings');
