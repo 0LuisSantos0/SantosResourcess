@@ -133,6 +133,37 @@
       transform: translateY(-6px);
       box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
+
+        /* 🔥 PRODUTOS INATIVOS — TRANSPARÊNCIA (apenas visível para admin) */
+    .product-card-ref.product-inactive {
+      opacity: 0.35;
+      filter: grayscale(60%);
+      position: relative;
+      transition: opacity 0.3s ease, filter 0.3s ease;
+    }
+    .product-card-ref.product-inactive:hover {
+      opacity: 1;
+      filter: grayscale(0%);
+    }
+    .product-card-ref.product-inactive::after {
+      content: "INATIVO";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-15deg);
+      background: rgba(239, 68, 68, 0.92);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: 3px;
+      padding: 8px 26px;
+      border-radius: 8px;
+      z-index: 50;
+      pointer-events: none;
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+    }
+    
     .product-card-ref .card-body {
       padding: 20px;
       text-align: center;
@@ -598,7 +629,7 @@
         <% } else { %>
           <% products.forEach((p, index) => { %>
             <div class="col product-item" data-name="<%= p.name.toLowerCase() %>" data-category="<%= p.category %>" data-price="<%= p.price %>">
-              <div class="card product-card-ref">
+              <div class="card product-card-ref <%= (isAdmin && p.is_active !== 1) ? 'product-inactive' : '' %>">
                 <div class="card-body">
                   <% if (p.badge && p.badge.trim() !== '') { %>
                     <div class="product-badge" style="border-color: <%- p.badge_color || '#94a3b8' %>; color: <%- p.badge_color || '#94a3b8' %>;">
