@@ -489,23 +489,26 @@ async function getApp() {
       // ÁREA DO CLIENTE
       // ══════════════════════════════════════════
 
-      // Helpers
       async function getClientData(req) {
         const isAdmin = config.ADMIN_IDS.includes(req.session.user.id)
           || (await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id])).rows[0]?.is_admin === 1;
 
         const systemsResult = await pool.query(
-          `SELECT DISTINCT ON (product_id) *
-           FROM purchases
-           WHERE user_discord_id = $1 AND status = 'completed'
-           ORDER BY product_id, purchased_at DESC`,
+          `SELECT DISTINCT ON (p.product_id)
+              p.*,
+              pr.download_url,
+              pr.thumbnail
+          FROM purchases p
+          LEFT JOIN products pr ON pr.id = p.product_id
+          WHERE p.user_discord_id = $1 AND p.status = 'completed'
+          ORDER BY p.product_id, p.purchased_at DESC`,
           [req.session.user.id]
         );
 
         const purchasesResult = await pool.query(
           `SELECT * FROM purchases
-           WHERE user_discord_id = $1
-           ORDER BY purchased_at DESC`,
+          WHERE user_discord_id = $1
+          ORDER BY purchased_at DESC`,
           [req.session.user.id]
         );
 
