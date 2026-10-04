@@ -522,6 +522,61 @@
       background: #0f172a; display: flex; align-items: center; justify-content: center;
       color: #475569;
     }
+
+    /* ═══════════════════════════════════════════
+       EFEITO 3D TILT NOS CARDS DE PRODUTO
+       ═══════════════════════════════════════════ */
+    .products-grid-3d {
+      perspective: 1200px;
+    }
+
+    .product-card-ref {
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.35s ease,
+                  border-color 0.3s ease;
+    }
+
+    .product-card-ref.tilting {
+      transition: transform 0.05s linear,
+                  box-shadow 0.35s ease,
+                  border-color 0.3s ease;
+    }
+
+    .product-card-ref::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(99, 102, 241, 0.15),
+        transparent 40%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .product-card-ref:hover::before {
+      opacity: 1;
+    }
+
+    .product-card-ref .card-body {
+      transform: translateZ(30px);
+      transition: transform 0.35s ease;
+    }
+
+    @media (hover: none) {
+      .product-card-ref {
+        transform: none !important;
+      }
+      .product-card-ref .card-body {
+        transform: none;
+      }
+    }
   </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -623,7 +678,7 @@
         <div class="col-md-4"><select id="sortCategory" class="filter-select w-100"><option value="default">Categoria</option><option value="MTA">MTA</option><option value="Discord Bot">Discord</option><option value="Site">Site</option></select></div>
       </div>
 
-      <div id="productsGrid" class="row row-cols-1 row-cols-md-3 g-4">
+      <div id="productsGrid" class="row row-cols-1 row-cols-md-3 g-4 products-grid-3d">
         <% if (products.length === 0) { %>
           <div class="col-12 text-center text-muted py-5"><h4><i class="fa-regular fa-circle-question me-2"></i> Nenhum produto cadastrado!</h4></div>
         <% } else { %>
@@ -1287,6 +1342,65 @@
     document.addEventListener('DOMContentLoaded', () => {
       if (document.getElementById('notifBadge')) checkNotifications();
     });
+  </script>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════
+       EFEITO 3D TILT — segue o cursor do rato
+       ═══════════════════════════════════════════════════════ */
+    (function init3DTilt() {
+      if (window.matchMedia('(hover: none)').matches) return;
+
+      const MAX_ROTATION = 12;
+
+      function attachTilt(card) {
+        if (card.dataset.tiltReady === '1') return;
+        card.dataset.tiltReady = '1';
+
+        card.addEventListener('mouseenter', () => {
+          card.classList.add('tilting');
+        });
+
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          const percentX = (x / rect.width) * 100;
+          const percentY = (y / rect.height) * 100;
+
+          const rotateY = ((percentX / 100) - 0.5) * (MAX_ROTATION * 2);
+          const rotateX = ((percentY / 100) - 0.5) * (-MAX_ROTATION * 2);
+
+          card.style.transform =
+            `perspective(1200px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-6px) scale(1.03)`;
+
+          card.style.setProperty('--mouse-x', `${percentX}%`);
+          card.style.setProperty('--mouse-y', `${percentY}%`);
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.classList.remove('tilting');
+          card.style.transform = '';
+          card.style.setProperty('--mouse-x', '50%');
+          card.style.setProperty('--mouse-y', '50%');
+        });
+      }
+
+      function initAll() {
+        document.querySelectorAll('.product-card-ref').forEach(attachTilt);
+      }
+
+      const observer = new MutationObserver(() => initAll());
+
+      document.addEventListener('DOMContentLoaded', () => {
+        initAll();
+        const grid = document.getElementById('productsGrid');
+        if (grid) observer.observe(grid, { childList: true, subtree: true });
+      });
+
+      initAll();
+    })();
   </script>
 </body>
 </html>
