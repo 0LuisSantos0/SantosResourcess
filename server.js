@@ -599,15 +599,27 @@ async function getApp() {
                   [user.discord_id, product.id, product.name, product.category, product.price]
               );
 
-              // Se for MTA, gerar licença automática (caso ainda não tenha)
+              // 🔥 Se for MTA, gerar licença automática (só se NÃO existir nenhuma — mesmo inativa)
               if (product.category === 'MTA') {
-                  const existingLicense = await getLicenseByDiscordId(user.discord_id);
-                  if (!existingLicense) {
-                      const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
-                      const randomPart = () => Math.random().toString(36).substring(2, 10);
-                      const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
-                      await createLicense(user.discord_id, usuario, chave);
-                      console.log(`✅ Licença MTA gerada automaticamente para o utilizador ${user.discord_id}`);
+                  // Usar a versão RAW que devolve a licença mesmo quando está inativa
+                  const existingLicenseRaw = await getLicenseByDiscordIdRaw(user.discord_id);
+
+                  if (!existingLicenseRaw) {
+                      // Não existe licença nenhuma → cria uma nova
+                      try {
+                          const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+                          const randomPart = () => Math.random().toString(36).substring(2, 10);
+                          const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+                          await createLicense(user.discord_id, usuario, chave);
+                          console.log(`✅ Licença MTA gerada automaticamente para o utilizador ${user.discord_id}`);
+                      } catch (licErr) {
+                          // Nunca deixa o erro da licença estragar a adição do produto
+                          console.error('⚠️ Erro ao gerar licença MTA (produto continua adicionado):', licErr.message);
+                      }
+                  } else if (existingLicenseRaw.ativa === false || existingLicenseRaw.ativa === 0) {
+                      console.log(`ℹ️ Utilizador ${user.discord_id} já tem licença (inativa). Produto adicionado sem criar nova.`);
+                  } else {
+                      console.log(`ℹ️ Utilizador ${user.discord_id} já tem licença ativa. Produto adicionado sem criar nova.`);
                   }
               }
 
