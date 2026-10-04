@@ -241,7 +241,7 @@
         html += `<div class="detail-section-title"><i class="fa-solid fa-key"></i> Licença do Utilizador</div>`;
         if (data.license && data.license.chave) { 
           html += `<div class="license-admin-box">License = {
-      [<span class="code-key">"user"</span>] = <span class="code-value">"${data.user_discord_id}"</span>,
+      [<span class="code-key">"user"</span>] = <span class="code-value">"${data.license.usuario}"</span>,
       [<span class="code-key">"key"</span>] = <span class="code-value">"${data.license.chave}"</span>
     }</div>`;
         } else if (data.systems.length > 0) {
