@@ -109,6 +109,30 @@
                 </div>
               <% } %>
             </div>
+
+            <div class="mb-4 p-3 rounded-3" style="background: #ecfdf5; border: 1px solid #a7f3d0;">
+              <label class="form-label fw-bold mb-2" style="color: #065f46;">
+                <i class="fa-solid fa-circle-check me-2"></i> Webhook do Discord (Compras Aprovadas)
+              </label>
+              <input
+                type="url"
+                name="discord_purchase_webhook_url"
+                class="form-control bg-white border-0"
+                placeholder="https://discord.com/api/webhooks/..."
+                value="<%= settings.discord_purchase_webhook_url || '' %>"
+              >
+              <div class="form-text small mt-2" style="color: #047857;">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                Sempre que um <strong>pedido for APROVADO</strong> pelo admin, será enviado um embed de "Nova compra Realizada!" para este webhook.
+                <br>
+                <strong>Como obter:</strong> No Discord → Definições do Canal → <em>Integrações</em> → <em>Webhooks</em> → <em>Novo Webhook</em> → Copiar URL.
+              </div>
+              <% if (settings.discord_purchase_webhook_url) { %>
+                <div class="mt-2">
+                  <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Webhook configurado</span>
+                </div>
+              <% } %>
+            </div>
             
             
             <button type="submit" class="btn btn-primary fw-bold px-5 rounded-pill shadow-sm">Guardar Alterações</button>
