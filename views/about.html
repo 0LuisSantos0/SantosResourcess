@@ -1358,48 +1358,62 @@
 
       async function processarPagamento() {
         if (!cart || cart.length === 0) {
-          const toastEl = document.getElementById("mtaAlertToast");
+          const toastEl = document.getElementById('mtaAlertToast');
           if (toastEl) {
-            toastEl.querySelector(".toast-body").innerHTML =
+            toastEl.querySelector('.toast-body').innerHTML =
               '<i class="fa-solid fa-circle-exclamation me-2"></i> O carrinho está vazio!';
             new bootstrap.Toast(toastEl).show();
           }
           return;
         }
 
-        const discordUrl =
-          '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
-        window.open(discordUrl, "_blank");
+        // 🔥 Verifica se TODOS os itens são grátis
+        const allFree = cart.every(item => parseFloat(item.price) <= 0);
+
+        // Só abre o Discord se houver algo para pagar
+        if (!allFree) {
+          const discordUrl = '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
+          window.open(discordUrl, '_blank');
+        }
 
         try {
-          const response = await fetch("/api/checkout", { method: "POST" });
+          const response = await fetch('/api/checkout', { method: 'POST' });
           const data = await response.json();
 
           if (!response.ok) {
-            alert(data.error || "Erro ao processar");
+            alert(data.error || 'Erro ao processar');
             return;
           }
 
           cart = [];
           updateCartUI();
 
-          const offcanvasEl = document.getElementById("cartDrawer");
+          const offcanvasEl = document.getElementById('cartDrawer');
           if (offcanvasEl) {
-            const bsOffcanvas =
-              bootstrap.Offcanvas.getInstance(offcanvasEl) ||
-              new bootstrap.Offcanvas(offcanvasEl);
+            const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl)
+                            || new bootstrap.Offcanvas(offcanvasEl);
             bsOffcanvas.hide();
           }
 
+          // 🔥 Ajusta o texto do modal conforme grátis ou não
+          const successTitle = document.querySelector('#checkoutSuccessModal h3');
+          const successDesc  = document.querySelector('#checkoutSuccessModal .text-light.opacity-75.small');
+          if (data.autoApproved) {
+            if (successTitle) successTitle.textContent = 'Produto Grátis Ativado!';
+            if (successDesc)  successDesc.textContent  = 'Os teus produtos grátis já estão disponíveis na Área Cliente.';
+          } else {
+            if (successTitle) successTitle.textContent = 'Pedido Registado!';
+            if (successDesc)  successDesc.textContent  = 'O teu pedido foi criado com sucesso.';
+          }
+
           setTimeout(() => {
-            const modal = new bootstrap.Modal(
-              document.getElementById("checkoutSuccessModal"),
-            );
+            const modal = new bootstrap.Modal(document.getElementById('checkoutSuccessModal'));
             modal.show();
           }, 350);
+
         } catch (err) {
           console.error(err);
-          alert("Erro ao comunicar com o servidor.");
+          alert('Erro ao comunicar com o servidor.');
         }
       }
 

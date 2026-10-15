@@ -86,17 +86,36 @@ async function createLicense(discordId, usuario, chave) {
     return data;
 }
 
-async function updateLicenseIP(discordId, ip) {
+async function updateLicenseIP(discordId, ip, port) {
     if (!supabase) throw new Error('Supabase não configurado');
-    const { data, error } = await supabase
+
+    const updates = { ip_permitido: ip };
+    if (port !== undefined && port !== null && String(port).trim() !== '') {
+        updates.porta = String(port).trim();
+    }
+
+    let { data, error } = await supabase
         .from('licencas')
-        .update({ ip_permitido: ip })
+        .update(updates)
         .eq('discord_id', String(discordId))
         .select()
         .single();
 
+    if (error && updates.porta) {
+        console.warn('⚠️ Coluna "porta" não existe em Supabase. A guardar apenas IP.');
+        delete updates.porta;
+        const retry = await supabase
+            .from('licencas')
+            .update(updates)
+            .eq('discord_id', String(discordId))
+            .select()
+            .single();
+        data = retry.data;
+        error = retry.error;
+    }
+
     if (error) {
-        console.error('Erro ao atualizar IP:', error);
+        console.error('Erro ao atualizar config MTA:', error);
         throw error;
     }
     return data;

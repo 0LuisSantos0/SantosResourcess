@@ -32,8 +32,8 @@ const { giveClientRole, giveClientFreeRole } = require('./src/discord/roles');
 app.set('view engine', 'html');
 app.engine('html', ejs.renderFile);
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '6mb' }));
+app.use(express.json({ limit: '6mb' }));
 
 app.set('trust proxy', 1);
 
@@ -175,13 +175,71 @@ async function sendPurchaseApprovedWebhook(user, purchase, paymentMethod) {
   }
 }
 
+async function sendFreePurchaseWebhook(user, cartItems) {
+  try {
+    const result = await pool.query('SELECT discord_purchase_webhook_url FROM settings WHERE id = 1');
+    const webhookUrl = result.rows[0]?.discord_purchase_webhook_url;
+
+    if (!webhookUrl || webhookUrl.trim() === '') {
+      console.log('ℹ️ Webhook de compras aprovadas não configurado. Log grátis ignorado.');
+      return;
+    }
+
+    const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
+
+    const itemsList = cartItems
+      .map(item => `• **${item.name}** x${item.quantity} — 🎁 GRÁTIS`)
+      .join('\n');
+
+    const payload = {
+      username: 'Compras',
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+      embeds: [
+        {
+          title: 'Produto Grátis',
+          description: `**${user.username}** adquiriu um produto grátis e foi **aprovado automaticamente**.`,
+          color: 0x10b981,
+          thumbnail: user.avatar
+            ? { url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` }
+            : undefined,
+          fields: [
+            { name: 'Cliente', value: `${user.username}\n\`${user.id}\``, inline: true },
+            { name: 'Total', value: '**€0.00**', inline: true },
+            { name: 'Estado', value: 'Auto-aprovado (Free)', inline: true },
+            { name: 'Produtos', value: itemsList || '—', inline: false }
+          ],
+          footer: { text: 'Santos Resources • ' },
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+
+    await axios.post(webhookUrl, payload);
+    console.log(`✅ Log de compra grátis enviado para o Discord (${user.username}).`);
+  } catch (err) {
+    console.error('⚠️ Erro ao enviar webhook de compra grátis:', err.response?.data || err.message);
+  }
+}
+
 async function isAdmin(req, res, next) {
-  if (!req.session.user) return res.redirect('/');
-  if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
-  const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
-  const row = result.rows[0];
-  if (!row || row.is_admin !== 1) return res.redirect('/');
-  next();
+  try {
+    if (!req.session.user) return res.redirect('/');
+    if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
+
+    const result = await pool.query(
+      'SELECT is_admin FROM users WHERE discord_id = $1',
+      [req.session.user.id]
+    );
+    const row = result.rows[0];
+    if (!row || row.is_admin !== 1) return res.redirect('/');
+    next();
+  } catch (err) {
+    console.error('❌ Erro no middleware isAdmin:', err);
+    if (req.path.startsWith('/api/')) {
+      return res.status(500).json({ error: 'Erro interno' });
+    }
+    return res.redirect('/');
+  }
 }
 
 async function ensureSessionTable() {
@@ -219,7 +277,7 @@ async function getApp() {
           tableName: 'session',
           createTableIfNotExists: true
         }),
-        secret: 'santos-resources-secret-key',
+        secret: process.env.SESSION_SECRET || 'santos-resources-secret-key-CHANGE-ME',
         resave: false,
         saveUninitialized: false,
         cookie: {
@@ -616,7 +674,7 @@ async function getApp() {
           if (!discord_id) return res.redirect('/admin/licenses?error=missing_fields');
 
           try {
-              const existing = await getLicenseByDiscordId(discord_id);
+              const existing = await getLicenseByDiscordIdRaw(discord_id);
               if (existing) return res.redirect('/admin/licenses?error=user_has_license');
 
               const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
@@ -628,7 +686,6 @@ async function getApp() {
               res.redirect('/admin/licenses?success=generated');
           } catch (err) {
               console.error('❌ Erro ao gerar licença:', err);
-              // 🔥 Passa a mensagem de erro real para o URL para saberes o que se passa
               const errorMsg = encodeURIComponent(err.message || 'Erro desconhecido');
               res.redirect(`/admin/licenses?error=generation_failed&reason=${errorMsg}`);
           }
@@ -670,7 +727,9 @@ async function getApp() {
               );
 
               const license = await getLicenseByDiscordIdRaw(user.discord_id);
-              const mta_config = license ? { ip: license.ip_permitido } : null;
+              const mta_config = license
+                ? { ip: license.ip_permitido, port: license.porta || null }
+                : null;
 
               // 🔥 NOVO: lista de todos os produtos (ativos e inativos) para o select
               const productsResult = await pool.query(
@@ -763,7 +822,9 @@ async function getApp() {
 
               // 🔥 Usa a versão "raw" que devolve a licença mesmo quando inativa
               const license = await getLicenseByDiscordIdRaw(req.session.user.id);
-              const mta_config = license ? { ip: license.ip_permitido } : null;
+              const mta_config = license
+                ? { ip: license.ip_permitido, port: license.porta || null }
+                : null;
 
               res.render('client/license', {
                   user: req.session.user,
@@ -858,12 +919,26 @@ async function getApp() {
 
       app.post('/api/client/mta-config', async (req, res) => {
           if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
-          const { ip } = req.body;
-          if (!ip || !/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
-              return res.status(400).json({ error: 'IP inválido. Formato: xxx.xxx.xxx.xxx' });
+
+          const { ip, port } = req.body;
+
+          const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(ip || '');
+          const isHostname = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(ip || '');
+
+          if (!ip || (!isIPv4 && !isHostname)) {
+              return res.status(400).json({ error: 'Host/IP inválido.' });
           }
+
+          if (port && !/^\d{1,5}$/.test(String(port))) {
+              return res.status(400).json({ error: 'Porta inválida.' });
+          }
+
           try {
-              await updateLicenseIP(req.session.user.id, ip);
+              await updateLicenseIP(
+                req.session.user.id,
+                ip.trim(),
+                port ? String(port).trim() : null
+              );
               res.json({ success: true });
           } catch (err) {
               console.error('Erro ao atualizar IP:', err);
@@ -878,10 +953,16 @@ async function getApp() {
         if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
 
         try {
-          const userResult = await pool.query('SELECT cart FROM users WHERE discord_id = $1', [req.session.user.id]);
+          const userResult = await pool.query(
+            'SELECT cart FROM users WHERE discord_id = $1',
+            [req.session.user.id]
+          );
           const cart = userResult.rows[0]?.cart || [];
 
           if (cart.length === 0) return res.status(400).json({ error: 'Carrinho vazio' });
+
+          // 🔥 Verifica se TODOS os itens do carrinho são grátis
+          const allFree = cart.every(item => parseFloat(item.price) <= 0);
 
           for (const item of cart) {
             const isFree = parseFloat(item.price) <= 0;
@@ -905,10 +986,20 @@ async function getApp() {
           await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', ['[]', req.session.user.id]);
           req.session.coupon = null;
 
-          // 🔥 Enviar log para o Discord
-          await sendPurchaseWebhook(req.session.user, cart);
+          // 🔥 Escolhe o webhook certo
+          if (allFree) {
+            await sendFreePurchaseWebhook(req.session.user, cart);
+          } else {
+            await sendPurchaseWebhook(req.session.user, cart);
+          }
 
-          res.json({ success: true, message: 'Pedido registado! Abre Ticket no Discord para pagar.' });
+          res.json({
+            success: true,
+            autoApproved: allFree,
+            message: allFree
+              ? 'Pedido concluído automaticamente (produtos grátis já estão na tua Área Cliente)!'
+              : 'Pedido registado! Abre Ticket no Discord para pagar.'
+          });
         } catch (err) {
           console.error('❌ Erro no checkout:', err);
           res.status(500).json({ error: 'Erro ao processar a compra' });
@@ -1348,7 +1439,7 @@ async function getApp() {
             const user = userResult.rows[0];
 
             if (purchase.product_category === 'MTA') {
-              const existingLicense = await getLicenseByDiscordId(purchase.user_discord_id);
+              const existingLicense = await getLicenseByDiscordIdRaw(purchase.user_discord_id);
               if (!existingLicense) {
                 const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
                 const randomPart = () => Math.random().toString(36).substring(2, 10);

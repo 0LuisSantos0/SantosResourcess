@@ -822,8 +822,14 @@
         return;
       }
 
-      const discordUrl = '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
-      window.open(discordUrl, '_blank');
+      // 🔥 Verifica se TODOS os itens são grátis
+      const allFree = cart.every(item => parseFloat(item.price) <= 0);
+
+      // Só abre o Discord se houver algo para pagar
+      if (!allFree) {
+        const discordUrl = '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
+        window.open(discordUrl, '_blank');
+      }
 
       try {
         const response = await fetch('/api/checkout', { method: 'POST' });
@@ -842,6 +848,17 @@
           const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl)
                           || new bootstrap.Offcanvas(offcanvasEl);
           bsOffcanvas.hide();
+        }
+
+        // 🔥 Ajusta o texto do modal conforme grátis ou não
+        const successTitle = document.querySelector('#checkoutSuccessModal h3');
+        const successDesc  = document.querySelector('#checkoutSuccessModal .text-light.opacity-75.small');
+        if (data.autoApproved) {
+          if (successTitle) successTitle.textContent = 'Produto Grátis Ativado!';
+          if (successDesc)  successDesc.textContent  = 'Os teus produtos grátis já estão disponíveis na Área Cliente.';
+        } else {
+          if (successTitle) successTitle.textContent = 'Pedido Registado!';
+          if (successDesc)  successDesc.textContent  = 'O teu pedido foi criado com sucesso.';
         }
 
         setTimeout(() => {
