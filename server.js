@@ -449,20 +449,58 @@ async function getApp() {
 
       app.get('/', async (req, res) => {
         try {
-          const result = await pool.query('SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC');
+          const featuredResult = await pool.query(
+            `SELECT * FROM products 
+            WHERE is_active = 1 AND is_featured = 1 
+            ORDER BY id ASC LIMIT 3`
+          );
+          let products = featuredResult.rows;
+
+          if (products.length < 3) {
+            const excludeIds = products.map(p => p.id);
+            const needed = 3 - products.length;
+
+            let fallbackQuery = 'SELECT * FROM products WHERE is_active = 1';
+            const params = [];
+
+            if (excludeIds.length > 0) {
+              fallbackQuery += ` AND id NOT IN (${excludeIds.map((_, i) => `$${i + 1}`).join(',')})`;
+              params.push(...excludeIds);
+            }
+
+            fallbackQuery += ` ORDER BY id DESC LIMIT $${params.length + 1}`;
+            params.push(needed);
+
+            const fallbackResult = await pool.query(fallbackQuery, params);
+            products = products.concat(fallbackResult.rows);
+          }
+
+          const totalResult = await pool.query(
+            'SELECT COUNT(*) as count FROM products WHERE is_active = 1'
+          );
+          const totalActiveProducts = parseInt(totalResult.rows[0].count, 10);
+
           let isAdmin = false;
           if (req.session.user) {
             if (config.ADMIN_IDS.includes(req.session.user.id)) {
               isAdmin = true;
             } else {
-              const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+              const dbCheck = await pool.query(
+                'SELECT is_admin FROM users WHERE discord_id = $1',
+                [req.session.user.id]
+              );
               if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
                 isAdmin = true;
               }
             }
           }
 
-          res.render('home', { products: result.rows, user: req.session.user || null, isAdmin: isAdmin });
+          res.render('home', {
+            products,
+            totalActiveProducts,
+            user: req.session.user || null,
+            isAdmin
+          });
         } catch (err) {
           console.error("❌ ERRO NA ROTA HOME:", err);
           res.status(500).send('Erro ao carregar produtos: ' + err.message);
@@ -1100,7 +1138,18 @@ async function getApp() {
 
       app.get('/admin', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
-        res.render('admin/products', { products: result.rows, activeTab: 'products', error: null, user: req.session.user });
+
+        let error = null;
+        if (req.query.error === 'max_featured') {
+          error = 'Já tens 3 produtos em destaque. Remove um antes de destacar outro.';
+        }
+
+        res.render('admin/products', {
+          products: result.rows,
+          activeTab: 'products',
+          error,
+          user: req.session.user
+        });
       });
 
       app.post('/admin/products/add', isAdmin, async (req, res) => {

@@ -553,7 +553,7 @@
     <section class="container mt-5 pt-2">
       <h2 class="text-center fw-bold mb-5" data-aos="fade-up"><i class="fa-solid fa-box-open text-primary me-2"></i> Nossos Produtos Ativos</h2>
       <div class="row row-cols-1 row-cols-md-3 g-4 products-grid-3d">
-        <% const limitedProducts = products.slice(0, 3); const hasMoreProducts = products.length > 3; %>
+        <% const limitedProducts = products; const hasMoreProducts = totalActiveProducts > 3; %>
         <% if (limitedProducts.length === 0) { %>
           <div class="col-12 text-center text-muted py-5" data-aos="fade-up"><h4><i class="fa-regular fa-circle-question me-2"></i> Nenhum produto cadastrado!</h4></div>
         <% } else { %>
