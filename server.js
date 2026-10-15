@@ -187,26 +187,24 @@ async function sendFreePurchaseWebhook(user, cartItems) {
 
     const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
 
-    const itemsList = cartItems
-      .map(item => `• **${item.name}** x${item.quantity} — 🎁 GRÁTIS`)
-      .join('\n');
+    const produtosList = cartItems.map(item => item.name).join('\n');
 
     const payload = {
       username: 'Compras',
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       embeds: [
         {
-          title: 'Produto Grátis',
-          description: `**${user.username}** adquiriu um produto grátis e foi **aprovado automaticamente**.`,
+          title: '- Nova compra Realizada!',
+          description: `Obrigado **${user.username}** pela preferência! Esperemos que desfrute do seu produto e volte sempre!`,
           color: 0x10b981,
           thumbnail: user.avatar
             ? { url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` }
             : undefined,
           fields: [
-            { name: 'Cliente', value: `${user.username}\n\`${user.id}\``, inline: true },
-            { name: 'Total', value: '**€0.00**', inline: true },
-            { name: 'Estado', value: 'Auto-aprovado (Free)', inline: true },
-            { name: 'Produtos', value: itemsList || '—', inline: false }
+            { name: 'Status', value: '**Pago**', inline: true },
+            { name: 'Método', value: 'Produto Grátis', inline: true },
+            { name: '\u200B', value: '\u200B', inline: true },
+            { name: 'Produtos', value: `\`\`\`\n${produtosList}\n\`\`\``, inline: false }
           ],
           footer: { text: 'Santos Resources • ' },
           timestamp: new Date().toISOString()
