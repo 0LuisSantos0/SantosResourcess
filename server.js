@@ -342,6 +342,46 @@ async function getApp() {
       });
 
       // ══════════════════════════════════════════
+      // MIDDLEWARE DE BAN — bloqueia utilizadores banidos
+      // ══════════════════════════════════════════
+      app.use(async (req, res, next) => {
+        try {
+          if (!req.session?.user) return next();
+
+          // Rotas sempre permitidas
+          const allowed = ['/auth/discord', '/auth/discord/callback', '/logout'];
+          if (allowed.some(p => req.path === p || req.path.startsWith(p + '/'))) {
+            return next();
+          }
+
+          // Admins da config nunca são bloqueados (evita lockout)
+          if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
+
+          const r = await pool.query(
+            'SELECT is_banned, ban_reason FROM users WHERE discord_id = $1',
+            [req.session.user.id]
+          );
+          const u = r.rows[0];
+
+          if (u && u.is_banned === 1) {
+            if (req.path.startsWith('/api/')) {
+              return res.status(403).json({ error: 'A tua conta está banida.' });
+            }
+            return res.status(403).render('banned', {
+              user: req.session.user,
+              reason: u.ban_reason || 'Não especificado',
+              siteSettings: res.locals.siteSettings
+            });
+          }
+
+          next();
+        } catch (err) {
+          console.error('⚠️ Erro no middleware de ban (ignorado):', err.message);
+          next();
+        }
+      });
+
+      // ══════════════════════════════════════════
       // ROTAS PÚBLICAS
       // ══════════════════════════════════════════
 
@@ -1082,6 +1122,36 @@ async function getApp() {
             [user.id, user.username, user.avatar, now]
           );
 
+          try {
+            if (process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID) {
+              const guildBan = await axios.get(
+                `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/bans/${user.id}`,
+                {
+                  headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+                  validateStatus: () => true
+                }
+              );
+
+              if (guildBan.status === 200) {
+                await pool.query(
+                  `UPDATE users SET is_banned = 1, ban_reason = $1, banned_at = CURRENT_TIMESTAMP, banned_by = 'Discord Bot' WHERE discord_id = $2`,
+                  ['Banido no servidor Discord', user.id]
+                );
+                console.log(`🚫 Utilizador ${user.username} banido automaticamente (banido no Discord).`);
+              }
+            }
+          } catch (banErr) {
+            console.error('⚠️ Erro ao verificar ban do Discord (ignorado):', banErr.message);
+          }
+
+          const banCheck = await pool.query(
+            'SELECT is_banned FROM users WHERE discord_id = $1',
+            [user.id]
+          );
+          if (banCheck.rows[0]?.is_banned === 1) {
+            return res.redirect('/');
+          }
+
           if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
 
           const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
@@ -1225,6 +1295,73 @@ async function getApp() {
       app.get('/admin/users', isAdmin, async (req, res) => {
         const result = await pool.query('SELECT * FROM users ORDER BY id ASC');
         res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
+      });
+
+            // ══════════════════════════════════════════
+      // ADMIN — BANIR / DESBANIR UTILIZADOR
+      // ══════════════════════════════════════════
+      app.post('/admin/users/ban/:id', isAdmin, async (req, res) => {
+        try {
+          const { reason } = req.body;
+          const userResult = await pool.query(
+            'SELECT username, is_banned FROM users WHERE id = $1',
+            [req.params.id]
+          );
+          if (userResult.rows.length === 0) return res.redirect(303, '/admin/users');
+
+          const { username, is_banned } = userResult.rows[0];
+          const newState = is_banned === 1 ? 0 : 1;
+
+          if (newState === 1) {
+            await pool.query(
+              `UPDATE users SET is_banned = 1, ban_reason = $1, banned_at = CURRENT_TIMESTAMP, banned_by = $2 WHERE id = $3`,
+              [reason || 'Sem motivo especificado', req.session.user.username, req.params.id]
+            );
+            await logActivity(req, `Baniu o utilizador: ${username} (motivo: ${reason || 'N/A'})`);
+          } else {
+            await pool.query(
+              `UPDATE users SET is_banned = 0, ban_reason = NULL, banned_at = NULL, banned_by = NULL WHERE id = $1`,
+              [req.params.id]
+            );
+            await logActivity(req, `Desbaniu o utilizador: ${username}`);
+          }
+
+          res.redirect(303, '/admin/users');
+        } catch (err) {
+          console.error('❌ Erro ao banir/desbanir:', err);
+          res.redirect(303, '/admin/users');
+        }
+      });
+
+      app.post('/api/discord/ban-sync', async (req, res) => {
+        try {
+          const secret = req.headers['x-bot-secret'] || req.body.secret;
+          if (!process.env.DISCORD_BOT_SECRET || secret !== process.env.DISCORD_BOT_SECRET) {
+            return res.status(401).json({ error: 'Não autorizado' });
+          }
+
+          const { discord_id, action, reason } = req.body;
+          if (!discord_id || !['ban', 'unban'].includes(action)) {
+            return res.status(400).json({ error: 'Campos inválidos. Esperado: discord_id, action (ban|unban)' });
+          }
+
+          if (action === 'ban') {
+            const r = await pool.query(
+              `UPDATE users SET is_banned = 1, ban_reason = $1, banned_at = CURRENT_TIMESTAMP, banned_by = 'Discord Bot' WHERE discord_id = $2 RETURNING id`,
+              [reason || 'Banido no Discord', String(discord_id)]
+            );
+            return res.json({ success: true, updated: r.rowCount > 0 });
+          } else {
+            const r = await pool.query(
+              `UPDATE users SET is_banned = 0, ban_reason = NULL, banned_at = NULL, banned_by = NULL WHERE discord_id = $1 RETURNING id`,
+              [String(discord_id)]
+            );
+            return res.json({ success: true, updated: r.rowCount > 0 });
+          }
+        } catch (err) {
+          console.error('❌ Erro no ban-sync:', err);
+          res.status(500).json({ error: err.message });
+        }
       });
 
       app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {

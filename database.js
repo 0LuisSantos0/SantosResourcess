@@ -140,6 +140,22 @@ const initDB = async () => {
     `);
 
     await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned INTEGER DEFAULT 0;
+    `);
+
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP;
+    `);
+
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_by TEXT;
+    `);
+
+    await pool.query(`
       INSERT INTO settings (id, site_name, discord_link)
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt'
       WHERE NOT EXISTS (SELECT 1 FROM settings WHERE id = 1);

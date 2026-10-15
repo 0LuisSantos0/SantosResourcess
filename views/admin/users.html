@@ -115,6 +115,7 @@
                     <th>Avatar</th>
                     <th>Nome Discord</th>
                     <th class="text-center">Admin</th>
+                    <th class="text-center">Estado</th>
                     <th class="text-center">Último Login</th>
                     <th class="text-end pe-4">Ações</th>
                   </tr>
@@ -138,6 +139,13 @@
                           <span class="badge bg-secondary rounded-pill px-3">Utilizador</span>
                         <% } %>
                       </td>
+                      <td class="text-center">
+                        <% if (u.is_banned === 1) { %>
+                          <span class="badge bg-danger rounded-pill px-3">Banido</span>
+                        <% } else { %>
+                          <span class="badge bg-success rounded-pill px-3">Ativo</span>
+                        <% } %>
+                      </td>
                       <td class="text-center small text-muted"><%= new Date(u.last_login).toLocaleDateString() %></td>
                       <td class="text-end pe-4" onclick="event.stopPropagation();">
                         <div class="d-flex justify-content-end gap-2">
@@ -145,6 +153,19 @@
                             onclick="openUserDetail(<%= u.id %>, '<%= u.username.replace(/'/g, "\\'") %>')">
                             <i class="fa-solid fa-eye text-white"></i>
                           </button>
+
+                          <% if (u.is_banned === 1) { %>
+                            <button type="button" class="action-btn btn btn-outline-success" title="Desbanir"
+                              onclick="openBanModal(<%= u.id %>, '<%= u.username.replace(/'/g, "\\'") %>', 1)">
+                              <i class="fa-solid fa-unlock"></i>
+                            </button>
+                          <% } else { %>
+                            <button type="button" class="action-btn btn btn-outline-danger" title="Banir"
+                              onclick="openBanModal(<%= u.id %>, '<%= u.username.replace(/'/g, "\\'") %>', 0)">
+                              <i class="fa-solid fa-ban"></i>
+                            </button>
+                          <% } %>
+
                           <form action="/admin/users/toggle/<%= u.id %>" method="POST">
                             <% if (u.is_admin === 1) { %>
                               <button type="submit" class="action-btn btn btn-outline-danger" title="Remover Admin">
@@ -227,6 +248,36 @@
             <i class="fa-solid fa-check me-2"></i> Adicionar
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="banModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0" style="border-radius:20px; overflow:hidden;">
+        <div class="modal-header border-0" id="banModalHeader" style="background:linear-gradient(135deg,#dc2626,#991b1b); color:white; padding:20px 24px;">
+          <h5 class="modal-title fw-bold">
+            <i class="fa-solid fa-ban me-2"></i>
+            <span id="banModalTitle">Banir Utilizador</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="banForm" method="POST">
+          <div class="modal-body p-4" style="background:#f8fafc;">
+            <p class="mb-3">
+              <span id="banModalText">Tens a certeza que queres banir</span>
+              <strong id="banModalUser" class="text-dark"></strong>?
+            </p>
+            <div id="banReasonGroup">
+              <label class="form-label fw-bold small text-muted">Motivo do Ban (opcional)</label>
+              <textarea name="reason" class="form-control" rows="3" placeholder="Ex: Violação das regras, comportamento abusivo..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-0" style="background:#f8fafc; padding:15px 24px 20px;">
+            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn rounded-pill px-4 fw-bold" id="banModalConfirmBtn">Sim, Banir</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -400,6 +451,43 @@
         btn.innerHTML = originalHtml;
       }
     });
+
+    let banModalInstance = null;
+
+    function openBanModal(userId, username, isBanned) {
+      const modalEl = document.getElementById('banModal');
+      const form = document.getElementById('banForm');
+      const title = document.getElementById('banModalTitle');
+      const text = document.getElementById('banModalText');
+      const userEl = document.getElementById('banModalUser');
+      const reasonGroup = document.getElementById('banReasonGroup');
+      const confirmBtn = document.getElementById('banModalConfirmBtn');
+      const header = document.getElementById('banModalHeader');
+
+      userEl.textContent = username;
+      form.action = `/admin/users/ban/${userId}`;
+
+      if (isBanned === 1) {
+        title.textContent = 'Desbanir Utilizador';
+        text.textContent = 'Tens a certeza que queres desbanir';
+        header.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+        confirmBtn.className = 'btn btn-success rounded-pill px-4 fw-bold';
+        confirmBtn.textContent = 'Sim, Desbanir';
+        reasonGroup.style.display = 'none';
+      } else {
+        title.textContent = 'Banir Utilizador';
+        text.textContent = 'Tens a certeza que queres banir';
+        header.style.background = 'linear-gradient(135deg,#dc2626,#991b1b)';
+        confirmBtn.className = 'btn btn-danger rounded-pill px-4 fw-bold';
+        confirmBtn.textContent = 'Sim, Banir';
+        reasonGroup.style.display = 'block';
+      }
+
+      if (!banModalInstance) {
+        banModalInstance = new bootstrap.Modal(modalEl);
+      }
+      banModalInstance.show();
+    }
   </script>
 </body>
 </html>

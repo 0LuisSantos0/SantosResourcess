@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santos Resources | Conta Banida</title>
+
+  <link rel="icon" href="<%= siteSettings.logo_url ? siteSettings.logo_url : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚫</text></svg>' %>" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --danger: #ef4444;
+      --secondary: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 20% 20%, #450a0a 0%, #1e1b4b 40%, #0f172a 70%, #0b1120 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .grid-overlay {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(239, 68, 68, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(239, 68, 68, 0.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+      z-index: 0;
+      mask-image: radial-gradient(circle at center, black 20%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at center, black 20%, transparent 80%);
+      animation: gridMove 20s linear infinite;
+    }
+    @keyframes gridMove { 0% { background-position: 0 0; } 100% { background-position: 60px 60px; } }
+
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(100px);
+      z-index: 0; pointer-events: none; opacity: 0.5;
+    }
+    .orb-1 {
+      width: 400px; height: 400px; background: var(--danger);
+      top: -10%; left: -5%;
+      animation: floatOrb 15s infinite ease-in-out alternate;
+    }
+    .orb-2 {
+      width: 350px; height: 350px; background: #7f1d1d;
+      bottom: -15%; right: -5%;
+      animation: floatOrb 18s infinite ease-in-out alternate-reverse;
+    }
+    @keyframes floatOrb { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px,-40px) scale(1.15); } }
+
+    .error-container {
+      position: relative; z-index: 10; text-align: center;
+      padding: 40px 20px; max-width: 720px; width: 100%;
+      animation: fadeInUp 1s ease-out forwards;
+    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+    .ban-icon-wrap {
+      width: 110px; height: 110px; border-radius: 50%;
+      background: rgba(239, 68, 68, 0.15);
+      border: 3px solid rgba(239, 68, 68, 0.5);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 22px;
+      animation: pulseBan 2s infinite ease-in-out;
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.3);
+    }
+    @keyframes pulseBan {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4), 0 0 40px rgba(239,68,68,0.3); }
+      50%      { box-shadow: 0 0 0 20px rgba(239,68,68,0), 0 0 50px rgba(239,68,68,0.4); }
+    }
+    .ban-icon-wrap i { font-size: 3rem; color: #f87171; }
+
+    .ban-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 14px;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+    .ban-title .highlight {
+      background: linear-gradient(90deg, #ef4444, #f87171, #ef4444);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 2s linear infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+
+    .ban-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 550px;
+      margin: 0 auto 26px;
+      line-height: 1.7;
+    }
+
+    .reason-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin: 0 auto 30px;
+      max-width: 520px;
+      text-align: left;
+    }
+    .reason-box .reason-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #fca5a5;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .reason-box .reason-text {
+      color: #f1f5f9;
+      font-size: 0.98rem;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .action-buttons {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;
+    }
+    .btn-custom {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 30px; border-radius: 50px;
+      font-weight: 600; font-size: 0.95rem; text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 1px solid transparent; cursor: pointer;
+      backdrop-filter: blur(10px);
+    }
+    .btn-discord-custom {
+      background: rgba(88, 101, 242, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(88, 101, 242, 0.4);
+    }
+    .btn-discord-custom:hover {
+      background: #5865F2; color: #fff;
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 10px 25px rgba(88, 101, 242, 0.5);
+    }
+    .btn-outline-custom {
+      background: var(--glass-bg);
+      color: var(--text-main);
+      border: 1px solid var(--glass-border);
+    }
+    .btn-outline-custom:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--danger);
+      color: #f87171;
+      transform: translateY(-4px) scale(1.03);
+    }
+
+    .ban-footer {
+      margin-top: 50px; font-size: 0.85rem; color: #475569;
+    }
+
+    @media (max-width: 576px) {
+      .action-buttons { flex-direction: column; width: 100%; }
+      .btn-custom { width: 100%; justify-content: center; }
+      .ban-icon-wrap { width: 90px; height: 90px; }
+      .ban-icon-wrap i { font-size: 2.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="error-container">
+    <div class="ban-icon-wrap">
+      <i class="fa-solid fa-ban"></i>
+    </div>
+
+    <h1 class="ban-title">Conta <span class="highlight">Banida</span></h1>
+
+    <p class="ban-subtitle">
+      O teu acesso a este site foi <strong>suspenso</strong>.
+      Se acreditas que isto é um erro, contacta a equipa no Discord.
+    </p>
+
+    <% if (typeof reason !== 'undefined' && reason) { %>
+      <div class="reason-box">
+        <div class="reason-label">
+          <i class="fa-solid fa-circle-info"></i> Motivo do ban
+        </div>
+        <div class="reason-text"><%= reason %></div>
+      </div>
+    <% } %>
+
+    <div class="action-buttons">
+      <a href="<%= siteSettings.discord_link || 'https://discord.gg/8GyNS5vRgt' %>" target="_blank" class="btn-custom btn-discord-custom">
+        <i class="fa-brands fa-discord"></i> Contactar Suporte
+      </a>
+      <a href="/logout" class="btn-custom btn-outline-custom">
+        <i class="fa-solid fa-right-from-bracket"></i> Terminar Sessão
+      </a>
+    </div>
+
+    <p class="ban-footer">
+      &copy; <%= new Date().getFullYear() %> Santos Resources. Todos os direitos reservados.
+    </p>
+  </div>
+</body>
+</html>
