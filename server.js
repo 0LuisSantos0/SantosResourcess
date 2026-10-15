@@ -27,10 +27,8 @@ const getAllLicenses = licensesModule?.getAllLicenses || (async () => []);
 const updateLicenseIP = licensesModule?.updateLicenseIP || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 const toggleLicenseStatus = licensesModule?.toggleLicenseStatus || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 const deleteLicense = licensesModule?.deleteLicense || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
+const { giveClientRole, giveClientFreeRole } = require('./src/discord/roles');
 
-// ══════════════════════════════════════════
-// VIEW ENGINE - Usa .html mas processa EJS
-// ══════════════════════════════════════════
 app.set('view engine', 'html');
 app.engine('html', ejs.renderFile);
 app.set('views', path.join(__dirname, 'views'));
@@ -886,11 +884,22 @@ async function getApp() {
           if (cart.length === 0) return res.status(400).json({ error: 'Carrinho vazio' });
 
           for (const item of cart) {
+            const isFree = parseFloat(item.price) <= 0;
+            const status = isFree ? 'completed' : 'pending';
+
             await pool.query(
               `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status)
-               VALUES ($1, $2, $3, $4, $5, 'pending')`,
-              [req.session.user.id, item.id, item.name, item.category, item.price]
+              VALUES ($1, $2, $3, $4, $5, $6)`,
+              [req.session.user.id, item.id, item.name, item.category, item.price, status]
             );
+
+            if (isFree) {
+              try {
+                await giveClientFreeRole(req.session.user.id);
+              } catch (roleErr) {
+                console.error('⚠️ Erro ao dar cargo Free (não bloqueia checkout):', roleErr.message);
+              }
+            }
           }
 
           await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', ['[]', req.session.user.id]);
@@ -1324,7 +1333,7 @@ async function getApp() {
       app.post('/admin/purchases/approve/:id', isAdmin, async (req, res) => {
         try {
           const result = await pool.query(
-            'SELECT product_name, product_category, user_discord_id FROM purchases WHERE id = $1',
+            'SELECT product_name, product_category, user_discord_id, price FROM purchases WHERE id = $1',
             [req.params.id]
           );
           const purchase = result.rows[0];
