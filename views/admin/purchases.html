@@ -48,7 +48,12 @@
         <div class="admin-card shadow-sm">
           <div class="p-4 border-bottom">
             <h5 class="fw-bold mb-0"><i class="fa-solid fa-cart-shopping text-primary me-2"></i> Pedidos / Compras</h5>
-            <p class="small text-muted mb-0">Aprova os pedidos após confirmação do pagamento no Discord. Enquanto não aprovados, o sistema não aparece na Área do Cliente.</p>
+            <p class="small text-muted mb-0">
+              Aprova os pedidos após confirmação do pagamento.
+              <strong class="text-primary">MTA</strong>: pagamento no site (admin contacta o cliente).
+              <strong class="text-info">Site / Bot Discord</strong>: via Ticket no Discord.
+              Enquanto não aprovados, o sistema não aparece na Área do Cliente.
+            </p>
           </div>
           <div class="p-0">
             <% if (error) { %><div class="alert alert-danger m-4"><%= error %></div><% } %>

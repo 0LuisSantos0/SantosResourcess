@@ -172,6 +172,22 @@ async function deleteLicense(id) {
     return true;
 }
 
+async function activateLicense(discordId) {
+    if (!supabase) throw new Error('Supabase não configurado');
+    const idStr = String(discordId).trim();
+    const { data, error } = await supabase
+        .from('licencas')
+        .update({ ativa: true })
+        .eq('discord_id', idStr)
+        .select()
+        .single();
+    if (error) {
+        console.error('❌ [Licenses] Erro ao reativar licença:', error.message);
+        throw error;
+    }
+    return data;
+}
+
 module.exports = {
     createLicense,
     getLicenseByDiscordId,
@@ -179,5 +195,6 @@ module.exports = {
     getAllLicenses,
     updateLicenseIP,
     toggleLicenseStatus,
-    deleteLicense
+    deleteLicense,
+    activateLicense
 };

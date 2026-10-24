@@ -188,6 +188,15 @@
                         <span class="status-badge status-<%= p.status || 'completed' %>">
                           <%= p.status === 'pending' ? 'Pendente' : p.status === 'cancelled' ? 'Cancelado' : 'Concluído' %>
                         </span>
+                        <% if (p.status === 'completed') { %>
+                          <div class="mt-2">
+                            <a href="/api/invoice/<%= p.id %>" target="_blank"
+                              class="btn btn-sm btn-outline-primary rounded-pill"
+                              title="Ver fatura em PDF">
+                              <i class="fa-solid fa-file-pdf me-1"></i> Fatura
+                            </a>
+                          </div>
+                        <% } %>
                       </div>
                     </div>
                   </div>

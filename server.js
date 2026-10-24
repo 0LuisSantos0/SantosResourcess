@@ -7,6 +7,12 @@ const config = require('./config');
 const path = require('path');
 const ejs = require('ejs');
 const pgSession = require('connect-pg-simple')(session);
+let PDFDocument = null;
+try {
+  PDFDocument = require('pdfkit');
+} catch (err) {
+  console.warn('⚠️ pdfkit não instalado. Faturas PDF ficarão indisponíveis.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +33,7 @@ const getAllLicenses = licensesModule?.getAllLicenses || (async () => []);
 const updateLicenseIP = licensesModule?.updateLicenseIP || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 const toggleLicenseStatus = licensesModule?.toggleLicenseStatus || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
 const deleteLicense = licensesModule?.deleteLicense || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
+const activateLicense = licensesModule?.activateLicense || (async () => { throw new Error('Licenças indisponíveis'); });
 const { giveClientRole, giveClientFreeRole } = require('./src/discord/roles');
 
 app.set('view engine', 'html');
@@ -1069,12 +1076,17 @@ async function getApp() {
             await sendPurchaseWebhook(req.session.user, cart);
           }
 
+          const hasNonMtaItems = cart.some(item => item.category !== 'MTA');
+
           res.json({
             success: true,
             autoApproved: allFree,
+            paymentOnSite: !hasNonMtaItems && !allFree,
             message: allFree
               ? 'Pedido concluído automaticamente (produtos grátis já estão na tua Área Cliente)!'
-              : 'Pedido registado! Abre Ticket no Discord para pagar.'
+              : hasNonMtaItems
+                ? 'Pedido registado! Abre Ticket no Discord para pagar.'
+                : 'Pedido registado! O admin irá processar o pagamento e aprovar.'
           });
         } catch (err) {
           console.error('❌ Erro no checkout:', err);
@@ -1625,6 +1637,7 @@ async function getApp() {
             if (purchase.product_category === 'MTA') {
               const existingLicense = await getLicenseByDiscordIdRaw(purchase.user_discord_id);
               if (!existingLicense) {
+                // Não tem licença → criar nova
                 const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
                 const randomPart = () => Math.random().toString(36).substring(2, 10);
                 const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
@@ -1632,10 +1645,17 @@ async function getApp() {
                 await createLicense(purchase.user_discord_id, usuario, chave);
                 console.log(`✅ Licença MTA gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`);
                 await logActivity(req, `Aprovou compra MTA e gerou licença automática para: ${purchase.user_discord_id}`);
+              } else if (existingLicense.ativa === false || existingLicense.ativa === 0) {
+                // 🔥 Já tem licença mas está INATIVA → reativar
+                await activateLicense(purchase.user_discord_id);
+                console.log(`✅ Licença MTA REATIVADA para o Discord ID: ${purchase.user_discord_id}`);
+                await logActivity(req, `Aprovou compra MTA e REATIVOU a licença para: ${purchase.user_discord_id}`);
               } else {
+                // Já tem licença ativa → nada a fazer
                 await logActivity(req, `Aprovou a compra MTA: ${purchase.product_name}`);
               }
             } else {
+              // Produto NÃO-MTA (Site / Bot Discord)
               console.log(`ℹ️ Compra aprovada sem gerar licença (categoria: ${purchase.product_category || 'desconhecida'})`);
               await logActivity(req, `Aprovou a compra (sem licença — categoria ${purchase.product_category || 'N/A'}): ${purchase.product_name}`);
             }
@@ -1685,6 +1705,142 @@ async function getApp() {
       // ══════════════════════════════════════════
       // 404 — Página não encontrada (personalizada)
       // ══════════════════════════════════════════
+      // ══════════════════════════════════════════
+      // FATURA AUTOMÁTICA EM PDF
+      // ══════════════════════════════════════════
+      app.get('/api/invoice/:purchaseId', async (req, res) => {
+        if (!req.session.user) return res.status(401).send('Não autorizado.');
+        if (!PDFDocument) return res.status(500).send('Sistema de faturas indisponível.');
+
+        try {
+          const result = await pool.query(
+            `SELECT p.*, u.username, u.avatar
+            FROM purchases p
+            LEFT JOIN users u ON u.discord_id = p.user_discord_id
+            WHERE p.id = $1`,
+            [req.params.purchaseId]
+          );
+
+          if (result.rows.length === 0) {
+            return res.status(404).send('Compra não encontrada.');
+          }
+
+          const purchase = result.rows[0];
+
+          // Permissão: dono OU admin
+          const isOwner = purchase.user_discord_id === req.session.user.id;
+          let isAdmin = config.ADMIN_IDS.includes(req.session.user.id);
+          if (!isAdmin) {
+            const dbCheck = await pool.query(
+              'SELECT is_admin FROM users WHERE discord_id = $1',
+              [req.session.user.id]
+            );
+            if (dbCheck.rows[0]?.is_admin === 1) isAdmin = true;
+          }
+
+          if (!isOwner && !isAdmin) {
+            return res.status(403).send('Sem permissão para acessar esta fatura.');
+          }
+
+          // ── Gerar PDF ──
+          const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `inline; filename="fatura-SR-${purchase.id}.pdf"`);
+          doc.pipe(res);
+
+          const DARK = '#0f172a';
+          const MUTED = '#64748b';
+          const LIGHT = '#f8fafc';
+
+          // Header
+          doc.rect(0, 0, 595.28, 130).fill(DARK);
+          doc.font('Helvetica-Bold').fontSize(24).fillColor('#ffffff')
+            .text('Santos Resources', 50, 45);
+          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
+            .text('Soluções de alta performance para MTA e Discord', 50, 78);
+          doc.font('Helvetica-Bold').fontSize(16).fillColor('#ffffff')
+            .text('FATURA', 400, 50, { align: 'right', width: 145 });
+          doc.font('Helvetica').fontSize(11).fillColor('#94a3b8')
+            .text(`#${purchase.id}`, 400, 78, { align: 'right', width: 145 });
+
+          // Cliente + Data
+          const infoY = 165;
+          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK).text('CLIENTE', 50, infoY);
+          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK).text('DATA', 350, infoY);
+          doc.moveTo(50, infoY + 18).lineTo(545, infoY + 18)
+            .strokeColor('#e2e8f0').lineWidth(1).stroke();
+
+          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
+            .text(purchase.username || 'N/A', 50, infoY + 28);
+          doc.font('Helvetica').fontSize(9).fillColor(MUTED)
+            .text(`Discord ID: ${purchase.user_discord_id}`, 50, infoY + 46);
+
+          const dateStr = new Date(purchase.purchased_at).toLocaleString('pt-PT', {
+            day: '2-digit', month: 'long', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+          doc.font('Helvetica').fontSize(10).fillColor(DARK).text(dateStr, 350, infoY + 28);
+
+          const statusText  = purchase.status === 'completed' ? 'PAGO'
+                            : purchase.status === 'pending'   ? 'PENDENTE'
+                            : 'CANCELADO';
+          const statusColor = purchase.status === 'completed' ? '#10b981'
+                            : purchase.status === 'pending'   ? '#f59e0b'
+                            : '#ef4444';
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(statusColor)
+            .text(statusText, 350, infoY + 46);
+
+          // Produto
+          const tableY = 265;
+          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
+            .text('DETALHES DO PRODUTO', 50, tableY);
+
+          doc.rect(50, tableY + 20, 495, 26).fill(LIGHT);
+          doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK);
+          doc.text('DESCRIÇÃO', 60, tableY + 28);
+          doc.text('CATEGORIA', 330, tableY + 28);
+          doc.text('VALOR', 440, tableY + 28, { align: 'right', width: 95 });
+
+          const rowY = tableY + 58;
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
+            .text(purchase.product_name || '—', 60, rowY, { width: 250 });
+          doc.font('Helvetica').fontSize(10).fillColor(MUTED)
+            .text(purchase.product_category || '—', 330, rowY);
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
+            .text(`€${parseFloat(purchase.price).toFixed(2)}`, 440, rowY, { align: 'right', width: 95 });
+
+          doc.moveTo(50, rowY + 26).lineTo(545, rowY + 26)
+            .strokeColor('#e2e8f0').lineWidth(1).stroke();
+
+          // Total
+          const totalY = rowY + 45;
+          doc.rect(350, totalY, 195, 42).fill(DARK);
+          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
+            .text('TOTAL', 365, totalY + 15);
+          doc.font('Helvetica-Bold').fontSize(16).fillColor('#22d3ee')
+            .text(`€${parseFloat(purchase.price).toFixed(2)}`, 400, totalY + 11,
+                  { align: 'right', width: 135 });
+
+          // Rodapé
+          doc.font('Helvetica').fontSize(8).fillColor(MUTED)
+            .text('Obrigado pela tua preferência! Para suporte, contacta-nos no Discord.',
+                  50, 770, { align: 'center', width: 495 });
+          doc.font('Helvetica').fontSize(7).fillColor('#94a3b8')
+            .text(`© ${new Date().getFullYear()} Santos Resources. Todos os direitos reservados.`,
+                  50, 785, { align: 'center', width: 495 });
+
+          doc.end();
+
+        } catch (err) {
+          console.error('❌ Erro ao gerar fatura:', err);
+          if (!res.headersSent) {
+            res.status(500).send('Erro ao gerar a fatura.');
+          } else {
+            try { res.end(); } catch (_) {}
+          }
+        }
+      });
       app.use((req, res) => {
         console.warn(`⚠️  404 - ${req.method} ${req.originalUrl}`);
         res.status(404).render('404', {

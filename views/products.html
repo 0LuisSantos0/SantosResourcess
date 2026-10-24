@@ -761,7 +761,7 @@
           <p class="text-light opacity-75 small mb-0">O teu pedido foi criado com sucesso.</p>
         </div>
         <div class="modal-body p-4 text-center">
-          <div class="d-flex align-items-start gap-3 mb-3 p-3" style="background:#f8fafc; border-radius:14px; text-align:left;">
+          <div id="checkoutStep1" class="d-flex align-items-start gap-3 mb-3 p-3" style="background:#f8fafc; border-radius:14px; text-align:left;">
             <i class="fa-brands fa-discord" style="font-size:1.6rem; color:#5865F2; margin-top:2px;"></i>
             <div>
               <div class="fw-bold small">Próximo passo: pagamento</div>
@@ -866,8 +866,10 @@
       // 🔥 Verifica se TODOS os itens são grátis
       const allFree = cart.every(item => parseFloat(item.price) <= 0);
 
-      // Só abre o Discord se houver algo para pagar
-      if (!allFree) {
+      // 🔥 Só abre o Discord se houver produtos NÃO-MTA (Site / Discord Bot)
+      const hasNonMtaItems = cart.some(item => item.category !== 'MTA');
+
+      if (!allFree && hasNonMtaItems) {
         const discordUrl = '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
         window.open(discordUrl, '_blank');
       }
@@ -891,16 +893,8 @@
           bsOffcanvas.hide();
         }
 
-        // 🔥 Ajusta o texto do modal conforme grátis ou não
-        const successTitle = document.querySelector('#checkoutSuccessModal h3');
-        const successDesc  = document.querySelector('#checkoutSuccessModal .text-light.opacity-75.small');
-        if (data.autoApproved) {
-          if (successTitle) successTitle.textContent = 'Produto Grátis Ativado!';
-          if (successDesc)  successDesc.textContent  = 'Os teus produtos grátis já estão disponíveis na Área Cliente.';
-        } else {
-          if (successTitle) successTitle.textContent = 'Pedido Registado!';
-          if (successDesc)  successDesc.textContent  = 'O teu pedido foi criado com sucesso.';
-        }
+        // 🔥 Ajusta o modal dinamicamente (grátis / pagamento no site / Discord)
+        updateCheckoutModal(data);
 
         setTimeout(() => {
           const modal = new bootstrap.Modal(document.getElementById('checkoutSuccessModal'));
@@ -913,6 +907,47 @@
       }
     }
 
+    function updateCheckoutModal(data) {
+      const title = document.querySelector('#checkoutSuccessModal h3');
+      const desc  = document.querySelector('#checkoutSuccessModal .text-light.opacity-75.small');
+      const step1 = document.getElementById('checkoutStep1');
+      if (!title || !desc) return;
+
+      if (data.autoApproved) {
+        title.textContent = 'Produto Grátis Ativado!';
+        desc.textContent  = 'Os teus produtos grátis já estão disponíveis na Área Cliente.';
+        if (step1) {
+          step1.innerHTML = `
+            <i class="fa-solid fa-circle-check" style="font-size:1.6rem; color:#10b981; margin-top:2px;"></i>
+            <div>
+              <div class="fw-bold small">Tudo pronto!</div>
+              <div class="text-muted small">Os teus produtos já estão em <strong>Área Cliente → Meus Sistemas</strong>.</div>
+            </div>`;
+        }
+      } else if (data.paymentOnSite) {
+        title.textContent = 'Pedido Registado!';
+        desc.textContent  = 'O teu pedido foi criado com sucesso.';
+        if (step1) {
+          step1.innerHTML = `
+            <i class="fa-solid fa-credit-card" style="font-size:1.6rem; color:#22d3ee; margin-top:2px;"></i>
+            <div>
+              <div class="fw-bold small">Próximo passo: pagamento</div>
+              <div class="text-muted small">Aguarda <strong>contacto do admin</strong> para concluir o pagamento.</div>
+            </div>`;
+        }
+      } else {
+        title.textContent = 'Pedido Registado!';
+        desc.textContent  = 'O teu pedido foi criado com sucesso.';
+        if (step1) {
+          step1.innerHTML = `
+            <i class="fa-brands fa-discord" style="font-size:1.6rem; color:#5865F2; margin-top:2px;"></i>
+            <div>
+              <div class="fw-bold small">Próximo passo: pagamento</div>
+              <div class="text-muted small">Dirige-te ao nosso <strong>Discord</strong> e abre um <strong>Ticket</strong> para concluir o pagamento.</div>
+            </div>`;
+        }
+      }
+    }
     async function saveCart() {
       try {
         await fetch('/api/cart', {
