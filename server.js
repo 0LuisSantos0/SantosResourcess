@@ -7,6 +7,7 @@ const config = require('./config');
 const path = require('path');
 const ejs = require('ejs');
 const pgSession = require('connect-pg-simple')(session);
+const { randomUUID } = require('crypto');
 let PDFDocument = null;
 try {
   PDFDocument = require('pdfkit');
@@ -677,15 +678,65 @@ async function getApp() {
         }
       });
 
-      // Tab: Histórico de Compras
+      // Tab: Histórico de Compras (agrupado por order_id)
       app.get('/client-area/purchases', async (req, res) => {
         if (!req.session.user) return res.redirect('/');
         try {
           const data = await getClientData(req);
-          res.render('client/purchases', data);
+
+          const result = await pool.query(
+            `SELECT *,
+                    COALESCE(NULLIF(order_id, ''), 'legacy-' || id::text) AS group_id
+             FROM purchases
+             WHERE user_discord_id = $1
+             ORDER BY purchased_at DESC`,
+            [req.session.user.id]
+          );
+
+          const ordersMap = new Map();
+
+          for (const row of result.rows) {
+            const gid = row.group_id;
+
+            if (!ordersMap.has(gid)) {
+              ordersMap.set(gid, {
+                order_id: gid,
+                purchased_at: row.purchased_at,
+                status: row.status,
+                items: [],
+                total: 0
+              });
+            }
+
+            const order = ordersMap.get(gid);
+            order.items.push(row);
+            order.total += parseFloat(row.price);
+
+            if (row.status === 'pending') order.status = 'pending';
+            else if (row.status === 'cancelled' && order.status !== 'pending') {
+              order.status = 'cancelled';
+            }
+          }
+
+          const orders = Array.from(ordersMap.values());
+          orders.sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+
+          res.render('client/purchases', {
+            user: req.session.user,
+            isAdmin: data.isAdmin,
+            systems: data.systems,
+            purchases: data.purchases,
+            orders
+          });
         } catch (err) {
           console.error('❌ Erro ao carregar histórico:', err);
-          res.render('client/purchases', { user: req.session.user, isAdmin: false, systems: [], purchases: [] });
+          res.render('client/purchases', {
+            user: req.session.user,
+            isAdmin: false,
+            systems: [],
+            purchases: [],
+            orders: []
+          });
         }
       });
 
@@ -1044,7 +1095,8 @@ async function getApp() {
 
           if (cart.length === 0) return res.status(400).json({ error: 'Carrinho vazio' });
 
-          // 🔥 Verifica se TODOS os itens do carrinho são grátis
+          const orderId = randomUUID();
+
           const allFree = cart.every(item => parseFloat(item.price) <= 0);
 
           for (const item of cart) {
@@ -1052,9 +1104,9 @@ async function getApp() {
             const status = isFree ? 'completed' : 'pending';
 
             await pool.query(
-              `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status)
-              VALUES ($1, $2, $3, $4, $5, $6)`,
-              [req.session.user.id, item.id, item.name, item.category, item.price, status]
+              `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status, order_id)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              [req.session.user.id, item.id, item.name, item.category, item.price, status, orderId]
             );
 
             if (isFree) {
@@ -1080,6 +1132,7 @@ async function getApp() {
 
           res.json({
             success: true,
+            orderId,
             autoApproved: allFree,
             paymentOnSite: !hasNonMtaItems && !allFree,
             message: allFree
@@ -1841,6 +1894,203 @@ async function getApp() {
           }
         }
       });
+
+      // ──────────────────────────────────────────
+      // FATURA AGRUPADA (por order_id) — NOVA
+      // ──────────────────────────────────────────
+      app.get('/api/invoice/order/:orderId', async (req, res) => {
+        if (!req.session.user) return res.status(401).send('Não autorizado.');
+        if (!PDFDocument) return res.status(500).send('Sistema de faturas indisponível.');
+
+        try {
+          const { orderId } = req.params;
+
+          const result = await pool.query(
+            `SELECT p.*, u.username, u.avatar
+             FROM purchases p
+             LEFT JOIN users u ON u.discord_id = p.user_discord_id
+             WHERE (
+               p.order_id = $1
+               OR COALESCE(NULLIF(p.order_id, ''), 'legacy-' || p.id::text) = $1
+             )
+             ORDER BY p.id ASC`,
+            [orderId]
+          );
+
+          if (result.rows.length === 0) {
+            return res.status(404).send('Pedido não encontrado.');
+          }
+
+          const first = result.rows[0];
+          const items = result.rows;
+
+          const isOwner = first.user_discord_id === req.session.user.id;
+          let isAdmin = config.ADMIN_IDS.includes(req.session.user.id);
+
+          if (!isAdmin) {
+            const dbCheck = await pool.query(
+              'SELECT is_admin FROM users WHERE discord_id = $1',
+              [req.session.user.id]
+            );
+            if (dbCheck.rows[0]?.is_admin === 1) isAdmin = true;
+          }
+
+          if (!isOwner && !isAdmin) {
+            return res.status(403).send('Sem permissão para acessar esta fatura.');
+          }
+
+          const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader(
+            'Content-Disposition',
+            `inline; filename="fatura-${String(orderId).slice(0, 8)}.pdf"`
+          );
+          doc.pipe(res);
+
+          const DARK = '#0f172a';
+          const MUTED = '#64748b';
+          const LIGHT = '#f8fafc';
+          const ACCENT = '#22d3ee';
+
+          // Cabeçalho
+          doc.rect(0, 0, 595.28, 130).fill(DARK);
+          doc.font('Helvetica-Bold').fontSize(24).fillColor('#ffffff')
+            .text('Santos Resources', 50, 45);
+          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
+            .text('Soluções de alta performance para MTA e Discord', 50, 78);
+          doc.font('Helvetica-Bold').fontSize(18).fillColor('#ffffff')
+            .text('FATURA', 400, 50, { align: 'right', width: 145 });
+          doc.font('Helvetica').fontSize(11).fillColor('#94a3b8')
+            .text(`#${String(orderId).slice(0, 8).toUpperCase()}`, 400, 78, {
+              align: 'right',
+              width: 145
+            });
+
+          // Cliente / Data
+          const infoY = 165;
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text('CLIENTE', 50, infoY);
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text('DATA', 350, infoY);
+
+          doc.moveTo(50, infoY + 18)
+            .lineTo(545, infoY + 18)
+            .strokeColor('#e2e8f0')
+            .lineWidth(1)
+            .stroke();
+
+          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
+            .text(first.username || 'N/A', 50, infoY + 28);
+
+          doc.font('Helvetica').fontSize(9).fillColor(MUTED)
+            .text(`Discord ID: ${first.user_discord_id}`, 50, infoY + 46);
+
+          const dateStr = new Date(first.purchased_at).toLocaleString('pt-PT', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          doc.font('Helvetica').fontSize(10).fillColor(DARK)
+            .text(dateStr, 350, infoY + 28);
+
+          const statusText = first.status === 'completed' ? 'PAGO'
+                           : first.status === 'pending'   ? 'PENDENTE'
+                           : 'CANCELADO';
+
+          const statusColor = first.status === 'completed' ? '#10b981'
+                            : first.status === 'pending'   ? '#f59e0b'
+                            : '#ef4444';
+
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(statusColor)
+            .text(statusText, 350, infoY + 46);
+
+          // Tabela de itens
+          let tableY = 265;
+
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
+            .text('DETALHES DO PEDIDO', 50, tableY);
+
+          tableY += 20;
+
+          doc.rect(50, tableY, 495, 24).fill(LIGHT);
+          doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK)
+            .text('DESCRIÇÃO', 60, tableY + 8)
+            .text('CATEGORIA', 340, tableY + 8)
+            .text('VALOR', 460, tableY + 8, { align: 'right', width: 75 });
+
+          tableY += 24;
+          let total = 0;
+
+          for (const item of items) {
+            const price = parseFloat(item.price);
+            total += price;
+
+            doc.font('Helvetica').fontSize(10).fillColor(DARK)
+              .text(item.product_name || '—', 60, tableY + 8, { width: 270 });
+
+            doc.font('Helvetica').fontSize(9).fillColor(MUTED)
+              .text(item.product_category || '—', 340, tableY + 8, { width: 100 });
+
+            doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
+              .text(`€${price.toFixed(2)}`, 460, tableY + 8, {
+                align: 'right',
+                width: 75
+              });
+
+            tableY += 26;
+
+            doc.moveTo(50, tableY)
+              .lineTo(545, tableY)
+              .strokeColor('#f1f5f9')
+              .lineWidth(1)
+              .stroke();
+
+            tableY += 6;
+          }
+
+          // Total
+          tableY += 10;
+
+          doc.rect(350, tableY, 195, 45).fill(DARK);
+          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
+            .text('TOTAL', 365, tableY + 15);
+
+          doc.font('Helvetica-Bold').fontSize(18).fillColor(ACCENT)
+            .text(`€${total.toFixed(2)}`, 400, tableY + 11, {
+              align: 'right',
+              width: 135
+            });
+
+          // Rodapé
+          doc.font('Helvetica').fontSize(8).fillColor(MUTED)
+            .text(
+              'Obrigado pela tua preferência! Para suporte, contacta-nos no Discord.',
+              50,
+              770,
+              { align: 'center', width: 495 }
+            );
+
+          doc.font('Helvetica').fontSize(7).fillColor('#94a3b8')
+            .text(
+              `© ${new Date().getFullYear()} Santos Resources. Todos os direitos reservados.`,
+              50,
+              785,
+              { align: 'center', width: 495 }
+            );
+
+          doc.end();
+        } catch (err) {
+          console.error('❌ Erro ao gerar fatura agrupada:', err);
+          if (!res.headersSent) {
+            res.status(500).send('Erro ao gerar a fatura.');
+          } else {
+            try { res.end(); } catch (_) {}
+          }
+        }
+      });
+
       app.use((req, res) => {
         console.warn(`⚠️  404 - ${req.method} ${req.originalUrl}`);
         res.status(404).render('404', {
