@@ -573,7 +573,7 @@
                     <i class="fa-regular fa-heart"></i>
                   </button>
 
-                  <button class="btn-info" onclick="openInfoModal(<%= p.id %>, '<%= p.name.replace(/'/g, "\\'") %>', '<%= p.video_link || "" %>', `<%= p.features || "" %>`)" title="Ver detalhes"><i class="fa-solid fa-info"></i></button>
+                  <button class="btn-info" onclick='openInfoModal(<%= p.id %>, <%= JSON.stringify(p.name) %>, <%= JSON.stringify(p.video_link || "") %>, <%= JSON.stringify(p.features || "") %>)' title="Ver detalhes"><i class="fa-solid fa-info"></i></button>
                   
                   <div class="product-image-area">
                     <% if (p.thumbnail && p.thumbnail.trim() !== '') { %>

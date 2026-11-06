@@ -159,6 +159,31 @@ const initDB = async () => {
       ALTER TABLE purchases ADD COLUMN IF NOT EXISTS order_id TEXT;
     `);
 
+    try {
+      const backfill = await pool.query(`
+        WITH groups AS (
+          SELECT
+            user_discord_id,
+            DATE_TRUNC('minute', purchased_at) AS grp,
+            MIN(id) AS first_id
+          FROM purchases
+          WHERE order_id IS NULL
+          GROUP BY user_discord_id, DATE_TRUNC('minute', purchased_at)
+        )
+        UPDATE purchases p
+        SET order_id = 'legacy-' || g.first_id::text
+        FROM groups g
+        WHERE p.user_discord_id = g.user_discord_id
+          AND DATE_TRUNC('minute', p.purchased_at) = g.grp
+          AND p.order_id IS NULL
+      `);
+      if (backfill.rowCount > 0) {
+        console.log(`✅ Backfill: ${backfill.rowCount} compras antigas agrupadas por order_id.`);
+      }
+    } catch (bfErr) {
+      console.error('⚠️ Erro no backfill de order_id (ignorado):', bfErr.message);
+    }
+
     await pool.query(`
       INSERT INTO settings (id, site_name, discord_link)
       SELECT 1, 'Santos Resources', 'https://discord.gg/8GyNS5vRgt'

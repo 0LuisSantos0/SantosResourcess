@@ -25,15 +25,15 @@
           <div class="text-start small text-light-emphasis mt-2 px-2"><i class="fa-regular fa-circle-user me-2"></i> <%= user ? user.username : 'Admin' %></div>
         </div>
         <nav class="nav flex-column mb-auto">
-          <a href="/admin/dashboard"><i class="fa-solid fa-chart-simple me-2"></i> Dashboard</a>
-          <a href="/admin"><i class="fa-solid fa-box me-2"></i> Produtos</a>
-          <a href="/admin/users"><i class="fa-solid fa-users me-2"></i> Utilizadores</a>
-          <a href="/admin/licenses"><i class="fa-solid fa-key me-2"></i> Licenças</a>
-          <a href="/admin/discounts"><i class="fa-solid fa-tags me-2"></i> Descontos</a>
-          <a href="/admin/payment-methods"><i class="fa-solid fa-money-bill-transfer me-2"></i> Pagamentos</a>
-          <a href="/admin/purchases"><i class="fa-solid fa-cart-shopping me-2"></i> Compras</a>
-          <a href="/admin/logs"><i class="fa-solid fa-clock-rotate-left me-2"></i> Logs</a>
-          <a href="/admin/settings"><i class="fa-solid fa-gear me-2"></i> Configurações</a>
+          <a href="/admin/dashboard" class="<%= activeTab === 'dashboard' ? 'active' : '' %>"><i class="fa-solid fa-chart-simple me-2"></i> Dashboard</a>
+          <a href="/admin" class="<%= activeTab === 'products' ? 'active' : '' %>"><i class="fa-solid fa-box me-2"></i> Produtos</a>
+          <a href="/admin/users" class="<%= activeTab === 'users' ? 'active' : '' %>"><i class="fa-solid fa-users me-2"></i> Utilizadores</a>
+          <a href="/admin/licenses" class="<%= activeTab === 'licenses' ? 'active' : '' %>"><i class="fa-solid fa-key me-2"></i> Licenças</a>
+          <a href="/admin/discounts" class="<%= activeTab === 'discounts' ? 'active' : '' %>"><i class="fa-solid fa-tags me-2"></i> Descontos</a>
+          <a href="/admin/payment-methods" class="<%= activeTab === 'payment-methods' ? 'active' : '' %>"><i class="fa-solid fa-money-bill-transfer me-2"></i> Pagamentos</a>
+          <a href="/admin/purchases" class="<%= activeTab === 'purchases' ? 'active' : '' %>"><i class="fa-solid fa-cart-shopping me-2"></i> Compras</a>
+          <a href="/admin/logs" class="<%= activeTab === 'logs' ? 'active' : '' %>"><i class="fa-solid fa-clock-rotate-left me-2"></i> Logs</a>
+          <a href="/admin/settings" class="<%= activeTab === 'settings' ? 'active' : '' %>"><i class="fa-solid fa-gear me-2"></i> Configurações</a>
         </nav>
         <div class="mt-auto pt-3 border-top border-secondary">
           <a href="/" class="text-light"><i class="fa-solid fa-arrow-left me-2"></i> Voltar ao Site</a>

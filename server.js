@@ -1,18 +1,18 @@
-require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const axios = require('axios');
-const { pool, initDB } = require('./database');
-const config = require('./config');
-const path = require('path');
-const ejs = require('ejs');
-const pgSession = require('connect-pg-simple')(session);
-const { randomUUID } = require('crypto');
+require("dotenv").config();
+const express = require("express");
+const session = require("express-session");
+const axios = require("axios");
+const { pool, initDB } = require("./database");
+const config = require("./config");
+const path = require("path");
+const ejs = require("ejs");
+const pgSession = require("connect-pg-simple")(session);
+const { randomUUID } = require("crypto");
 let PDFDocument = null;
 try {
-  PDFDocument = require('pdfkit');
+  PDFDocument = require("pdfkit");
 } catch (err) {
-  console.warn('⚠️ pdfkit não instalado. Faturas PDF ficarão indisponíveis.');
+  console.warn("⚠️ pdfkit não instalado. Faturas PDF ficarão indisponíveis.");
 }
 
 const app = express();
@@ -21,29 +21,62 @@ const PORT = process.env.PORT || 3000;
 let licensesModule = null;
 let loadError = null;
 try {
-  licensesModule = require('./src/database/licenses');
+  licensesModule = require("./src/database/licenses");
 } catch (err) {
   loadError = err;
-  console.error('⚠️ AVISO: Não foi possível carregar o módulo de licenças. O site vai continuar sem essa funcionalidade.', err.message);
+  console.error(
+    "⚠️ AVISO: Não foi possível carregar o módulo de licenças. O site vai continuar sem essa funcionalidade.",
+    err.message,
+  );
 }
 
-const createLicense = licensesModule?.createLicense || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
-const getLicenseByDiscordId = licensesModule?.getLicenseByDiscordId || (async () => null);
-const getLicenseByDiscordIdRaw = licensesModule?.getLicenseByDiscordIdRaw || (async () => null); // 🔥 NOVO
+const createLicense =
+  licensesModule?.createLicense ||
+  (async () => {
+    throw new Error(
+      `Licenças indisponíveis: ${loadError ? loadError.message : "Módulo não carregado"}`,
+    );
+  });
+const getLicenseByDiscordId =
+  licensesModule?.getLicenseByDiscordId || (async () => null);
+const getLicenseByDiscordIdRaw =
+  licensesModule?.getLicenseByDiscordIdRaw || (async () => null);
 const getAllLicenses = licensesModule?.getAllLicenses || (async () => []);
-const updateLicenseIP = licensesModule?.updateLicenseIP || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
-const toggleLicenseStatus = licensesModule?.toggleLicenseStatus || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
-const deleteLicense = licensesModule?.deleteLicense || (async () => { throw new Error(`Licenças indisponíveis: ${loadError ? loadError.message : 'Módulo não carregado'}`); });
-const activateLicense = licensesModule?.activateLicense || (async () => { throw new Error('Licenças indisponíveis'); });
-const { giveClientRole, giveClientFreeRole } = require('./src/discord/roles');
+const updateLicenseIP =
+  licensesModule?.updateLicenseIP ||
+  (async () => {
+    throw new Error(
+      `Licenças indisponíveis: ${loadError ? loadError.message : "Módulo não carregado"}`,
+    );
+  });
+const toggleLicenseStatus =
+  licensesModule?.toggleLicenseStatus ||
+  (async () => {
+    throw new Error(
+      `Licenças indisponíveis: ${loadError ? loadError.message : "Módulo não carregado"}`,
+    );
+  });
+const deleteLicense =
+  licensesModule?.deleteLicense ||
+  (async () => {
+    throw new Error(
+      `Licenças indisponíveis: ${loadError ? loadError.message : "Módulo não carregado"}`,
+    );
+  });
+const activateLicense =
+  licensesModule?.activateLicense ||
+  (async () => {
+    throw new Error("Licenças indisponíveis");
+  });
+const { giveClientRole, giveClientFreeRole } = require("./src/discord/roles");
 
-app.set('view engine', 'html');
-app.engine('html', ejs.renderFile);
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.urlencoded({ extended: true, limit: '6mb' }));
-app.use(express.json({ limit: '6mb' }));
+app.set("view engine", "html");
+app.engine("html", ejs.renderFile);
+app.set("views", path.join(__dirname, "views"));
+app.use(express.urlencoded({ extended: true, limit: "6mb" }));
+app.use(express.json({ limit: "6mb" }));
 
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -54,11 +87,14 @@ async function logActivity(req, action) {
     if (req.session.user) {
       await pool.query(
         `INSERT INTO activity_logs (admin_discord_id, admin_username, action) VALUES ($1, $2, $3)`,
-        [req.session.user.id, req.session.user.username, action]
+        [req.session.user.id, req.session.user.username, action],
       );
     }
   } catch (err) {
-    console.error('⚠️ Erro ao registar atividade (ignorado para não quebrar a ação principal):', err.message);
+    console.error(
+      "⚠️ Erro ao registar atividade (ignorado para não quebrar a ação principal):",
+      err.message,
+    );
   }
 }
 
@@ -71,180 +107,215 @@ async function getWebhookAvatarUrl(webhookUrl) {
     }
     return null;
   } catch (err) {
-    console.error('⚠️ Não foi possível obter o avatar do webhook:', err.message);
+    console.error(
+      "⚠️ Não foi possível obter o avatar do webhook:",
+      err.message,
+    );
     return null;
   }
 }
 
 async function sendPurchaseWebhook(user, cartItems) {
   try {
-    const result = await pool.query('SELECT discord_webhook_url FROM settings WHERE id = 1');
+    const result = await pool.query(
+      "SELECT discord_webhook_url FROM settings WHERE id = 1",
+    );
     const webhookUrl = result.rows[0]?.discord_webhook_url;
 
-    if (!webhookUrl || webhookUrl.trim() === '') {
-      console.log('ℹ️ Webhook Discord não configurado. Log do pedido ignorado.');
+    if (!webhookUrl || webhookUrl.trim() === "") {
+      console.log(
+        "ℹ️ Webhook Discord não configurado. Log do pedido ignorado.",
+      );
       return;
     }
 
-    // 🔥 Vai buscar o avatar definido no Discord para este webhook
     const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
 
     const itemsList = cartItems
-      .map(item => `• **${item.name}** x${item.quantity} — €${(item.price * item.quantity).toFixed(2)}`)
-      .join('\n');
+      .map(
+        (item) =>
+          `• **${item.name}** x${item.quantity} — €${(item.price * item.quantity).toFixed(2)}`,
+      )
+      .join("\n");
 
-    const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = cartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
 
     const payload = {
-      username: 'Compras Pendentes', // 👈 NOME definido no SCRIPT
-      ...(avatarUrl ? { avatar_url: avatarUrl } : {}), // 👈 AVATAR vem do Discord
+      username: "Compras Pendentes",
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       embeds: [
         {
-          title: '🛒 Novo Pedido de Compra!',
-          description: 'Um novo pedido foi registado e aguarda pagamento/confirmação.',
+          title: "🛒 Novo Pedido de Compra!",
+          description:
+            "Um novo pedido foi registado e aguarda pagamento/confirmação.",
           color: 0x22d3ee,
           fields: [
             {
-              name: '👤 Cliente',
+              name: "👤 Cliente",
               value: `${user.username}\n\`${user.id}\``,
-              inline: true
+              inline: true,
             },
+            { name: "📦 Produtos", value: itemsList || "—", inline: false },
             {
-              name: '📦 Produtos',
-              value: itemsList || '—',
-              inline: false
-            },
-            {
-              name: '💰 Total',
+              name: "💰 Total",
               value: `**€${total.toFixed(2)}**`,
-              inline: true
+              inline: true,
             },
-            {
-              name: '📊 Estado',
-              value: '⏳ Pendente',
-              inline: true
-            }
+            { name: "📊 Estado", value: "⏳ Pendente", inline: true },
           ],
-          footer: { text: 'Santos Resources • ' },
-          timestamp: new Date().toISOString()
-        }
-      ]
+          footer: { text: "Santos Resources • " },
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
     await axios.post(webhookUrl, payload);
     console.log(`✅ Log do pedido enviado para o Discord (${user.username}).`);
   } catch (err) {
-    console.error('⚠️ Erro ao enviar webhook do Discord:', err.response?.data || err.message);
+    console.error(
+      "⚠️ Erro ao enviar webhook do Discord:",
+      err.response?.data || err.message,
+    );
   }
 }
 
 async function sendPurchaseApprovedWebhook(user, purchase, paymentMethod) {
   try {
-    const result = await pool.query('SELECT discord_purchase_webhook_url FROM settings WHERE id = 1');
+    const result = await pool.query(
+      "SELECT discord_purchase_webhook_url FROM settings WHERE id = 1",
+    );
     const webhookUrl = result.rows[0]?.discord_purchase_webhook_url;
 
-    if (!webhookUrl || webhookUrl.trim() === '') {
-      console.log('ℹ️ Webhook de compras aprovadas não configurado. Log ignorado.');
+    if (!webhookUrl || webhookUrl.trim() === "") {
+      console.log(
+        "ℹ️ Webhook de compras aprovadas não configurado. Log ignorado.",
+      );
       return;
     }
 
-    // 🔥 Vai buscar o avatar definido no Discord para este webhook
     const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
-
-    const metodo = paymentMethod || 'Discord Ticket';
+    const metodo = paymentMethod || "Discord Ticket";
 
     const payload = {
-      username: 'Compras',
+      username: "Compras",
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       embeds: [
         {
-          title: '- Nova compra Realizada!',
+          title: "- Nova compra Realizada!",
           description: `Obrigado **${user.username}** pela preferência! Esperemos que desfrute do seu produto e volte sempre!`,
           color: 0x6366f1,
           thumbnail: user.avatar
-            ? { url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` }
+            ? {
+                url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`,
+              }
             : undefined,
           fields: [
-            { name: 'Status', value: '**Pago**', inline: true },
-            { name: 'Método', value: metodo, inline: true },
-            { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Produtos', value: `\`\`\`\n${purchase.product_name}\n\`\`\``, inline: false }
+            { name: "Status", value: "**Pago**", inline: true },
+            { name: "Método", value: metodo, inline: true },
+            { name: "\u200B", value: "\u200B", inline: true },
+            {
+              name: "Produtos",
+              value: `\`\`\`\n${purchase.product_name}\n\`\`\``,
+              inline: false,
+            },
           ],
-          footer: { text: 'Santos Resources • ' },
-          timestamp: new Date().toISOString()
-        }
-      ]
+          footer: { text: "Santos Resources • " },
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
     await axios.post(webhookUrl, payload);
-    console.log(`✅ Log de compra aprovada enviado para o Discord (${user.username}).`);
+    console.log(
+      `✅ Log de compra aprovada enviado para o Discord (${user.username}).`,
+    );
   } catch (err) {
-    console.error('⚠️ Erro ao enviar webhook de compra aprovada:', err.response?.data || err.message);
+    console.error(
+      "⚠️ Erro ao enviar webhook de compra aprovada:",
+      err.response?.data || err.message,
+    );
   }
 }
 
 async function sendFreePurchaseWebhook(user, cartItems) {
   try {
-    const result = await pool.query('SELECT discord_purchase_webhook_url FROM settings WHERE id = 1');
+    const result = await pool.query(
+      "SELECT discord_purchase_webhook_url FROM settings WHERE id = 1",
+    );
     const webhookUrl = result.rows[0]?.discord_purchase_webhook_url;
 
-    if (!webhookUrl || webhookUrl.trim() === '') {
-      console.log('ℹ️ Webhook de compras aprovadas não configurado. Log grátis ignorado.');
+    if (!webhookUrl || webhookUrl.trim() === "") {
+      console.log(
+        "ℹ️ Webhook de compras aprovadas não configurado. Log grátis ignorado.",
+      );
       return;
     }
 
     const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
-
-    const produtosList = cartItems.map(item => item.name).join('\n');
+    const produtosList = cartItems.map((item) => item.name).join("\n");
 
     const payload = {
-      username: 'Compras',
+      username: "Compras",
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       embeds: [
         {
-          title: '- Nova compra Realizada!',
+          title: "- Nova compra Realizada!",
           description: `Obrigado **${user.username}** pela preferência! Esperemos que desfrute do seu produto e volte sempre!`,
           color: 0x10b981,
           thumbnail: user.avatar
-            ? { url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` }
+            ? {
+                url: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`,
+              }
             : undefined,
           fields: [
-            { name: 'Status', value: '**Pago**', inline: true },
-            { name: 'Método', value: 'Produto Grátis', inline: true },
-            { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Produtos', value: `\`\`\`\n${produtosList}\n\`\`\``, inline: false }
+            { name: "Status", value: "**Pago**", inline: true },
+            { name: "Método", value: "Produto Grátis", inline: true },
+            { name: "\u200B", value: "\u200B", inline: true },
+            {
+              name: "Produtos",
+              value: `\`\`\`\n${produtosList}\n\`\`\``,
+              inline: false,
+            },
           ],
-          footer: { text: 'Santos Resources • ' },
-          timestamp: new Date().toISOString()
-        }
-      ]
+          footer: { text: "Santos Resources • " },
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
     await axios.post(webhookUrl, payload);
-    console.log(`✅ Log de compra grátis enviado para o Discord (${user.username}).`);
+    console.log(
+      `✅ Log de compra grátis enviado para o Discord (${user.username}).`,
+    );
   } catch (err) {
-    console.error('⚠️ Erro ao enviar webhook de compra grátis:', err.response?.data || err.message);
+    console.error(
+      "⚠️ Erro ao enviar webhook de compra grátis:",
+      err.response?.data || err.message,
+    );
   }
 }
 
 async function isAdmin(req, res, next) {
   try {
-    if (!req.session.user) return res.redirect('/');
+    if (!req.session.user) return res.redirect("/");
     if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
 
     const result = await pool.query(
-      'SELECT is_admin FROM users WHERE discord_id = $1',
-      [req.session.user.id]
+      "SELECT is_admin FROM users WHERE discord_id = $1",
+      [req.session.user.id],
     );
     const row = result.rows[0];
-    if (!row || row.is_admin !== 1) return res.redirect('/');
+    if (!row || row.is_admin !== 1) return res.redirect("/");
     next();
   } catch (err) {
-    console.error('❌ Erro no middleware isAdmin:', err);
-    if (req.path.startsWith('/api/')) {
-      return res.status(500).json({ error: 'Erro interno' });
+    console.error("❌ Erro no middleware isAdmin:", err);
+    if (req.path.startsWith("/api/")) {
+      return res.status(500).json({ error: "Erro interno" });
     }
-    return res.redirect('/');
+    return res.redirect("/");
   }
 }
 
@@ -259,7 +330,7 @@ async function ensureSessionTable() {
     `);
     console.log('✅ Tabela "session" garantida.');
   } catch (err) {
-    console.error('❌ ERRO NA TABELA SESSION (mas o site continua):', err);
+    console.error("❌ ERRO NA TABELA SESSION (mas o site continua):", err);
   }
 }
 
@@ -268,53 +339,81 @@ let appPromise = null;
 async function getApp() {
   if (!appPromise) {
     appPromise = (async () => {
-      console.log('⏳ A iniciar base de dados e sessão...');
+      console.log("⏳ A iniciar base de dados e sessão...");
       try {
         await initDB();
         await ensureSessionTable();
       } catch (dbError) {
-        console.error('⚠️ AVISO: Falha ao ligar à base de dados PostgreSQL. O site vai continuar, mas algumas funções podem falhar.', dbError);
+        console.error(
+          "⚠️ AVISO: Falha ao ligar à base de dados PostgreSQL. O site vai continuar, mas algumas funções podem falhar.",
+          dbError,
+        );
       }
 
-      console.log('✅ A configurar middleware de sessão...');
-      app.use(session({
-        store: new pgSession({
-          pool: pool,
-          tableName: 'session',
-          createTableIfNotExists: true
+      console.log("✅ A configurar middleware de sessão...");
+      app.use(
+        session({
+          store: new pgSession({
+            pool: pool,
+            tableName: "session",
+            createTableIfNotExists: true,
+          }),
+          secret:
+            process.env.SESSION_SECRET ||
+            "santos-resources-secret-key-CHANGE-ME",
+          resave: false,
+          saveUninitialized: false,
+          cookie: {
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+          },
         }),
-        secret: process.env.SESSION_SECRET || 'santos-resources-secret-key-CHANGE-ME',
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 30 * 24 * 60 * 60 * 1000
-        }
-      }));
+      );
 
       app.use(async (req, res, next) => {
         try {
-          const result = await pool.query('SELECT * FROM settings WHERE id = 1');
+          const result = await pool.query(
+            "SELECT * FROM settings WHERE id = 1",
+          );
           let settings = result.rows[0];
           if (!settings) {
-            settings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '', maintenance_mode: 0 };
+            settings = {
+              site_name: "Santos Resources",
+              discord_link: "https://discord.gg/8GyNS5vRgt",
+              logo_url: "",
+              maintenance_mode: 0,
+            };
           }
           res.locals.siteSettings = settings;
           next();
         } catch (err) {
           console.error("⚠️ Erro ao carregar configurações:", err);
-          res.locals.siteSettings = { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '', maintenance_mode: 0 };
+          res.locals.siteSettings = {
+            site_name: "Santos Resources",
+            discord_link: "https://discord.gg/8GyNS5vRgt",
+            logo_url: "",
+            maintenance_mode: 0,
+          };
           next();
         }
       });
 
       app.use(async (req, res, next) => {
         try {
-          const maintenance = Number(res.locals.siteSettings?.maintenance_mode) === 1;
+          const maintenance =
+            Number(res.locals.siteSettings?.maintenance_mode) === 1;
           if (!maintenance) return next();
 
-          const alwaysAllowed = ['/auth/discord', '/auth/discord/callback', '/logout'];
-          if (alwaysAllowed.some(p => req.path === p || req.path.startsWith(p + '/'))) {
+          const alwaysAllowed = [
+            "/auth/discord",
+            "/auth/discord/callback",
+            "/logout",
+          ];
+          if (
+            alwaysAllowed.some(
+              (p) => req.path === p || req.path.startsWith(p + "/"),
+            )
+          ) {
             return next();
           }
 
@@ -325,66 +424,77 @@ async function getApp() {
             } else {
               try {
                 const r = await pool.query(
-                  'SELECT is_admin FROM users WHERE discord_id = $1',
-                  [req.session.user.id]
+                  "SELECT is_admin FROM users WHERE discord_id = $1",
+                  [req.session.user.id],
                 );
                 if (r.rows[0]?.is_admin === 1) isAdmin = true;
-              } catch (e) { /* ignora */ }
+              } catch (e) {}
             }
           }
 
           if (isAdmin) return next();
 
-          if (req.path.startsWith('/api/')) {
-            return res.status(503).json({ error: 'Site em manutenção. Volte em breve.' });
+          if (req.path.startsWith("/api/")) {
+            return res
+              .status(503)
+              .json({ error: "Site em manutenção. Volte em breve." });
           }
 
-          return res.status(503).render('maintenance', {
+          return res.status(503).render("maintenance", {
             siteSettings: res.locals.siteSettings,
-            user: req.session?.user || null
+            user: req.session?.user || null,
           });
         } catch (err) {
-          console.error('⚠️ Erro no middleware de manutenção (ignorado):', err.message);
+          console.error(
+            "⚠️ Erro no middleware de manutenção (ignorado):",
+            err.message,
+          );
           next();
         }
       });
 
-      // ══════════════════════════════════════════
-      // MIDDLEWARE DE BAN — bloqueia utilizadores banidos
-      // ══════════════════════════════════════════
       app.use(async (req, res, next) => {
         try {
           if (!req.session?.user) return next();
 
-          // Rotas sempre permitidas
-          const allowed = ['/auth/discord', '/auth/discord/callback', '/logout'];
-          if (allowed.some(p => req.path === p || req.path.startsWith(p + '/'))) {
+          const allowed = [
+            "/auth/discord",
+            "/auth/discord/callback",
+            "/logout",
+          ];
+          if (
+            allowed.some((p) => req.path === p || req.path.startsWith(p + "/"))
+          ) {
             return next();
           }
 
-          // Admins da config nunca são bloqueados (evita lockout)
           if (config.ADMIN_IDS.includes(req.session.user.id)) return next();
 
           const r = await pool.query(
-            'SELECT is_banned, ban_reason FROM users WHERE discord_id = $1',
-            [req.session.user.id]
+            "SELECT is_banned, ban_reason FROM users WHERE discord_id = $1",
+            [req.session.user.id],
           );
           const u = r.rows[0];
 
           if (u && u.is_banned === 1) {
-            if (req.path.startsWith('/api/')) {
-              return res.status(403).json({ error: 'A tua conta está banida.' });
+            if (req.path.startsWith("/api/")) {
+              return res
+                .status(403)
+                .json({ error: "A tua conta está banida." });
             }
-            return res.status(403).render('banned', {
+            return res.status(403).render("banned", {
               user: req.session.user,
-              reason: u.ban_reason || 'Não especificado',
-              siteSettings: res.locals.siteSettings
+              reason: u.ban_reason || "Não especificado",
+              siteSettings: res.locals.siteSettings,
             });
           }
 
           next();
         } catch (err) {
-          console.error('⚠️ Erro no middleware de ban (ignorado):', err.message);
+          console.error(
+            "⚠️ Erro no middleware de ban (ignorado):",
+            err.message,
+          );
           next();
         }
       });
@@ -393,126 +503,179 @@ async function getApp() {
       // ROTAS PÚBLICAS
       // ══════════════════════════════════════════
 
-      app.get('/api/cart', async (req, res) => {
+      app.get("/api/cart", async (req, res) => {
         if (!req.session.user) return res.json([]);
-        const result = await pool.query('SELECT cart FROM users WHERE discord_id = $1', [req.session.user.id]);
+        const result = await pool.query(
+          "SELECT cart FROM users WHERE discord_id = $1",
+          [req.session.user.id],
+        );
         res.json(result.rows[0]?.cart || []);
       });
 
-      app.post('/api/cart', async (req, res) => {
-        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.post("/api/cart", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
         const { cart } = req.body;
-        await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', [JSON.stringify(cart), req.session.user.id]);
+        await pool.query("UPDATE users SET cart = $1 WHERE discord_id = $2", [
+          JSON.stringify(cart),
+          req.session.user.id,
+        ]);
         res.json({ success: true });
       });
 
-      app.get('/api/coupon/status', async (req, res) => {
+      app.get("/api/coupon/status", async (req, res) => {
         if (!req.session.user) return res.json({ coupon: null });
         res.json({ coupon: req.session.coupon || null });
       });
 
-      app.post('/api/coupon/apply', async (req, res) => {
-        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.post("/api/coupon/apply", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
         const { code } = req.body;
         try {
-          const result = await pool.query('SELECT * FROM discounts WHERE code = $1 AND is_active = 1', [code.toUpperCase()]);
+          const result = await pool.query(
+            "SELECT * FROM discounts WHERE code = $1 AND is_active = 1",
+            [code.toUpperCase()],
+          );
           if (result.rows.length === 0) {
-            return res.status(400).json({ error: 'Cupom inválido ou inativo' });
+            return res.status(400).json({ error: "Cupom inválido ou inativo" });
           }
           const discount = result.rows[0];
-          req.session.coupon = { code: discount.code, percentage: discount.percentage };
-          await new Promise((resolve, reject) => req.session.save(err => err ? reject(err) : resolve()));
-          res.json({ success: true, percentage: discount.percentage, code: discount.code });
+          req.session.coupon = {
+            code: discount.code,
+            percentage: discount.percentage,
+          };
+          await new Promise((resolve, reject) =>
+            req.session.save((err) => (err ? reject(err) : resolve())),
+          );
+          res.json({
+            success: true,
+            percentage: discount.percentage,
+            code: discount.code,
+          });
         } catch (err) {
-          console.error('Erro ao validar cupom:', err);
-          res.status(500).json({ error: 'Erro ao validar cupom' });
+          console.error("Erro ao validar cupom:", err);
+          res.status(500).json({ error: "Erro ao validar cupom" });
         }
       });
 
-      app.post('/api/coupon/remove', async (req, res) => {
-        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.post("/api/coupon/remove", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
         req.session.coupon = null;
-        await new Promise((resolve, reject) => req.session.save(err => err ? reject(err) : resolve()));
+        await new Promise((resolve, reject) =>
+          req.session.save((err) => (err ? reject(err) : resolve())),
+        );
         res.json({ success: true });
       });
 
-      app.get('/api/wishlist', async (req, res) => {
+      app.get("/api/wishlist", async (req, res) => {
         if (!req.session.user) return res.json([]);
         try {
-          const result = await pool.query('SELECT wishlist FROM users WHERE discord_id = $1', [req.session.user.id]);
+          const result = await pool.query(
+            "SELECT wishlist FROM users WHERE discord_id = $1",
+            [req.session.user.id],
+          );
           res.json(result.rows[0]?.wishlist || []);
-        } catch (err) { res.json([]); }
+        } catch (err) {
+          res.json([]);
+        }
       });
 
-      app.post('/api/wishlist/toggle', async (req, res) => {
-        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.post("/api/wishlist/toggle", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
         try {
           const { id, name, price, category, thumbnail } = req.body;
-          const result = await pool.query('SELECT wishlist FROM users WHERE discord_id = $1', [req.session.user.id]);
+          const result = await pool.query(
+            "SELECT wishlist FROM users WHERE discord_id = $1",
+            [req.session.user.id],
+          );
           let wishlist = result.rows[0]?.wishlist || [];
-          const idx = wishlist.findIndex(w => w.id === id);
+          const idx = wishlist.findIndex((w) => w.id === id);
           let added = false;
           if (idx >= 0) {
             wishlist.splice(idx, 1);
           } else {
-            wishlist.push({ id, name, price, category, thumbnail: thumbnail || '' });
+            wishlist.push({
+              id,
+              name,
+              price,
+              category,
+              thumbnail: thumbnail || "",
+            });
             added = true;
           }
-          await pool.query('UPDATE users SET wishlist = $1 WHERE discord_id = $2', [JSON.stringify(wishlist), req.session.user.id]);
+          await pool.query(
+            "UPDATE users SET wishlist = $1 WHERE discord_id = $2",
+            [JSON.stringify(wishlist), req.session.user.id],
+          );
           res.json({ success: true, added, wishlist });
         } catch (err) {
-          console.error('Erro wishlist:', err);
-          res.status(500).json({ error: 'Erro' });
+          console.error("Erro wishlist:", err);
+          res.status(500).json({ error: "Erro" });
         }
       });
 
-      app.get('/api/notifications', async (req, res) => {
+      app.get("/api/notifications", async (req, res) => {
         if (!req.session.user) return res.json({ count: 0, products: [] });
         try {
-          const userResult = await pool.query('SELECT last_seen_products_at FROM users WHERE discord_id = $1', [req.session.user.id]);
+          const userResult = await pool.query(
+            "SELECT last_seen_products_at FROM users WHERE discord_id = $1",
+            [req.session.user.id],
+          );
           const lastSeen = userResult.rows[0]?.last_seen_products_at;
 
-          let query, params = [];
+          let query,
+            params = [];
           if (lastSeen) {
-            query = 'SELECT id, name, price, category, thumbnail FROM products WHERE is_active = 1 AND created_at > $1 ORDER BY created_at DESC LIMIT 10';
+            query =
+              "SELECT id, name, price, category, thumbnail FROM products WHERE is_active = 1 AND created_at > $1 ORDER BY created_at DESC LIMIT 10";
             params = [lastSeen];
           } else {
-            query = 'SELECT id, name, price, category, thumbnail FROM products WHERE is_active = 1 ORDER BY created_at DESC LIMIT 10';
+            query =
+              "SELECT id, name, price, category, thumbnail FROM products WHERE is_active = 1 ORDER BY created_at DESC LIMIT 10";
           }
           const result = await pool.query(query, params);
           res.json({ count: result.rows.length, products: result.rows });
         } catch (err) {
-          console.error('Erro notificações:', err);
+          console.error("Erro notificações:", err);
           res.json({ count: 0, products: [] });
         }
       });
 
-      app.post('/api/notifications/seen', async (req, res) => {
-        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.post("/api/notifications/seen", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
         try {
-          await pool.query('UPDATE users SET last_seen_products_at = CURRENT_TIMESTAMP WHERE discord_id = $1', [req.session.user.id]);
+          await pool.query(
+            "UPDATE users SET last_seen_products_at = CURRENT_TIMESTAMP WHERE discord_id = $1",
+            [req.session.user.id],
+          );
           res.json({ success: true });
-        } catch (err) { res.status(500).json({ error: 'Erro' }); }
+        } catch (err) {
+          res.status(500).json({ error: "Erro" });
+        }
       });
 
-      app.get('/', async (req, res) => {
+      app.get("/", async (req, res) => {
         try {
           const featuredResult = await pool.query(
             `SELECT * FROM products 
             WHERE is_active = 1 AND is_featured = 1 
-            ORDER BY id ASC LIMIT 3`
+            ORDER BY id ASC LIMIT 3`,
           );
           let products = featuredResult.rows;
 
           if (products.length < 3) {
-            const excludeIds = products.map(p => p.id);
+            const excludeIds = products.map((p) => p.id);
             const needed = 3 - products.length;
 
-            let fallbackQuery = 'SELECT * FROM products WHERE is_active = 1';
+            let fallbackQuery = "SELECT * FROM products WHERE is_active = 1";
             const params = [];
 
             if (excludeIds.length > 0) {
-              fallbackQuery += ` AND id NOT IN (${excludeIds.map((_, i) => `$${i + 1}`).join(',')})`;
+              fallbackQuery += ` AND id NOT IN (${excludeIds.map((_, i) => `$${i + 1}`).join(",")})`;
               params.push(...excludeIds);
             }
 
@@ -524,7 +687,7 @@ async function getApp() {
           }
 
           const totalResult = await pool.query(
-            'SELECT COUNT(*) as count FROM products WHERE is_active = 1'
+            "SELECT COUNT(*) as count FROM products WHERE is_active = 1",
           );
           const totalActiveProducts = parseInt(totalResult.rows[0].count, 10);
 
@@ -534,8 +697,8 @@ async function getApp() {
               isAdmin = true;
             } else {
               const dbCheck = await pool.query(
-                'SELECT is_admin FROM users WHERE discord_id = $1',
-                [req.session.user.id]
+                "SELECT is_admin FROM users WHERE discord_id = $1",
+                [req.session.user.id],
               );
               if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
                 isAdmin = true;
@@ -543,74 +706,89 @@ async function getApp() {
             }
           }
 
-          res.render('home', {
+          res.render("home", {
             products,
             totalActiveProducts,
             user: req.session.user || null,
-            isAdmin
+            isAdmin,
           });
         } catch (err) {
           console.error("❌ ERRO NA ROTA HOME:", err);
-          res.status(500).send('Erro ao carregar produtos: ' + err.message);
+          res.status(500).send("Erro ao carregar produtos: " + err.message);
         }
       });
 
-      app.get('/products', async (req, res) => {
+      app.get("/products", async (req, res) => {
         try {
-          // 1) Verificar primeiro se é admin
           let isAdmin = false;
           if (req.session.user) {
             if (config.ADMIN_IDS.includes(req.session.user.id)) {
               isAdmin = true;
             } else {
-              const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+              const dbCheck = await pool.query(
+                "SELECT is_admin FROM users WHERE discord_id = $1",
+                [req.session.user.id],
+              );
               if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
                 isAdmin = true;
               }
             }
           }
 
-          // 2) Admin vê tudo (para gerir). Cliente vê só os ativos.
           const query = isAdmin
-            ? 'SELECT * FROM products ORDER BY id ASC'
-            : 'SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC';
+            ? "SELECT * FROM products ORDER BY id ASC"
+            : "SELECT * FROM products WHERE is_active = 1 ORDER BY id ASC";
 
           const result = await pool.query(query);
 
-          res.render('products', {
+          res.render("products", {
             products: result.rows,
             user: req.session.user || null,
             isAdmin: isAdmin,
-            error: null
+            error: null,
           });
         } catch (err) {
-          console.error('❌ Erro ao carregar produtos:', err);
-          res.render('products', { products: [], user: req.session.user || null, isAdmin: false, error: 'Erro ao carregar produtos' });
+          console.error("❌ Erro ao carregar produtos:", err);
+          res.render("products", {
+            products: [],
+            user: req.session.user || null,
+            isAdmin: false,
+            error: "Erro ao carregar produtos",
+          });
         }
       });
 
-      app.get('/about', async (req, res) => {
+      app.get("/about", async (req, res) => {
         let isAdmin = false;
         if (req.session.user) {
           if (config.ADMIN_IDS.includes(req.session.user.id)) {
             isAdmin = true;
           } else {
-            const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+            const dbCheck = await pool.query(
+              "SELECT is_admin FROM users WHERE discord_id = $1",
+              [req.session.user.id],
+            );
             if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
               isAdmin = true;
             }
           }
         }
-        res.render('about', { user: req.session.user || null, isAdmin: isAdmin });
+        res.render("about", {
+          user: req.session.user || null,
+          isAdmin: isAdmin,
+        });
       });
 
-      app.get('/payment-methods', async (req, res) => {
+      app.get("/payment-methods", async (req, res) => {
         let isAdmin = false;
         if (req.session.user) {
           if (config.ADMIN_IDS.includes(req.session.user.id)) {
             isAdmin = true;
           } else {
-            const dbCheck = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id]);
+            const dbCheck = await pool.query(
+              "SELECT is_admin FROM users WHERE discord_id = $1",
+              [req.session.user.id],
+            );
             if (dbCheck.rows.length > 0 && dbCheck.rows[0].is_admin === 1) {
               isAdmin = true;
             }
@@ -618,10 +796,20 @@ async function getApp() {
         }
 
         try {
-          const result = await pool.query('SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY display_order ASC');
-          res.render('payment-methods', { methods: result.rows, user: req.session.user || null, isAdmin: isAdmin });
+          const result = await pool.query(
+            "SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY display_order ASC",
+          );
+          res.render("payment-methods", {
+            methods: result.rows,
+            user: req.session.user || null,
+            isAdmin: isAdmin,
+          });
         } catch (err) {
-          res.render('payment-methods', { methods: [], user: req.session.user || null, isAdmin: isAdmin });
+          res.render("payment-methods", {
+            methods: [],
+            user: req.session.user || null,
+            isAdmin: isAdmin,
+          });
         }
       });
 
@@ -630,8 +818,14 @@ async function getApp() {
       // ══════════════════════════════════════════
 
       async function getClientData(req) {
-        const isAdmin = config.ADMIN_IDS.includes(req.session.user.id)
-          || (await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [req.session.user.id])).rows[0]?.is_admin === 1;
+        const isAdmin =
+          config.ADMIN_IDS.includes(req.session.user.id) ||
+          (
+            await pool.query(
+              "SELECT is_admin FROM users WHERE discord_id = $1",
+              [req.session.user.id],
+            )
+          ).rows[0]?.is_admin === 1;
 
         const systemsResult = await pool.query(
           `SELECT DISTINCT ON (p.product_id)
@@ -642,45 +836,47 @@ async function getApp() {
           LEFT JOIN products pr ON pr.id = p.product_id
           WHERE p.user_discord_id = $1 AND p.status = 'completed'
           ORDER BY p.product_id, p.purchased_at DESC`,
-          [req.session.user.id]
+          [req.session.user.id],
         );
 
         const purchasesResult = await pool.query(
           `SELECT * FROM purchases
           WHERE user_discord_id = $1
           ORDER BY purchased_at DESC`,
-          [req.session.user.id]
+          [req.session.user.id],
         );
 
         return {
           user: req.session.user,
           isAdmin,
           systems: systemsResult.rows,
-          purchases: purchasesResult.rows
+          purchases: purchasesResult.rows,
         };
       }
 
-      // Redireciona para a tab padrão
-      app.get('/client-area', (req, res) => {
-        if (!req.session.user) return res.redirect('/');
-        res.redirect('/client-area/systems');
+      app.get("/client-area", (req, res) => {
+        if (!req.session.user) return res.redirect("/");
+        res.redirect("/client-area/systems");
       });
 
-      // Tab: Meus Sistemas
-      app.get('/client-area/systems', async (req, res) => {
-        if (!req.session.user) return res.redirect('/');
+      app.get("/client-area/systems", async (req, res) => {
+        if (!req.session.user) return res.redirect("/");
         try {
           const data = await getClientData(req);
-          res.render('client/systems', data);
+          res.render("client/systems", data);
         } catch (err) {
-          console.error('❌ Erro ao carregar sistemas:', err);
-          res.render('client/systems', { user: req.session.user, isAdmin: false, systems: [], purchases: [] });
+          console.error("❌ Erro ao carregar sistemas:", err);
+          res.render("client/systems", {
+            user: req.session.user,
+            isAdmin: false,
+            systems: [],
+            purchases: [],
+          });
         }
       });
 
-      // Tab: Histórico de Compras (agrupado por order_id)
-      app.get('/client-area/purchases', async (req, res) => {
-        if (!req.session.user) return res.redirect('/');
+      app.get("/client-area/purchases", async (req, res) => {
+        if (!req.session.user) return res.redirect("/");
         try {
           const data = await getClientData(req);
 
@@ -690,7 +886,7 @@ async function getApp() {
              FROM purchases
              WHERE user_discord_id = $1
              ORDER BY purchased_at DESC`,
-            [req.session.user.id]
+            [req.session.user.id],
           );
 
           const ordersMap = new Map();
@@ -704,7 +900,7 @@ async function getApp() {
                 purchased_at: row.purchased_at,
                 status: row.status,
                 items: [],
-                total: 0
+                total: 0,
               });
             }
 
@@ -712,423 +908,519 @@ async function getApp() {
             order.items.push(row);
             order.total += parseFloat(row.price);
 
-            if (row.status === 'pending') order.status = 'pending';
-            else if (row.status === 'cancelled' && order.status !== 'pending') {
-              order.status = 'cancelled';
+            if (row.status === "pending") order.status = "pending";
+            else if (row.status === "cancelled" && order.status !== "pending") {
+              order.status = "cancelled";
             }
           }
 
           const orders = Array.from(ordersMap.values());
-          orders.sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at));
+          orders.sort(
+            (a, b) => new Date(b.purchased_at) - new Date(a.purchased_at),
+          );
 
-          res.render('client/purchases', {
+          res.render("client/purchases", {
             user: req.session.user,
             isAdmin: data.isAdmin,
             systems: data.systems,
             purchases: data.purchases,
-            orders
+            orders,
           });
         } catch (err) {
-          console.error('❌ Erro ao carregar histórico:', err);
-          res.render('client/purchases', {
+          console.error("❌ Erro ao carregar histórico:", err);
+          res.render("client/purchases", {
             user: req.session.user,
             isAdmin: false,
             systems: [],
             purchases: [],
-            orders: []
+            orders: [],
           });
         }
       });
 
-      app.get('/client-area/wishlist', async (req, res) => {
-        if (!req.session.user) return res.redirect('/');
+      app.get("/client-area/wishlist", async (req, res) => {
+        if (!req.session.user) return res.redirect("/");
         try {
           const data = await getClientData(req);
-          const w = await pool.query('SELECT wishlist FROM users WHERE discord_id = $1', [req.session.user.id]);
+          const w = await pool.query(
+            "SELECT wishlist FROM users WHERE discord_id = $1",
+            [req.session.user.id],
+          );
           data.wishlist = w.rows[0]?.wishlist || [];
-          res.render('client/wishlist', data);
+          res.render("client/wishlist", data);
         } catch (err) {
-          console.error('❌ Erro ao carregar favoritos:', err);
-          res.render('client/wishlist', { user: req.session.user, isAdmin: false, systems: [], purchases: [], wishlist: [] });
+          console.error("❌ Erro ao carregar favoritos:", err);
+          res.render("client/wishlist", {
+            user: req.session.user,
+            isAdmin: false,
+            systems: [],
+            purchases: [],
+            wishlist: [],
+          });
         }
       });
 
       // ══════════════════════════════════════════
       // ADMIN — GESTÃO DE LICENÇAS
       // ══════════════════════════════════════════
-      app.get('/admin/licenses', isAdmin, async (req, res) => {
-          try {
-              const licenses = await getAllLicenses();
-              res.render('admin/licenses', { 
-                  licenses: licenses || [], 
-                  activeTab: 'licenses', 
-                  error: null, 
-                  user: req.session.user 
-              });
-          } catch (err) {
-              console.error('❌ Erro ao carregar licenças:', err);
-              res.render('admin/licenses', { 
-                  licenses: [], 
-                  activeTab: 'licenses', 
-                  error: 'Erro ao carregar licenças', 
-                  user: req.session.user 
-              });
-          }
-      });
 
-      app.get('/api/debug/license', async (req, res) => {
-          if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.get("/admin/licenses", isAdmin, async (req, res) => {
+        try {
+          const licenses = await getAllLicenses();
 
-          const supabase = require('./src/supabase/client');
-          const result = {
-              supabase_url_defined: !!process.env.SUPABASE_URL,
-              supabase_key_defined: !!process.env.SUPABASE_KEY,
-              supabase_client_ok: !!supabase,
-              user_id: req.session.user.id,
-              user_id_type: typeof req.session.user.id,
+          const errorMap = {
+            user_has_license: "Este utilizador já tem uma licença.",
+            missing_fields: "Preenche o Discord ID.",
+            generation_failed: `Falha ao gerar licença: ${req.query.reason || "erro desconhecido"}`,
+          };
+          const successMap = {
+            generated: "Licença gerada com sucesso!",
           };
 
-          if (supabase) {
-              const { data, error } = await supabase.from('licencas').select('*').limit(5);
-              result.raw_query = { data, error: error ? { message: error.message, code: error.code } : null };
-
-              const { data: specific } = await supabase
-                  .from('licencas')
-                  .select('*')
-                  .eq('discord_id', String(req.session.user.id))
-                  .maybeSingle();
-              result.specific_license = specific;
-          }
-
-          res.json(result);
-      });
-      
-      app.post('/admin/licenses/generate', isAdmin, async (req, res) => {
-          const { discord_id } = req.body;
-          if (!discord_id) return res.redirect('/admin/licenses?error=missing_fields');
-
-          try {
-              const existing = await getLicenseByDiscordIdRaw(discord_id);
-              if (existing) return res.redirect('/admin/licenses?error=user_has_license');
-
-              const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
-              const randomPart = () => Math.random().toString(36).substring(2, 10);
-              const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
-
-              await createLicense(discord_id, usuario, chave);
-              await logActivity(req, `Gerou licença para Discord ID: ${discord_id}`);
-              res.redirect('/admin/licenses?success=generated');
-          } catch (err) {
-              console.error('❌ Erro ao gerar licença:', err);
-              const errorMsg = encodeURIComponent(err.message || 'Erro desconhecido');
-              res.redirect(`/admin/licenses?error=generation_failed&reason=${errorMsg}`);
-          }
+          res.render("admin/licenses", {
+            licenses: licenses || [],
+            activeTab: "licenses",
+            error: errorMap[req.query.error] || null,
+            success: successMap[req.query.success] || null,
+            user: req.session.user,
+          });
+        } catch (err) {
+          console.error("❌ Erro ao carregar licenças:", err);
+          res.render("admin/licenses", {
+            licenses: [],
+            activeTab: "licenses",
+            error: "Erro ao carregar licenças",
+            success: null,
+            user: req.session.user,
+          });
+        }
       });
 
-      app.post('/admin/licenses/toggle/:id', isAdmin, async (req, res) => {
-          try {
-              const result = await toggleLicenseStatus(req.params.id);
-              res.json({ success: true, data: result });
-          } catch (err) {
-              console.error('❌ Erro ao alternar licença:', err);
-              res.status(500).json({ error: err.message || 'Erro desconhecido' });
-          }
+      // 🔒 Apenas admins podem usar esta rota de debug
+      app.get("/api/debug/license", isAdmin, async (req, res) => {
+        const supabase = require("./src/supabase/client");
+        const result = {
+          supabase_url_defined: !!process.env.SUPABASE_URL,
+          supabase_key_defined: !!process.env.SUPABASE_KEY,
+          supabase_client_ok: !!supabase,
+          user_id: req.session.user.id,
+          user_id_type: typeof req.session.user.id,
+        };
+
+        if (supabase) {
+          const { data, error } = await supabase
+            .from("licencas")
+            .select("*")
+            .limit(5);
+          result.raw_query = {
+            data,
+            error: error ? { message: error.message, code: error.code } : null,
+          };
+
+          const { data: specific } = await supabase
+            .from("licencas")
+            .select("*")
+            .eq("discord_id", String(req.session.user.id))
+            .maybeSingle();
+          result.specific_license = specific;
+        }
+
+        res.json(result);
       });
 
-      app.post('/admin/licenses/delete/:id', isAdmin, async (req, res) => {
-          try {
-              await deleteLicense(req.params.id);
-              await logActivity(req, `Apagou a licença ID: ${req.params.id}`);
-              res.json({ success: true });
-          } catch (err) {
-              console.error('❌ Erro ao apagar licença:', err);
-              res.status(500).json({ error: err.message || 'Erro desconhecido' });
-          }
+      app.post("/admin/licenses/generate", isAdmin, async (req, res) => {
+        const { discord_id } = req.body;
+        if (!discord_id)
+          return res.redirect("/admin/licenses?error=missing_fields");
+
+        try {
+          const existing = await getLicenseByDiscordIdRaw(discord_id);
+          if (existing)
+            return res.redirect("/admin/licenses?error=user_has_license");
+
+          const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+          const randomPart = () => Math.random().toString(36).substring(2, 10);
+          const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+
+          await createLicense(discord_id, usuario, chave);
+          await logActivity(
+            req,
+            `Gerou licença para Discord ID: ${discord_id}`,
+          );
+          res.redirect("/admin/licenses?success=generated");
+        } catch (err) {
+          console.error("❌ Erro ao gerar licença:", err);
+          const errorMsg = encodeURIComponent(
+            err.message || "Erro desconhecido",
+          );
+          res.redirect(
+            `/admin/licenses?error=generation_failed&reason=${errorMsg}`,
+          );
+        }
       });
 
-      app.get('/admin/users/:id/details', isAdmin, async (req, res) => {
-          try {
-              const userId = req.params.id;
-              const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-              if (userResult.rows.length === 0) return res.status(404).json({ error: 'Utilizador não encontrado' });
-              const user = userResult.rows[0];
+      app.post("/admin/licenses/toggle/:id", isAdmin, async (req, res) => {
+        try {
+          const result = await toggleLicenseStatus(req.params.id);
+          res.json({ success: true, data: result });
+        } catch (err) {
+          console.error("❌ Erro ao alternar licença:", err);
+          res.status(500).json({ error: err.message || "Erro desconhecido" });
+        }
+      });
 
-              const systemsResult = await pool.query(
-                  `SELECT DISTINCT ON (product_id) * FROM purchases 
+      app.post("/admin/licenses/delete/:id", isAdmin, async (req, res) => {
+        try {
+          await deleteLicense(req.params.id);
+          await logActivity(req, `Apagou a licença ID: ${req.params.id}`);
+          res.json({ success: true });
+        } catch (err) {
+          console.error("❌ Erro ao apagar licença:", err);
+          res.status(500).json({ error: err.message || "Erro desconhecido" });
+        }
+      });
+
+      app.get("/admin/users/:id/details", isAdmin, async (req, res) => {
+        try {
+          const userId = req.params.id;
+          const userResult = await pool.query(
+            "SELECT * FROM users WHERE id = $1",
+            [userId],
+          );
+          if (userResult.rows.length === 0)
+            return res.status(404).json({ error: "Utilizador não encontrado" });
+          const user = userResult.rows[0];
+
+          const systemsResult = await pool.query(
+            `SELECT DISTINCT ON (product_id) * FROM purchases 
                   WHERE user_discord_id = $1 AND status = 'completed' 
                   ORDER BY product_id, purchased_at DESC`,
-                  [user.discord_id]
-              );
+            [user.discord_id],
+          );
 
-              const license = await getLicenseByDiscordIdRaw(user.discord_id);
-              const mta_config = license
-                ? { ip: license.ip_permitido, port: license.porta || null }
-                : null;
+          const license = await getLicenseByDiscordIdRaw(user.discord_id);
+          const mta_config = license
+            ? { ip: license.ip_permitido, port: license.porta || null }
+            : null;
 
-              // 🔥 NOVO: lista de todos os produtos (ativos e inativos) para o select
-              const productsResult = await pool.query(
-                  'SELECT id, name, price, category, is_active FROM products ORDER BY name ASC'
-              );
+          const productsResult = await pool.query(
+            "SELECT id, name, price, category, is_active FROM products ORDER BY name ASC",
+          );
 
-              res.json({
-                  user_discord_id: user.discord_id,
-                  systems: systemsResult.rows,
-                  license: license || null,
-                  mta_config: mta_config,
-                  all_products: productsResult.rows  // 🔥 NOVO
-              });
-          } catch (err) {
-              console.error('❌ Erro ao buscar detalhes do utilizador:', err);
-              res.status(500).json({ error: 'Erro interno do servidor.' });
-          }
+          res.json({
+            user_discord_id: user.discord_id,
+            systems: systemsResult.rows,
+            license: license || null,
+            mta_config: mta_config,
+            all_products: productsResult.rows,
+          });
+        } catch (err) {
+          console.error("❌ Erro ao buscar detalhes do utilizador:", err);
+          res.status(500).json({ error: "Erro interno do servidor." });
+        }
       });
 
-      app.post('/admin/users/:id/add-product', isAdmin, async (req, res) => {
-          try {
-              const userId = req.params.id;
-              const { product_id } = req.body;
+      app.post("/admin/users/:id/add-product", isAdmin, async (req, res) => {
+        try {
+          const userId = req.params.id;
+          const { product_id } = req.body;
 
-              if (!product_id) return res.status(400).json({ error: 'Produto não especificado' });
+          if (!product_id)
+            return res.status(400).json({ error: "Produto não especificado" });
 
-              const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-              if (userResult.rows.length === 0) return res.status(404).json({ error: 'Utilizador não encontrado' });
-              const user = userResult.rows[0];
+          const userResult = await pool.query(
+            "SELECT * FROM users WHERE id = $1",
+            [userId],
+          );
+          if (userResult.rows.length === 0)
+            return res.status(404).json({ error: "Utilizador não encontrado" });
+          const user = userResult.rows[0];
 
-              const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [product_id]);
-              if (productResult.rows.length === 0) return res.status(404).json({ error: 'Produto não encontrado' });
-              const product = productResult.rows[0];
+          const productResult = await pool.query(
+            "SELECT * FROM products WHERE id = $1",
+            [product_id],
+          );
+          if (productResult.rows.length === 0)
+            return res.status(404).json({ error: "Produto não encontrado" });
+          const product = productResult.rows[0];
 
-              // Verificar se o utilizador já tem este produto
-              const existing = await pool.query(
-                  `SELECT id FROM purchases WHERE user_discord_id = $1 AND product_id = $2 AND status = 'completed'`,
-                  [user.discord_id, product.id]
-              );
-              if (existing.rows.length > 0) {
-                  return res.status(400).json({ error: 'Este utilizador já possui este produto' });
-              }
-
-              // Inserir na tabela purchases com status = completed
-              await pool.query(
-                  `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status)
-                  VALUES ($1, $2, $3, $4, $5, 'completed')`,
-                  [user.discord_id, product.id, product.name, product.category, product.price]
-              );
-
-              // 🔥 Se for MTA, gerar licença automática (só se NÃO existir nenhuma — mesmo inativa)
-              if (product.category === 'MTA') {
-                  // Usar a versão RAW que devolve a licença mesmo quando está inativa
-                  const existingLicenseRaw = await getLicenseByDiscordIdRaw(user.discord_id);
-
-                  if (!existingLicenseRaw) {
-                      // Não existe licença nenhuma → cria uma nova
-                      try {
-                          const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
-                          const randomPart = () => Math.random().toString(36).substring(2, 10);
-                          const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
-                          await createLicense(user.discord_id, usuario, chave);
-                          console.log(`✅ Licença MTA gerada automaticamente para o utilizador ${user.discord_id}`);
-                      } catch (licErr) {
-                          // Nunca deixa o erro da licença estragar a adição do produto
-                          console.error('⚠️ Erro ao gerar licença MTA (produto continua adicionado):', licErr.message);
-                      }
-                  } else if (existingLicenseRaw.ativa === false || existingLicenseRaw.ativa === 0) {
-                      console.log(`ℹ️ Utilizador ${user.discord_id} já tem licença (inativa). Produto adicionado sem criar nova.`);
-                  } else {
-                      console.log(`ℹ️ Utilizador ${user.discord_id} já tem licença ativa. Produto adicionado sem criar nova.`);
-                  }
-              }
-
-              await logActivity(req, `Adicionou o produto "${product.name}" ao utilizador ${user.username}`);
-              res.json({ success: true, message: `Produto "${product.name}" adicionado com sucesso!` });
-          } catch (err) {
-              console.error('❌ Erro ao adicionar produto ao utilizador:', err);
-              res.status(500).json({ error: err.message || 'Erro interno' });
+          const existing = await pool.query(
+            `SELECT id FROM purchases WHERE user_discord_id = $1 AND product_id = $2 AND status = 'completed'`,
+            [user.discord_id, product.id],
+          );
+          if (existing.rows.length > 0) {
+            return res
+              .status(400)
+              .json({ error: "Este utilizador já possui este produto" });
           }
+
+          await pool.query(
+            `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status)
+                  VALUES ($1, $2, $3, $4, $5, 'completed')`,
+            [
+              user.discord_id,
+              product.id,
+              product.name,
+              product.category,
+              product.price,
+            ],
+          );
+
+          if (product.category === "MTA") {
+            const existingLicenseRaw = await getLicenseByDiscordIdRaw(
+              user.discord_id,
+            );
+
+            if (!existingLicenseRaw) {
+              try {
+                const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+                const randomPart = () =>
+                  Math.random().toString(36).substring(2, 10);
+                const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+                await createLicense(user.discord_id, usuario, chave);
+                console.log(
+                  `✅ Licença MTA gerada automaticamente para o utilizador ${user.discord_id}`,
+                );
+              } catch (licErr) {
+                console.error(
+                  "⚠️ Erro ao gerar licença MTA (produto continua adicionado):",
+                  licErr.message,
+                );
+              }
+            } else if (
+              existingLicenseRaw.ativa === false ||
+              existingLicenseRaw.ativa === 0
+            ) {
+              console.log(
+                `ℹ️ Utilizador ${user.discord_id} já tem licença (inativa). Produto adicionado sem criar nova.`,
+              );
+            } else {
+              console.log(
+                `ℹ️ Utilizador ${user.discord_id} já tem licença ativa. Produto adicionado sem criar nova.`,
+              );
+            }
+          }
+
+          await logActivity(
+            req,
+            `Adicionou o produto "${product.name}" ao utilizador ${user.username}`,
+          );
+          res.json({
+            success: true,
+            message: `Produto "${product.name}" adicionado com sucesso!`,
+          });
+        } catch (err) {
+          console.error("❌ Erro ao adicionar produto ao utilizador:", err);
+          res.status(500).json({ error: err.message || "Erro interno" });
+        }
       });
 
       // ══════════════════════════════════════════
       // ÁREA DO CLIENTE — LICENÇA E CONFIGURAÇÃO MTA
       // ══════════════════════════════════════════
-      app.get('/client-area/license', async (req, res) => {
-          if (!req.session.user) return res.redirect('/');
-          try {
-              const data = await getClientData(req);
+      app.get("/client-area/license", async (req, res) => {
+        if (!req.session.user) return res.redirect("/");
+        try {
+          const data = await getClientData(req);
 
-              // 🔥 Usa a versão "raw" que devolve a licença mesmo quando inativa
-              const license = await getLicenseByDiscordIdRaw(req.session.user.id);
-              const mta_config = license
-                ? { ip: license.ip_permitido, port: license.porta || null }
-                : null;
+          const license = await getLicenseByDiscordIdRaw(req.session.user.id);
+          const mta_config = license
+            ? { ip: license.ip_permitido, port: license.porta || null }
+            : null;
 
-              res.render('client/license', {
-                  user: req.session.user,
-                  isAdmin: data.isAdmin,
-                  systems: data.systems,
-                  purchases: data.purchases,
-                  license: license || null,
-                  mta_config: mta_config || null
-              });
-          } catch (err) {
-              console.error('❌ Erro ao carregar licença:', err);
-              res.render('client/license', {
-                  user: req.session.user,
-                  isAdmin: false, systems: [], purchases: [], license: null, mta_config: null
-              });
-          }
+          res.render("client/license", {
+            user: req.session.user,
+            isAdmin: data.isAdmin,
+            systems: data.systems,
+            purchases: data.purchases,
+            license: license || null,
+            mta_config: mta_config || null,
+          });
+        } catch (err) {
+          console.error("❌ Erro ao carregar licença:", err);
+          res.render("client/license", {
+            user: req.session.user,
+            isAdmin: false,
+            systems: [],
+            purchases: [],
+            license: null,
+            mta_config: null,
+          });
+        }
       });
 
-      app.get('/api/download/:productId', async (req, res) => {
-        if (!req.session.user) return res.status(401).send('Não autorizado.');
+      app.get("/api/download/:productId", async (req, res) => {
+        if (!req.session.user) return res.status(401).send("Não autorizado.");
 
         try {
           const { productId } = req.params;
 
-          // 1) Verificar se o utilizador tem direito ao produto
           const hasProduct = await pool.query(
             `SELECT 1 FROM purchases 
             WHERE user_discord_id = $1 AND product_id = $2 AND status = 'completed' 
             LIMIT 1`,
-            [req.session.user.id, productId]
+            [req.session.user.id, productId],
           );
 
-          // Admins podem sempre descarregar
           let isAdmin = false;
           if (config.ADMIN_IDS.includes(req.session.user.id)) {
             isAdmin = true;
           } else {
             const dbCheck = await pool.query(
-              'SELECT is_admin FROM users WHERE discord_id = $1',
-              [req.session.user.id]
+              "SELECT is_admin FROM users WHERE discord_id = $1",
+              [req.session.user.id],
             );
             if (dbCheck.rows[0]?.is_admin === 1) isAdmin = true;
           }
 
           if (hasProduct.rows.length === 0 && !isAdmin) {
-            return res.status(403).send('Não tens acesso a este produto.');
+            return res.status(403).send("Não tens acesso a este produto.");
           }
 
-          // 2) Buscar o URL
           const productResult = await pool.query(
-            'SELECT name, download_url FROM products WHERE id = $1',
-            [productId]
+            "SELECT name, download_url FROM products WHERE id = $1",
+            [productId],
           );
           if (productResult.rows.length === 0) {
-            return res.status(404).send('Produto não encontrado.');
+            return res.status(404).send("Produto não encontrado.");
           }
 
           const product = productResult.rows[0];
-          if (!product.download_url || product.download_url.trim() === '') {
-            return res.status(404).send('Este produto não tem ficheiro associado.');
+          if (!product.download_url || product.download_url.trim() === "") {
+            return res
+              .status(404)
+              .send("Este produto não tem ficheiro associado.");
           }
 
-          // 3) Converter links especiais
           let downloadUrl = product.download_url.trim();
 
-          // ── Google Drive ──
-          // Usa drive.usercontent.google.com (evita a página de "vírus")
-          const gdMatch = downloadUrl.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+          const gdMatch = downloadUrl.match(
+            /drive\.google\.com\/file\/d\/([^/]+)/,
+          );
           if (gdMatch) {
             downloadUrl = `https://drive.usercontent.google.com/download?id=${gdMatch[1]}&export=download&confirm=t`;
           } else {
-            const gdMatch2 = downloadUrl.match(/drive\.google\.com\/open\?id=([^&]+)/);
+            const gdMatch2 = downloadUrl.match(
+              /drive\.google\.com\/open\?id=([^&]+)/,
+            );
             if (gdMatch2) {
               downloadUrl = `https://drive.usercontent.google.com/download?id=${gdMatch2[1]}&export=download&confirm=t`;
             }
           }
 
-          // ── Dropbox ──
-          if (downloadUrl.includes('dropbox.com') && !downloadUrl.includes('dl=1')) {
-            downloadUrl = downloadUrl.includes('?')
-              ? downloadUrl + '&dl=1'
-              : downloadUrl + '?dl=1';
+          if (
+            downloadUrl.includes("dropbox.com") &&
+            !downloadUrl.includes("dl=1")
+          ) {
+            downloadUrl = downloadUrl.includes("?")
+              ? downloadUrl + "&dl=1"
+              : downloadUrl + "?dl=1";
           }
 
           return res.redirect(302, downloadUrl);
-
         } catch (err) {
-          console.error('❌ Erro no download:', err.message);
-          res.status(500).send('Erro ao preparar o download.');
+          console.error("❌ Erro no download:", err.message);
+          res.status(500).send("Erro ao preparar o download.");
         }
       });
 
-      app.post('/api/client/mta-config', async (req, res) => {
-          if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.post("/api/client/mta-config", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
 
-          const { ip, port } = req.body;
+        const { ip, port } = req.body;
 
-          const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(ip || '');
-          const isHostname = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(ip || '');
+        const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(ip || "");
+        const isHostname =
+          /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(
+            ip || "",
+          );
 
-          if (!ip || (!isIPv4 && !isHostname)) {
-              return res.status(400).json({ error: 'Host/IP inválido.' });
-          }
+        if (!ip || (!isIPv4 && !isHostname)) {
+          return res.status(400).json({ error: "Host/IP inválido." });
+        }
 
-          if (port && !/^\d{1,5}$/.test(String(port))) {
-              return res.status(400).json({ error: 'Porta inválida.' });
-          }
+        if (port && !/^\d{1,5}$/.test(String(port))) {
+          return res.status(400).json({ error: "Porta inválida." });
+        }
 
-          try {
-              await updateLicenseIP(
-                req.session.user.id,
-                ip.trim(),
-                port ? String(port).trim() : null
-              );
-              res.json({ success: true });
-          } catch (err) {
-              console.error('Erro ao atualizar IP:', err);
-              res.status(500).json({ error: 'Erro ao guardar as configurações.' });
-          }
+        try {
+          await updateLicenseIP(
+            req.session.user.id,
+            ip.trim(),
+            port ? String(port).trim() : null,
+          );
+          res.json({ success: true });
+        } catch (err) {
+          console.error("Erro ao atualizar IP:", err);
+          res.status(500).json({ error: "Erro ao guardar as configurações." });
+        }
       });
 
       // ══════════════════════════════════════════
       // CHECKOUT (regista como PENDENTE)
       // ══════════════════════════════════════════
-      app.post('/api/checkout', async (req, res) => {
-        if (!req.session.user) return res.status(401).json({ error: 'Não logado' });
+      app.post("/api/checkout", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
 
         try {
           const userResult = await pool.query(
-            'SELECT cart FROM users WHERE discord_id = $1',
-            [req.session.user.id]
+            "SELECT cart FROM users WHERE discord_id = $1",
+            [req.session.user.id],
           );
           const cart = userResult.rows[0]?.cart || [];
 
-          if (cart.length === 0) return res.status(400).json({ error: 'Carrinho vazio' });
+          if (cart.length === 0)
+            return res.status(400).json({ error: "Carrinho vazio" });
 
           const orderId = randomUUID();
 
-          const allFree = cart.every(item => parseFloat(item.price) <= 0);
+          const allFree = cart.every((item) => parseFloat(item.price) <= 0);
 
           for (const item of cart) {
             const isFree = parseFloat(item.price) <= 0;
-            const status = isFree ? 'completed' : 'pending';
+            const status = isFree ? "completed" : "pending";
 
             await pool.query(
               `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status, order_id)
               VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-              [req.session.user.id, item.id, item.name, item.category, item.price, status, orderId]
+              [
+                req.session.user.id,
+                item.id,
+                item.name,
+                item.category,
+                item.price,
+                status,
+                orderId,
+              ],
             );
 
             if (isFree) {
               try {
                 await giveClientFreeRole(req.session.user.id);
               } catch (roleErr) {
-                console.error('⚠️ Erro ao dar cargo Free (não bloqueia checkout):', roleErr.message);
+                console.error(
+                  "⚠️ Erro ao dar cargo Free (não bloqueia checkout):",
+                  roleErr.message,
+                );
               }
             }
           }
 
-          await pool.query('UPDATE users SET cart = $1 WHERE discord_id = $2', ['[]', req.session.user.id]);
+          await pool.query("UPDATE users SET cart = $1 WHERE discord_id = $2", [
+            "[]",
+            req.session.user.id,
+          ]);
           req.session.coupon = null;
 
-          // 🔥 Escolhe o webhook certo
           if (allFree) {
             await sendFreePurchaseWebhook(req.session.user, cart);
           } else {
             await sendPurchaseWebhook(req.session.user, cart);
           }
 
-          const hasNonMtaItems = cart.some(item => item.category !== 'MTA');
+          const hasNonMtaItems = cart.some((item) => item.category !== "MTA");
 
           res.json({
             success: true,
@@ -1136,38 +1428,49 @@ async function getApp() {
             autoApproved: allFree,
             paymentOnSite: !hasNonMtaItems && !allFree,
             message: allFree
-              ? 'Pedido concluído automaticamente (produtos grátis já estão na tua Área Cliente)!'
+              ? "Pedido concluído automaticamente (produtos grátis já estão na tua Área Cliente)!"
               : hasNonMtaItems
-                ? 'Pedido registado! Abre Ticket no Discord para pagar.'
-                : 'Pedido registado! O admin irá processar o pagamento e aprovar.'
+                ? "Pedido registado! Abre Ticket no Discord para pagar."
+                : "Pedido registado! O admin irá processar o pagamento e aprovar.",
           });
         } catch (err) {
-          console.error('❌ Erro no checkout:', err);
-          res.status(500).json({ error: 'Erro ao processar a compra' });
+          console.error("❌ Erro no checkout:", err);
+          res.status(500).json({ error: "Erro ao processar a compra" });
         }
       });
 
-      app.get('/auth/discord', (req, res) => {
-        res.redirect(`https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`);
+      app.get("/auth/discord", (req, res) => {
+        res.redirect(
+          `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify`,
+        );
       });
 
-      app.get('/auth/discord/callback', async (req, res) => {
+      app.get("/auth/discord/callback", async (req, res) => {
         const { code } = req.query;
-        if (!code) return res.redirect('/');
+        if (!code) return res.redirect("/");
 
         try {
-          const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-            grant_type: 'authorization_code',
-            code,
-            redirect_uri: REDIRECT_URI
-          }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+          const tokenResponse = await axios.post(
+            "https://discord.com/api/oauth2/token",
+            new URLSearchParams({
+              client_id: CLIENT_ID,
+              client_secret: CLIENT_SECRET,
+              grant_type: "authorization_code",
+              code,
+              redirect_uri: REDIRECT_URI,
+            }),
+            {
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            },
+          );
 
           const accessToken = tokenResponse.data.access_token;
-          const userResponse = await axios.get('https://discord.com/api/users/@me', {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
+          const userResponse = await axios.get(
+            "https://discord.com/api/users/@me",
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            },
+          );
 
           const user = userResponse.data;
           req.session.user = user;
@@ -1178,13 +1481,16 @@ async function getApp() {
               else resolve();
             });
           });
-          console.log('✅ Sessão guardada com sucesso para o utilizador:', user.username);
+          console.log(
+            "✅ Sessão guardada com sucesso para o utilizador:",
+            user.username,
+          );
 
           const now = new Date().toISOString();
           await pool.query(
             `INSERT INTO users (discord_id, username, avatar, last_login) VALUES ($1, $2, $3, $4)
              ON CONFLICT (discord_id) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, last_login = EXCLUDED.last_login`,
-            [user.id, user.username, user.avatar, now]
+            [user.id, user.username, user.avatar, now],
           );
 
           try {
@@ -1192,66 +1498,96 @@ async function getApp() {
               const guildBan = await axios.get(
                 `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/bans/${user.id}`,
                 {
-                  headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
-                  validateStatus: () => true
-                }
+                  headers: {
+                    Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+                  },
+                  validateStatus: () => true,
+                },
               );
 
               if (guildBan.status === 200) {
                 await pool.query(
                   `UPDATE users SET is_banned = 1, ban_reason = $1, banned_at = CURRENT_TIMESTAMP, banned_by = 'Discord Bot' WHERE discord_id = $2`,
-                  ['Banido no servidor Discord', user.id]
+                  ["Banido no servidor Discord", user.id],
                 );
-                console.log(`🚫 Utilizador ${user.username} banido automaticamente (banido no Discord).`);
+                console.log(
+                  `🚫 Utilizador ${user.username} banido automaticamente (banido no Discord).`,
+                );
               }
             }
           } catch (banErr) {
-            console.error('⚠️ Erro ao verificar ban do Discord (ignorado):', banErr.message);
+            console.error(
+              "⚠️ Erro ao verificar ban do Discord (ignorado):",
+              banErr.message,
+            );
           }
 
           const banCheck = await pool.query(
-            'SELECT is_banned FROM users WHERE discord_id = $1',
-            [user.id]
+            "SELECT is_banned FROM users WHERE discord_id = $1",
+            [user.id],
           );
           if (banCheck.rows[0]?.is_banned === 1) {
-            return res.redirect('/');
+            return res.redirect("/");
           }
 
-          if (config.ADMIN_IDS.includes(user.id)) return res.redirect('/admin');
+          if (config.ADMIN_IDS.includes(user.id)) return res.redirect("/admin");
 
-          const result = await pool.query('SELECT is_admin FROM users WHERE discord_id = $1', [user.id]);
+          const result = await pool.query(
+            "SELECT is_admin FROM users WHERE discord_id = $1",
+            [user.id],
+          );
           const row = result.rows[0];
-          if (row && row.is_admin === 1) return res.redirect('/admin');
-          else res.redirect('/');
-
+          if (row && row.is_admin === 1) return res.redirect("/admin");
+          else res.redirect("/");
         } catch (error) {
           console.error("❌ ERRO NO LOGIN DO DISCORD:", error);
           res.status(500).send(`
             <h2 style="font-family: sans-serif; color: #ef4444;">❌ Erro no Login com Discord</h2>
             <p><strong>Mensagem:</strong> ${error.message}</p>
-            <p><strong>Detalhe:</strong> ${JSON.stringify(error.response?.data || 'Sem detalhes adicionais')}</p>
+            <p><strong>Detalhe:</strong> ${JSON.stringify(error.response?.data || "Sem detalhes adicionais")}</p>
             <a href="/">Voltar para o início</a>
           `);
         }
       });
 
-      app.get('/logout', (req, res) => { req.session.destroy(() => res.redirect('/')); });
+      app.get("/logout", (req, res) => {
+        req.session.destroy(() => res.redirect("/"));
+      });
 
       // ══════════════════════════════════════════
       // ADMIN DASHBOARD
       // ══════════════════════════════════════════
 
-      app.get('/admin/dashboard', isAdmin, async (req, res) => {
-        const total = await pool.query('SELECT COUNT(*) as total_products FROM products');
-        const active = await pool.query('SELECT COUNT(*) as active_products FROM products WHERE is_active = 1');
-        const users = await pool.query('SELECT COUNT(*) as total_users FROM users');
-        const mta = await pool.query('SELECT COUNT(*) as mta_scripts FROM products WHERE category = $1', ['MTA']);
-        const bots = await pool.query('SELECT COUNT(*) as discord_bots FROM products WHERE category = $1', ['Discord Bot']);
-        const site = await pool.query('SELECT COUNT(*) as site_scripts FROM products WHERE category = $1', ['Site']);
-        const discounts = await pool.query('SELECT COUNT(*) as total_discounts FROM discounts');
-        const paymentMethods = await pool.query('SELECT COUNT(*) as total_payment_methods FROM payment_methods');
+      app.get("/admin/dashboard", isAdmin, async (req, res) => {
+        const total = await pool.query(
+          "SELECT COUNT(*) as total_products FROM products",
+        );
+        const active = await pool.query(
+          "SELECT COUNT(*) as active_products FROM products WHERE is_active = 1",
+        );
+        const users = await pool.query(
+          "SELECT COUNT(*) as total_users FROM users",
+        );
+        const mta = await pool.query(
+          "SELECT COUNT(*) as mta_scripts FROM products WHERE category = $1",
+          ["MTA"],
+        );
+        const bots = await pool.query(
+          "SELECT COUNT(*) as discord_bots FROM products WHERE category = $1",
+          ["Discord Bot"],
+        );
+        const site = await pool.query(
+          "SELECT COUNT(*) as site_scripts FROM products WHERE category = $1",
+          ["Site"],
+        );
+        const discounts = await pool.query(
+          "SELECT COUNT(*) as total_discounts FROM discounts",
+        );
+        const paymentMethods = await pool.query(
+          "SELECT COUNT(*) as total_payment_methods FROM payment_methods",
+        );
 
-        res.render('admin/dashboard', {
+        res.render("admin/dashboard", {
           stats: {
             total_products: total.rows[0].total_products,
             active_products: active.rows[0].active_products,
@@ -1260,10 +1596,10 @@ async function getApp() {
             discord_bots: bots.rows[0].discord_bots,
             site_scripts: site.rows[0].site_scripts,
             total_discounts: discounts.rows[0].total_discounts,
-            total_payment_methods: paymentMethods.rows[0].total_payment_methods
+            total_payment_methods: paymentMethods.rows[0].total_payment_methods,
           },
-          activeTab: 'dashboard',
-          user: req.session.user
+          activeTab: "dashboard",
+          user: req.session.user,
         });
       });
 
@@ -1271,108 +1607,185 @@ async function getApp() {
       // ADMIN PRODUTOS
       // ══════════════════════════════════════════
 
-      app.get('/admin', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT * FROM products ORDER BY id ASC');
+      app.get("/admin", isAdmin, async (req, res) => {
+        const result = await pool.query(
+          "SELECT * FROM products ORDER BY id ASC",
+        );
 
         let error = null;
-        if (req.query.error === 'max_featured') {
-          error = 'Já tens 3 produtos em destaque. Remove um antes de destacar outro.';
+        if (req.query.error === "max_featured") {
+          error =
+            "Já tens 3 produtos em destaque. Remove um antes de destacar outro.";
         }
 
-        res.render('admin/products', {
+        res.render("admin/products", {
           products: result.rows,
-          activeTab: 'products',
+          activeTab: "products",
           error,
-          user: req.session.user
+          user: req.session.user,
         });
       });
 
-      app.post('/admin/products/add', isAdmin, async (req, res) => {
+      app.post("/admin/products/add", isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color, download_url } = req.body;
-          if (!name || !description || !price) return res.redirect('/admin?error=missing_fields');
+          const {
+            name,
+            description,
+            price,
+            category,
+            thumbnail,
+            video_link,
+            features,
+            badge,
+            badge_color,
+            download_url,
+          } = req.body;
+          if (!name || !description || !price)
+            return res.redirect("/admin?error=missing_fields");
 
           await pool.query(
-            'INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features, badge, badge_color, download_url) VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8, $9, $10)',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8', download_url || null]
+            "INSERT INTO products (name, description, price, category, is_active, thumbnail, video_link, features, badge, badge_color, download_url) VALUES ($1, $2, $3, $4, 1, $5, $6, $7, $8, $9, $10)",
+            [
+              name,
+              description,
+              parseFloat(price),
+              category || "MTA",
+              thumbnail,
+              video_link,
+              features,
+              badge,
+              badge_color || "#94a3b8",
+              download_url || null,
+            ],
           );
           await logActivity(req, `Criou o produto: ${name}`);
-          res.redirect(303, '/admin');
+          res.redirect(303, "/admin");
         } catch (err) {
-          console.error('❌ Erro ao adicionar produto:', err);
-          res.status(500).send(`<h3>Erro ao adicionar</h3><p>${err.message}</p><a href="/admin">Voltar</a>`);
+          console.error("❌ Erro ao adicionar produto:", err);
+          res
+            .status(500)
+            .send(
+              `<h3>Erro ao adicionar</h3><p>${err.message}</p><a href="/admin">Voltar</a>`,
+            );
         }
       });
 
-      app.post('/admin/products/edit/:id', isAdmin, async (req, res) => {
+      app.post("/admin/products/edit/:id", isAdmin, async (req, res) => {
         try {
-          const { name, description, price, category, thumbnail, video_link, features, badge, badge_color, download_url } = req.body;
+          const {
+            name,
+            description,
+            price,
+            category,
+            thumbnail,
+            video_link,
+            features,
+            badge,
+            badge_color,
+            download_url,
+          } = req.body;
 
           await pool.query(
-            'UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7, badge = $8, badge_color = $9, download_url = $10 WHERE id = $11',
-            [name, description, parseFloat(price), category || 'MTA', thumbnail, video_link, features, badge, badge_color || '#94a3b8', download_url || null, req.params.id]
+            "UPDATE products SET name = $1, description = $2, price = $3, category = $4, thumbnail = $5, video_link = $6, features = $7, badge = $8, badge_color = $9, download_url = $10 WHERE id = $11",
+            [
+              name,
+              description,
+              parseFloat(price),
+              category || "MTA",
+              thumbnail,
+              video_link,
+              features,
+              badge,
+              badge_color || "#94a3b8",
+              download_url || null,
+              req.params.id,
+            ],
           );
           await logActivity(req, `Editou o produto: ${name}`);
-          res.redirect(303, '/admin'); 
+          res.redirect(303, "/admin");
         } catch (err) {
-          console.error('❌ Erro ao editar produto:', err);
-          res.status(500).send(`<h3>Erro ao salvar as alterações</h3><p><strong>Detalhe:</strong> ${err.message}</p><a href="/admin">Voltar</a>`);
+          console.error("❌ Erro ao editar produto:", err);
+          res
+            .status(500)
+            .send(
+              `<h3>Erro ao salvar as alterações</h3><p><strong>Detalhe:</strong> ${err.message}</p><a href="/admin">Voltar</a>`,
+            );
         }
       });
 
-      app.post('/admin/products/delete/:id', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT name FROM products WHERE id = $1', [req.params.id]);
-        await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
-        await logActivity(req, `Apagou o produto: ${result.rows[0]?.name || 'ID ' + req.params.id}`);
-        res.redirect(303, '/admin');
+      app.post("/admin/products/delete/:id", isAdmin, async (req, res) => {
+        const result = await pool.query(
+          "SELECT name FROM products WHERE id = $1",
+          [req.params.id],
+        );
+        await pool.query("DELETE FROM products WHERE id = $1", [req.params.id]);
+        await logActivity(
+          req,
+          `Apagou o produto: ${result.rows[0]?.name || "ID " + req.params.id}`,
+        );
+        res.redirect(303, "/admin");
       });
 
-      app.post('/admin/toggle/:id', isAdmin, async (req, res) => {
+      app.post("/admin/toggle/:id", isAdmin, async (req, res) => {
         try {
-          await pool.query('UPDATE products SET is_active = 1 - is_active WHERE id = $1', [req.params.id]);
-          res.redirect(303, '/admin');
+          await pool.query(
+            "UPDATE products SET is_active = 1 - is_active WHERE id = $1",
+            [req.params.id],
+          );
+          res.redirect(303, "/admin");
         } catch (err) {
-          console.error('❌ Erro ao alternar produto:', err);
-          res.redirect(303, '/admin');
+          console.error("❌ Erro ao alternar produto:", err);
+          res.redirect(303, "/admin");
         }
       });
 
-      app.post('/admin/products/feature/:id', isAdmin, async (req, res) => {
+      app.post("/admin/products/feature/:id", isAdmin, async (req, res) => {
         const id = req.params.id;
-        const countResult = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_featured = 1');
+        const countResult = await pool.query(
+          "SELECT COUNT(*) as count FROM products WHERE is_featured = 1",
+        );
         const currentCount = parseInt(countResult.rows[0].count);
-        const currentResult = await pool.query('SELECT is_featured FROM products WHERE id = $1', [id]);
+        const currentResult = await pool.query(
+          "SELECT is_featured FROM products WHERE id = $1",
+          [id],
+        );
         const isCurrentlyFeatured = currentResult.rows[0]?.is_featured === 1;
 
         if (!isCurrentlyFeatured && currentCount >= 3) {
-          return res.redirect(303, '/admin?error=max_featured');
+          return res.redirect(303, "/admin?error=max_featured");
         }
 
-        await pool.query('UPDATE products SET is_featured = 1 - is_featured WHERE id = $1', [id]);
+        await pool.query(
+          "UPDATE products SET is_featured = 1 - is_featured WHERE id = $1",
+          [id],
+        );
         await logActivity(req, `Alterou o destaque do produto ID ${id}`);
-        res.redirect(303, '/admin');
+        res.redirect(303, "/admin");
       });
 
       // ══════════════════════════════════════════
       // ADMIN UTILIZADORES
       // ══════════════════════════════════════════
 
-      app.get('/admin/users', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT * FROM users ORDER BY id ASC');
-        res.render('admin/users', { users: result.rows, activeTab: 'users', error: null, user: req.session.user });
+      app.get("/admin/users", isAdmin, async (req, res) => {
+        const result = await pool.query("SELECT * FROM users ORDER BY id ASC");
+        res.render("admin/users", {
+          users: result.rows,
+          activeTab: "users",
+          error: null,
+          user: req.session.user,
+        });
       });
 
-            // ══════════════════════════════════════════
-      // ADMIN — BANIR / DESBANIR UTILIZADOR
-      // ══════════════════════════════════════════
-      app.post('/admin/users/ban/:id', isAdmin, async (req, res) => {
+      app.post("/admin/users/ban/:id", isAdmin, async (req, res) => {
         try {
           const { reason } = req.body;
           const userResult = await pool.query(
-            'SELECT username, is_banned FROM users WHERE id = $1',
-            [req.params.id]
+            "SELECT username, is_banned FROM users WHERE id = $1",
+            [req.params.id],
           );
-          if (userResult.rows.length === 0) return res.redirect(303, '/admin/users');
+          if (userResult.rows.length === 0)
+            return res.redirect(303, "/admin/users");
 
           const { username, is_banned } = userResult.rows[0];
           const newState = is_banned === 1 ? 0 : 1;
@@ -1380,67 +1793,93 @@ async function getApp() {
           if (newState === 1) {
             await pool.query(
               `UPDATE users SET is_banned = 1, ban_reason = $1, banned_at = CURRENT_TIMESTAMP, banned_by = $2 WHERE id = $3`,
-              [reason || 'Sem motivo especificado', req.session.user.username, req.params.id]
+              [
+                reason || "Sem motivo especificado",
+                req.session.user.username,
+                req.params.id,
+              ],
             );
-            await logActivity(req, `Baniu o utilizador: ${username} (motivo: ${reason || 'N/A'})`);
+            await logActivity(
+              req,
+              `Baniu o utilizador: ${username} (motivo: ${reason || "N/A"})`,
+            );
           } else {
             await pool.query(
               `UPDATE users SET is_banned = 0, ban_reason = NULL, banned_at = NULL, banned_by = NULL WHERE id = $1`,
-              [req.params.id]
+              [req.params.id],
             );
             await logActivity(req, `Desbaniu o utilizador: ${username}`);
           }
 
-          res.redirect(303, '/admin/users');
+          res.redirect(303, "/admin/users");
         } catch (err) {
-          console.error('❌ Erro ao banir/desbanir:', err);
-          res.redirect(303, '/admin/users');
+          console.error("❌ Erro ao banir/desbanir:", err);
+          res.redirect(303, "/admin/users");
         }
       });
 
-      app.post('/api/discord/ban-sync', async (req, res) => {
+      app.post("/api/discord/ban-sync", async (req, res) => {
         try {
-          const secret = req.headers['x-bot-secret'] || req.body.secret;
-          if (!process.env.DISCORD_BOT_SECRET || secret !== process.env.DISCORD_BOT_SECRET) {
-            return res.status(401).json({ error: 'Não autorizado' });
+          const secret = req.headers["x-bot-secret"] || req.body.secret;
+          if (
+            !process.env.DISCORD_BOT_SECRET ||
+            secret !== process.env.DISCORD_BOT_SECRET
+          ) {
+            return res.status(401).json({ error: "Não autorizado" });
           }
 
           const { discord_id, action, reason } = req.body;
-          if (!discord_id || !['ban', 'unban'].includes(action)) {
-            return res.status(400).json({ error: 'Campos inválidos. Esperado: discord_id, action (ban|unban)' });
+          if (!discord_id || !["ban", "unban"].includes(action)) {
+            return res
+              .status(400)
+              .json({
+                error:
+                  "Campos inválidos. Esperado: discord_id, action (ban|unban)",
+              });
           }
 
-          if (action === 'ban') {
+          if (action === "ban") {
             const r = await pool.query(
               `UPDATE users SET is_banned = 1, ban_reason = $1, banned_at = CURRENT_TIMESTAMP, banned_by = 'Discord Bot' WHERE discord_id = $2 RETURNING id`,
-              [reason || 'Banido no Discord', String(discord_id)]
+              [reason || "Banido no Discord", String(discord_id)],
             );
             return res.json({ success: true, updated: r.rowCount > 0 });
           } else {
             const r = await pool.query(
               `UPDATE users SET is_banned = 0, ban_reason = NULL, banned_at = NULL, banned_by = NULL WHERE discord_id = $1 RETURNING id`,
-              [String(discord_id)]
+              [String(discord_id)],
             );
             return res.json({ success: true, updated: r.rowCount > 0 });
           }
         } catch (err) {
-          console.error('❌ Erro no ban-sync:', err);
+          console.error("❌ Erro no ban-sync:", err);
           res.status(500).json({ error: err.message });
         }
       });
 
-      app.post('/admin/users/toggle/:id', isAdmin, async (req, res) => {
+      app.post("/admin/users/toggle/:id", isAdmin, async (req, res) => {
         try {
-          console.log(`⏳ A iniciar alteração de admin para o utilizador ID: ${req.params.id}`);
-          const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.params.id]);
+          console.log(
+            `⏳ A iniciar alteração de admin para o utilizador ID: ${req.params.id}`,
+          );
+          const userResult = await pool.query(
+            "SELECT username FROM users WHERE id = $1",
+            [req.params.id],
+          );
           if (userResult.rows.length === 0) {
-            throw new Error('Utilizador não encontrado');
+            throw new Error("Utilizador não encontrado");
           }
           const username = userResult.rows[0].username;
-          await pool.query('UPDATE users SET is_admin = 1 - is_admin WHERE id = $1', [req.params.id]);
+          await pool.query(
+            "UPDATE users SET is_admin = 1 - is_admin WHERE id = $1",
+            [req.params.id],
+          );
           console.log(`✅ Admin status invertido para: ${username}`);
-          await logActivity(req, `Alterou o status de admin do utilizador: ${username}`);
-          return res.redirect(303, '/admin/users');
+          await logActivity(
+            req,
+            `Alterou o status de admin do utilizador: ${username}`,
+          );
+          return res.redirect(303, "/admin/users");
         } catch (err) {
           console.error("❌ ERRO AO ALTERAR ADMIN:", err);
           return res.status(500).send(`
@@ -1456,48 +1895,72 @@ async function getApp() {
       // ADMIN DESCONTOS
       // ══════════════════════════════════════════
 
-      app.get('/admin/discounts', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT * FROM discounts ORDER BY id ASC');
-        res.render('admin/discounts', { discounts: result.rows, activeTab: 'discounts', error: null, user: req.session.user });
+      app.get("/admin/discounts", isAdmin, async (req, res) => {
+        const result = await pool.query(
+          "SELECT * FROM discounts ORDER BY id ASC",
+        );
+        res.render("admin/discounts", {
+          discounts: result.rows,
+          activeTab: "discounts",
+          error: null,
+          user: req.session.user,
+        });
       });
 
-      app.post('/admin/discounts/add', isAdmin, async (req, res) => {
+      app.post("/admin/discounts/add", isAdmin, async (req, res) => {
         const { code, description, percentage } = req.body;
-        if (!code || !percentage) return res.redirect('/admin/discounts?error=missing_fields');
-        await pool.query('INSERT INTO discounts (code, description, percentage, is_active) VALUES ($1, $2, $3, 1)',
-          [code, description, parseInt(percentage)]);
+        if (!code || !percentage)
+          return res.redirect("/admin/discounts?error=missing_fields");
+        await pool.query(
+          "INSERT INTO discounts (code, description, percentage, is_active) VALUES ($1, $2, $3, 1)",
+          [code, description, parseInt(percentage)],
+        );
         await logActivity(req, `Criou o desconto: ${code}`);
-        res.redirect(303, '/admin/discounts');
+        res.redirect(303, "/admin/discounts");
       });
 
-      app.post('/admin/discounts/edit/:id', isAdmin, async (req, res) => {
+      app.post("/admin/discounts/edit/:id", isAdmin, async (req, res) => {
         const { code, description, percentage } = req.body;
-        await pool.query('UPDATE discounts SET code = $1, description = $2, percentage = $3 WHERE id = $4',
-          [code, description, parseInt(percentage), req.params.id]);
+        await pool.query(
+          "UPDATE discounts SET code = $1, description = $2, percentage = $3 WHERE id = $4",
+          [code, description, parseInt(percentage), req.params.id],
+        );
         await logActivity(req, `Editou o desconto: ${code}`);
-        res.redirect(303, '/admin/discounts');
+        res.redirect(303, "/admin/discounts");
       });
 
-      app.post('/admin/discounts/delete/:id', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT code FROM discounts WHERE id = $1', [req.params.id]);
-        await pool.query('DELETE FROM discounts WHERE id = $1', [req.params.id]);
-        await logActivity(req, `Apagou o desconto: ${result.rows[0]?.code || 'ID ' + req.params.id}`);
-        res.redirect(303, '/admin/discounts');
+      app.post("/admin/discounts/delete/:id", isAdmin, async (req, res) => {
+        const result = await pool.query(
+          "SELECT code FROM discounts WHERE id = $1",
+          [req.params.id],
+        );
+        await pool.query("DELETE FROM discounts WHERE id = $1", [
+          req.params.id,
+        ]);
+        await logActivity(
+          req,
+          `Apagou o desconto: ${result.rows[0]?.code || "ID " + req.params.id}`,
+        );
+        res.redirect(303, "/admin/discounts");
       });
 
-      app.post('/admin/discounts/toggle/:id', isAdmin, async (req, res) => {
+      app.post("/admin/discounts/toggle/:id", isAdmin, async (req, res) => {
         try {
-          await pool.query('UPDATE discounts SET is_active = 1 - is_active WHERE id = $1', [req.params.id]);
-          res.redirect(303, '/admin/discounts');
+          await pool.query(
+            "UPDATE discounts SET is_active = 1 - is_active WHERE id = $1",
+            [req.params.id],
+          );
+          res.redirect(303, "/admin/discounts");
         } catch (err) {
-          console.error('❌ Erro ao alternar desconto:', err);
-          res.redirect(303, '/admin/discounts');
+          console.error("❌ Erro ao alternar desconto:", err);
+          res.redirect(303, "/admin/discounts");
         }
       });
 
-      app.post('/admin/upload-image', isAdmin, (req, res) => {
+      app.post("/admin/upload-image", isAdmin, (req, res) => {
         const { image } = req.body;
-        if (!image) return res.status(400).json({ error: 'Imagem não enviada' });
+        if (!image)
+          return res.status(400).json({ error: "Imagem não enviada" });
         res.json({ success: true, dataUrl: image });
       });
 
@@ -1505,110 +1968,178 @@ async function getApp() {
       // ADMIN MÉTODOS DE PAGAMENTO
       // ══════════════════════════════════════════
 
-      app.get('/admin/payment-methods', isAdmin, async (req, res) => {
+      app.get("/admin/payment-methods", isAdmin, async (req, res) => {
         try {
-          const result = await pool.query('SELECT * FROM payment_methods ORDER BY display_order ASC');
-          res.render('admin/payment-methods', { methods: result.rows, activeTab: 'payment-methods', error: null, user: req.session.user });
+          const result = await pool.query(
+            "SELECT * FROM payment_methods ORDER BY display_order ASC",
+          );
+          res.render("admin/payment-methods", {
+            methods: result.rows,
+            activeTab: "payment-methods",
+            error: null,
+            user: req.session.user,
+          });
         } catch (err) {
-          res.render('admin/payment-methods', { methods: [], activeTab: 'payment-methods', error: 'Erro ao carregar', user: req.session.user });
+          res.render("admin/payment-methods", {
+            methods: [],
+            activeTab: "payment-methods",
+            error: "Erro ao carregar",
+            user: req.session.user,
+          });
         }
       });
 
-      app.post('/admin/payment-methods/add', isAdmin, async (req, res) => {
+      app.post("/admin/payment-methods/add", isAdmin, async (req, res) => {
         try {
-          const { name, description, icon, display_order, image_base64 } = req.body;
-          if (!name) return res.redirect('/admin/payment-methods?error=missing_fields');
-          await pool.query('INSERT INTO payment_methods (name, description, icon, image_base64, display_order) VALUES ($1, $2, $3, $4, $5)',
-            [name, description, icon, image_base64 || null, parseInt(display_order) || 0]);
+          const { name, description, icon, display_order, image_base64 } =
+            req.body;
+          if (!name)
+            return res.redirect("/admin/payment-methods?error=missing_fields");
+          await pool.query(
+            "INSERT INTO payment_methods (name, description, icon, image_base64, display_order) VALUES ($1, $2, $3, $4, $5)",
+            [
+              name,
+              description,
+              icon,
+              image_base64 || null,
+              parseInt(display_order) || 0,
+            ],
+          );
           await logActivity(req, `Adicionou método de pagamento: ${name}`);
-          res.redirect(303, '/admin/payment-methods');
+          res.redirect(303, "/admin/payment-methods");
         } catch (err) {
-          console.error('Erro ao adicionar método:', err);
-          res.status(500).send(`<h3>Erro ao adicionar método</h3><p>${err.message}</p><a href="/admin/payment-methods">Voltar</a>`);
+          console.error("Erro ao adicionar método:", err);
+          res
+            .status(500)
+            .send(
+              `<h3>Erro ao adicionar método</h3><p>${err.message}</p><a href="/admin/payment-methods">Voltar</a>`,
+            );
         }
       });
 
-      app.post('/admin/payment-methods/edit/:id', isAdmin, async (req, res) => {
+      app.post("/admin/payment-methods/edit/:id", isAdmin, async (req, res) => {
         try {
-          const { name, description, icon, display_order, image_base64 } = req.body;
-          await pool.query('UPDATE payment_methods SET name = $1, description = $2, icon = $3, image_base64 = $4, display_order = $5 WHERE id = $6',
-            [name, description, icon, image_base64 || null, parseInt(display_order) || 0, req.params.id]);
+          const { name, description, icon, display_order, image_base64 } =
+            req.body;
+          await pool.query(
+            "UPDATE payment_methods SET name = $1, description = $2, icon = $3, image_base64 = $4, display_order = $5 WHERE id = $6",
+            [
+              name,
+              description,
+              icon,
+              image_base64 || null,
+              parseInt(display_order) || 0,
+              req.params.id,
+            ],
+          );
           await logActivity(req, `Editou método de pagamento: ${name}`);
-          res.redirect(303, '/admin/payment-methods');
+          res.redirect(303, "/admin/payment-methods");
         } catch (err) {
-          console.error('Erro ao editar método:', err);
-          res.status(500).send(`<h3>Erro ao editar método</h3><p>${err.message}</p><a href="/admin/payment-methods">Voltar</a>`);
+          console.error("Erro ao editar método:", err);
+          res
+            .status(500)
+            .send(
+              `<h3>Erro ao editar método</h3><p>${err.message}</p><a href="/admin/payment-methods">Voltar</a>`,
+            );
         }
       });
 
-      app.post('/admin/payment-methods/toggle/:id', isAdmin, async (req, res) => {
-        try {
-          await pool.query('UPDATE payment_methods SET is_active = 1 - is_active WHERE id = $1', [req.params.id]);
-          res.redirect(303, '/admin/payment-methods');
-        } catch (err) {
-          console.error('❌ Erro ao alternar método:', err);
-          res.redirect(303, '/admin/payment-methods');
-        }
-      });
+      app.post(
+        "/admin/payment-methods/toggle/:id",
+        isAdmin,
+        async (req, res) => {
+          try {
+            await pool.query(
+              "UPDATE payment_methods SET is_active = 1 - is_active WHERE id = $1",
+              [req.params.id],
+            );
+            res.redirect(303, "/admin/payment-methods");
+          } catch (err) {
+            console.error("❌ Erro ao alternar método:", err);
+            res.redirect(303, "/admin/payment-methods");
+          }
+        },
+      );
 
-      app.post('/admin/payment-methods/delete/:id', isAdmin, async (req, res) => {
-        try {
-          const result = await pool.query('SELECT name FROM payment_methods WHERE id = $1', [req.params.id]);
-          await pool.query('DELETE FROM payment_methods WHERE id = $1', [req.params.id]);
-          await logActivity(req, `Apagou método de pagamento: ${result.rows[0]?.name || 'ID ' + req.params.id}`);
-          res.redirect(303, '/admin/payment-methods');
-        } catch (err) {
-          console.error('Erro ao apagar método:', err);
-          res.redirect(303, '/admin/payment-methods');
-        }
-      });
+      app.post(
+        "/admin/payment-methods/delete/:id",
+        isAdmin,
+        async (req, res) => {
+          try {
+            const result = await pool.query(
+              "SELECT name FROM payment_methods WHERE id = $1",
+              [req.params.id],
+            );
+            await pool.query("DELETE FROM payment_methods WHERE id = $1", [
+              req.params.id,
+            ]);
+            await logActivity(
+              req,
+              `Apagou método de pagamento: ${result.rows[0]?.name || "ID " + req.params.id}`,
+            );
+            res.redirect(303, "/admin/payment-methods");
+          } catch (err) {
+            console.error("Erro ao apagar método:", err);
+            res.redirect(303, "/admin/payment-methods");
+          }
+        },
+      );
 
       // ══════════════════════════════════════════
       // ADMIN LOGS & SETTINGS
       // ══════════════════════════════════════════
 
-      app.get('/admin/logs', isAdmin, async (req, res) => {
-        const result = await pool.query('SELECT * FROM activity_logs ORDER BY id DESC LIMIT 100');
-        res.render('admin/logs', { logs: result.rows, activeTab: 'logs', error: null, user: req.session.user });
+      app.get("/admin/logs", isAdmin, async (req, res) => {
+        const result = await pool.query(
+          "SELECT * FROM activity_logs ORDER BY id DESC LIMIT 100",
+        );
+        res.render("admin/logs", {
+          logs: result.rows,
+          activeTab: "logs",
+          error: null,
+          user: req.session.user,
+        });
       });
 
-      app.get('/admin/settings', isAdmin, async (req, res) => {
+      app.get("/admin/settings", isAdmin, async (req, res) => {
         try {
-          const result = await pool.query('SELECT * FROM settings WHERE id = 1');
+          const result = await pool.query(
+            "SELECT * FROM settings WHERE id = 1",
+          );
           const settings = result.rows[0] || {
-            site_name: 'Santos Resources',
-            discord_link: 'https://discord.gg/8GyNS5vRgt',
-            logo_url: '',
+            site_name: "Santos Resources",
+            discord_link: "https://discord.gg/8GyNS5vRgt",
+            logo_url: "",
             maintenance_mode: 0,
-            discord_webhook_url: '',
-            discord_purchase_webhook_url: ''
+            discord_webhook_url: "",
+            discord_purchase_webhook_url: "",
           };
 
-          res.render('admin/settings', {
+          res.render("admin/settings", {
             settings,
-            activeTab: 'settings',
+            activeTab: "settings",
             error: null,
-            user: req.session.user
+            user: req.session.user,
           });
         } catch (err) {
-          console.error('❌ Erro ao carregar configurações:', err);
-          res.render('admin/settings', {
+          console.error("❌ Erro ao carregar configurações:", err);
+          res.render("admin/settings", {
             settings: {
-              site_name: 'Santos Resources',
-              discord_link: 'https://discord.gg/8GyNS5vRgt',
-              logo_url: '',
+              site_name: "Santos Resources",
+              discord_link: "https://discord.gg/8GyNS5vRgt",
+              logo_url: "",
               maintenance_mode: 0,
-              discord_webhook_url: '',
-              discord_purchase_webhook_url: ''
+              discord_webhook_url: "",
+              discord_purchase_webhook_url: "",
             },
-            activeTab: 'settings',
-            error: 'Erro ao carregar configurações',
-            user: req.session.user
+            activeTab: "settings",
+            error: "Erro ao carregar configurações",
+            user: req.session.user,
           });
         }
       });
 
-      app.post('/admin/settings/update', isAdmin, async (req, res) => {
+      app.post("/admin/settings/update", isAdmin, async (req, res) => {
         try {
           const {
             site_name,
@@ -1616,9 +2147,10 @@ async function getApp() {
             logo_url,
             maintenance_mode,
             discord_webhook_url,
-            discord_purchase_webhook_url
+            discord_purchase_webhook_url,
           } = req.body;
-          const mm = (maintenance_mode === 'on' || maintenance_mode === '1') ? 1 : 0;
+          const mm =
+            maintenance_mode === "on" || maintenance_mode === "1" ? 1 : 0;
 
           await pool.query(
             `UPDATE settings
@@ -1629,13 +2161,27 @@ async function getApp() {
                 discord_webhook_url = $5,
                 discord_purchase_webhook_url = $6
             WHERE id = 1`,
-            [site_name, discord_link, logo_url, mm, discord_webhook_url || null, discord_purchase_webhook_url || null]
+            [
+              site_name,
+              discord_link,
+              logo_url,
+              mm,
+              discord_webhook_url || null,
+              discord_purchase_webhook_url || null,
+            ],
           );
-          await logActivity(req, `Atualizou as configurações do site (manutenção: ${mm ? 'ON' : 'OFF'}).`);
-          res.redirect(303, '/admin/settings');
+          await logActivity(
+            req,
+            `Atualizou as configurações do site (manutenção: ${mm ? "ON" : "OFF"}).`,
+          );
+          res.redirect(303, "/admin/settings");
         } catch (err) {
-          console.error('❌ Erro ao atualizar configurações:', err);
-          res.status(500).send(`<h3>Erro ao salvar configurações</h3><p>${err.message}</p><a href="/admin/settings">Voltar</a>`);
+          console.error("❌ Erro ao atualizar configurações:", err);
+          res
+            .status(500)
+            .send(
+              `<h3>Erro ao salvar configurações</h3><p>${err.message}</p><a href="/admin/settings">Voltar</a>`,
+            );
         }
       });
 
@@ -1643,7 +2189,7 @@ async function getApp() {
       // ADMIN — COMPRAS / PEDIDOS
       // ══════════════════════════════════════════
 
-      app.get('/admin/purchases', isAdmin, async (req, res) => {
+      app.get("/admin/purchases", isAdmin, async (req, res) => {
         try {
           const result = await pool.query(`
             SELECT p.*, u.username, u.avatar
@@ -1653,117 +2199,190 @@ async function getApp() {
               CASE WHEN p.status = 'pending' THEN 0 ELSE 1 END,
               p.purchased_at DESC
           `);
-          res.render('admin/purchases', {
+          res.render("admin/purchases", {
             purchases: result.rows,
-            activeTab: 'purchases',
+            activeTab: "purchases",
             error: null,
-            user: req.session.user
+            user: req.session.user,
           });
         } catch (err) {
-          console.error('❌ Erro ao carregar compras:', err);
-          res.render('admin/purchases', {
+          console.error("❌ Erro ao carregar compras:", err);
+          res.render("admin/purchases", {
             purchases: [],
-            activeTab: 'purchases',
-            error: 'Erro ao carregar pedidos',
-            user: req.session.user
+            activeTab: "purchases",
+            error: "Erro ao carregar pedidos",
+            user: req.session.user,
           });
         }
       });
 
-      app.post('/admin/purchases/approve/:id', isAdmin, async (req, res) => {
+      app.post("/admin/purchases/approve/:id", isAdmin, async (req, res) => {
         try {
           const result = await pool.query(
-            'SELECT product_name, product_category, user_discord_id, price FROM purchases WHERE id = $1',
-            [req.params.id]
+            "SELECT product_name, product_category, user_discord_id, price FROM purchases WHERE id = $1",
+            [req.params.id],
           );
           const purchase = result.rows[0];
 
-          await pool.query(`UPDATE purchases SET status = 'completed' WHERE id = $1`, [req.params.id]);
+          await pool.query(
+            `UPDATE purchases SET status = 'completed' WHERE id = $1`,
+            [req.params.id],
+          );
 
           if (purchase && purchase.user_discord_id) {
             const userResult = await pool.query(
-              'SELECT discord_id, username, avatar FROM users WHERE discord_id = $1',
-              [purchase.user_discord_id]
+              "SELECT discord_id, username, avatar FROM users WHERE discord_id = $1",
+              [purchase.user_discord_id],
             );
             const user = userResult.rows[0];
 
-            if (purchase.product_category === 'MTA') {
-              const existingLicense = await getLicenseByDiscordIdRaw(purchase.user_discord_id);
+            if (purchase.product_category === "MTA") {
+              const existingLicense = await getLicenseByDiscordIdRaw(
+                purchase.user_discord_id,
+              );
               if (!existingLicense) {
-                // Não tem licença → criar nova
-                const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
-                const randomPart = () => Math.random().toString(36).substring(2, 10);
-                const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
+                // Não tem licença → criar nova (com rollback se falhar)
+                try {
+                  const usuario = `${Date.now()}${Math.floor(Math.random() * 1000000)}`;
+                  const randomPart = () =>
+                    Math.random().toString(36).substring(2, 10);
+                  const chave = `SR-${randomPart()}-${randomPart()}-${randomPart()}`;
 
-                await createLicense(purchase.user_discord_id, usuario, chave);
-                console.log(`✅ Licença MTA gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`);
-                await logActivity(req, `Aprovou compra MTA e gerou licença automática para: ${purchase.user_discord_id}`);
-              } else if (existingLicense.ativa === false || existingLicense.ativa === 0) {
-                // 🔥 Já tem licença mas está INATIVA → reativar
-                await activateLicense(purchase.user_discord_id);
-                console.log(`✅ Licença MTA REATIVADA para o Discord ID: ${purchase.user_discord_id}`);
-                await logActivity(req, `Aprovou compra MTA e REATIVOU a licença para: ${purchase.user_discord_id}`);
+                  await createLicense(purchase.user_discord_id, usuario, chave);
+                  console.log(
+                    `✅ Licença MTA gerada automaticamente para o Discord ID: ${purchase.user_discord_id}`,
+                  );
+                  await logActivity(
+                    req,
+                    `Aprovou compra MTA e gerou licença automática para: ${purchase.user_discord_id}`,
+                  );
+                } catch (licErr) {
+                  console.error(
+                    "❌ Falha ao gerar licença, a reverter compra:",
+                    licErr,
+                  );
+                  await pool.query(
+                    `UPDATE purchases SET status = 'pending' WHERE id = $1`,
+                    [req.params.id],
+                  );
+                  throw licErr;
+                }
+              } else if (
+                existingLicense.ativa === false ||
+                existingLicense.ativa === 0
+              ) {
+                // Já tem licença mas está INATIVA → reativar (com rollback se falhar)
+                try {
+                  await activateLicense(purchase.user_discord_id);
+                  console.log(
+                    `✅ Licença MTA REATIVADA para o Discord ID: ${purchase.user_discord_id}`,
+                  );
+                  await logActivity(
+                    req,
+                    `Aprovou compra MTA e REATIVOU a licença para: ${purchase.user_discord_id}`,
+                  );
+                } catch (licErr) {
+                  console.error(
+                    "❌ Falha ao reativar licença, a reverter compra:",
+                    licErr,
+                  );
+                  await pool.query(
+                    `UPDATE purchases SET status = 'pending' WHERE id = $1`,
+                    [req.params.id],
+                  );
+                  throw licErr;
+                }
               } else {
                 // Já tem licença ativa → nada a fazer
-                await logActivity(req, `Aprovou a compra MTA: ${purchase.product_name}`);
+                await logActivity(
+                  req,
+                  `Aprovou a compra MTA: ${purchase.product_name}`,
+                );
               }
             } else {
               // Produto NÃO-MTA (Site / Bot Discord)
-              console.log(`ℹ️ Compra aprovada sem gerar licença (categoria: ${purchase.product_category || 'desconhecida'})`);
-              await logActivity(req, `Aprovou a compra (sem licença — categoria ${purchase.product_category || 'N/A'}): ${purchase.product_name}`);
+              console.log(
+                `ℹ️ Compra aprovada sem gerar licença (categoria: ${purchase.product_category || "desconhecida"})`,
+              );
+              await logActivity(
+                req,
+                `Aprovou a compra (sem licença — categoria ${purchase.product_category || "N/A"}): ${purchase.product_name}`,
+              );
             }
 
             if (user) {
               await sendPurchaseApprovedWebhook(
-                { id: user.discord_id, username: user.username, avatar: user.avatar },
+                {
+                  id: user.discord_id,
+                  username: user.username,
+                  avatar: user.avatar,
+                },
                 purchase,
-                'Discord Ticket'
+                "Discord Ticket",
               );
             }
           } else {
-            await logActivity(req, `Aprovou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
+            await logActivity(
+              req,
+              `Aprovou a compra: ${result.rows[0]?.product_name || "ID " + req.params.id}`,
+            );
           }
 
-          res.redirect(303, '/admin/purchases');
+          res.redirect(303, "/admin/purchases");
         } catch (err) {
-          console.error('Erro ao aprovar:', err);
-          res.redirect(303, '/admin/purchases');
+          console.error("Erro ao aprovar:", err);
+          res.redirect(303, "/admin/purchases");
         }
       });
 
-      app.post('/admin/purchases/reject/:id', isAdmin, async (req, res) => {
+      app.post("/admin/purchases/reject/:id", isAdmin, async (req, res) => {
         try {
-          const result = await pool.query('SELECT product_name FROM purchases WHERE id = $1', [req.params.id]);
-          await pool.query(`UPDATE purchases SET status = 'cancelled' WHERE id = $1`, [req.params.id]);
-          await logActivity(req, `Cancelou a compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
-          res.redirect(303, '/admin/purchases');
+          const result = await pool.query(
+            "SELECT product_name FROM purchases WHERE id = $1",
+            [req.params.id],
+          );
+          await pool.query(
+            `UPDATE purchases SET status = 'cancelled' WHERE id = $1`,
+            [req.params.id],
+          );
+          await logActivity(
+            req,
+            `Cancelou a compra: ${result.rows[0]?.product_name || "ID " + req.params.id}`,
+          );
+          res.redirect(303, "/admin/purchases");
         } catch (err) {
-          console.error('Erro ao cancelar:', err);
-          res.redirect(303, '/admin/purchases');
+          console.error("Erro ao cancelar:", err);
+          res.redirect(303, "/admin/purchases");
         }
       });
 
-      app.post('/admin/purchases/delete/:id', isAdmin, async (req, res) => {
+      app.post("/admin/purchases/delete/:id", isAdmin, async (req, res) => {
         try {
-          const result = await pool.query('SELECT product_name FROM purchases WHERE id = $1', [req.params.id]);
-          await pool.query('DELETE FROM purchases WHERE id = $1', [req.params.id]);
-          await logActivity(req, `Apagou o registo de compra: ${result.rows[0]?.product_name || 'ID ' + req.params.id}`);
-          res.redirect(303, '/admin/purchases');
+          const result = await pool.query(
+            "SELECT product_name FROM purchases WHERE id = $1",
+            [req.params.id],
+          );
+          await pool.query("DELETE FROM purchases WHERE id = $1", [
+            req.params.id,
+          ]);
+          await logActivity(
+            req,
+            `Apagou o registo de compra: ${result.rows[0]?.product_name || "ID " + req.params.id}`,
+          );
+          res.redirect(303, "/admin/purchases");
         } catch (err) {
-          console.error('Erro ao apagar:', err);
-          res.redirect(303, '/admin/purchases');
+          console.error("Erro ao apagar:", err);
+          res.redirect(303, "/admin/purchases");
         }
       });
 
       // ══════════════════════════════════════════
-      // 404 — Página não encontrada (personalizada)
+      // FATURA — COMPRA INDIVIDUAL
       // ══════════════════════════════════════════
-      // ══════════════════════════════════════════
-      // FATURA AUTOMÁTICA EM PDF
-      // ══════════════════════════════════════════
-      app.get('/api/invoice/:purchaseId', async (req, res) => {
-        if (!req.session.user) return res.status(401).send('Não autorizado.');
-        if (!PDFDocument) return res.status(500).send('Sistema de faturas indisponível.');
+      app.get("/api/invoice/:purchaseId", async (req, res) => {
+        if (!req.session.user) return res.status(401).send("Não autorizado.");
+        if (!PDFDocument)
+          return res.status(500).send("Sistema de faturas indisponível.");
 
         try {
           const result = await pool.query(
@@ -1771,136 +2390,232 @@ async function getApp() {
             FROM purchases p
             LEFT JOIN users u ON u.discord_id = p.user_discord_id
             WHERE p.id = $1`,
-            [req.params.purchaseId]
+            [req.params.purchaseId],
           );
 
           if (result.rows.length === 0) {
-            return res.status(404).send('Compra não encontrada.');
+            return res.status(404).send("Compra não encontrada.");
           }
 
           const purchase = result.rows[0];
 
-          // Permissão: dono OU admin
           const isOwner = purchase.user_discord_id === req.session.user.id;
           let isAdmin = config.ADMIN_IDS.includes(req.session.user.id);
           if (!isAdmin) {
             const dbCheck = await pool.query(
-              'SELECT is_admin FROM users WHERE discord_id = $1',
-              [req.session.user.id]
+              "SELECT is_admin FROM users WHERE discord_id = $1",
+              [req.session.user.id],
             );
             if (dbCheck.rows[0]?.is_admin === 1) isAdmin = true;
           }
 
           if (!isOwner && !isAdmin) {
-            return res.status(403).send('Sem permissão para acessar esta fatura.');
+            return res
+              .status(403)
+              .send("Sem permissão para acessar esta fatura.");
           }
 
-          // ── Gerar PDF ──
-          const doc = new PDFDocument({ margin: 50, size: 'A4' });
+          const doc = new PDFDocument({ margin: 50, size: "A4" });
 
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `inline; filename="fatura-SR-${purchase.id}.pdf"`);
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            `inline; filename="fatura-sr-${purchase.id}.pdf"`,
+          );
           doc.pipe(res);
 
-          const DARK = '#0f172a';
-          const MUTED = '#64748b';
-          const LIGHT = '#f8fafc';
+          const DARK = "#0f172a";
+          const MUTED = "#64748b";
+          const LIGHT = "#f8fafc";
 
           // Header
           doc.rect(0, 0, 595.28, 130).fill(DARK);
-          doc.font('Helvetica-Bold').fontSize(24).fillColor('#ffffff')
-            .text('Santos Resources', 50, 45);
-          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
-            .text('Soluções de alta performance para MTA e Discord', 50, 78);
-          doc.font('Helvetica-Bold').fontSize(16).fillColor('#ffffff')
-            .text('FATURA', 400, 50, { align: 'right', width: 145 });
-          doc.font('Helvetica').fontSize(11).fillColor('#94a3b8')
-            .text(`#${purchase.id}`, 400, 78, { align: 'right', width: 145 });
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(24)
+            .fillColor("#ffffff")
+            .text("Santos Resources", 50, 45);
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor("#94a3b8")
+            .text("Soluções de alta performance para MTA e Discord", 50, 78);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(16)
+            .fillColor("#ffffff")
+            .text("FATURA", 400, 50, { align: "right", width: 145 });
 
-          // Cliente + Data
+          doc.rect(0, 130, 595.28, 4).fill("#22d3ee");
+
+          // Cliente / Data
           const infoY = 165;
-          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK).text('CLIENTE', 50, infoY);
-          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK).text('DATA', 350, infoY);
-          doc.moveTo(50, infoY + 18).lineTo(545, infoY + 18)
-            .strokeColor('#e2e8f0').lineWidth(1).stroke();
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(11)
+            .fillColor(DARK)
+            .text("CLIENTE", 50, infoY);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(11)
+            .fillColor(DARK)
+            .text("DATA", 350, infoY);
+          doc
+            .moveTo(50, infoY + 18)
+            .lineTo(545, infoY + 18)
+            .strokeColor("#e2e8f0")
+            .lineWidth(1)
+            .stroke();
 
-          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
-            .text(purchase.username || 'N/A', 50, infoY + 28);
-          doc.font('Helvetica').fontSize(9).fillColor(MUTED)
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(11)
+            .fillColor(DARK)
+            .text(purchase.username || "N/A", 50, infoY + 28);
+          doc
+            .font("Helvetica")
+            .fontSize(9)
+            .fillColor(MUTED)
             .text(`Discord ID: ${purchase.user_discord_id}`, 50, infoY + 46);
 
-          const dateStr = new Date(purchase.purchased_at).toLocaleString('pt-PT', {
-            day: '2-digit', month: 'long', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-          });
-          doc.font('Helvetica').fontSize(10).fillColor(DARK).text(dateStr, 350, infoY + 28);
+          const dateStr = new Date(purchase.purchased_at).toLocaleString(
+            "pt-PT",
+            {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            },
+          );
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor(DARK)
+            .text(dateStr, 350, infoY + 28);
 
-          const statusText  = purchase.status === 'completed' ? 'PAGO'
-                            : purchase.status === 'pending'   ? 'PENDENTE'
-                            : 'CANCELADO';
-          const statusColor = purchase.status === 'completed' ? '#10b981'
-                            : purchase.status === 'pending'   ? '#f59e0b'
-                            : '#ef4444';
-          doc.font('Helvetica-Bold').fontSize(10).fillColor(statusColor)
+          const statusText =
+            purchase.status === "completed"
+              ? "PAGO"
+              : purchase.status === "pending"
+                ? "PENDENTE"
+                : "CANCELADO";
+          const statusColor =
+            purchase.status === "completed"
+              ? "#10b981"
+              : purchase.status === "pending"
+                ? "#f59e0b"
+                : "#ef4444";
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor(statusColor)
             .text(statusText, 350, infoY + 46);
 
           // Produto
           const tableY = 265;
-          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
-            .text('DETALHES DO PRODUTO', 50, tableY);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(11)
+            .fillColor(DARK)
+            .text("DETALHES DO PRODUTO", 50, tableY);
 
           doc.rect(50, tableY + 20, 495, 26).fill(LIGHT);
-          doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK);
-          doc.text('DESCRIÇÃO', 60, tableY + 28);
-          doc.text('CATEGORIA', 330, tableY + 28);
-          doc.text('VALOR', 440, tableY + 28, { align: 'right', width: 95 });
+          doc.font("Helvetica-Bold").fontSize(9).fillColor(DARK);
+          doc.text("DESCRIÇÃO", 60, tableY + 28);
+          doc.text("CATEGORIA", 330, tableY + 28);
+          doc.text("VALOR", 440, tableY + 28, { align: "right", width: 95 });
 
           const rowY = tableY + 58;
-          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
-            .text(purchase.product_name || '—', 60, rowY, { width: 250 });
-          doc.font('Helvetica').fontSize(10).fillColor(MUTED)
-            .text(purchase.product_category || '—', 330, rowY);
-          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
-            .text(`€${parseFloat(purchase.price).toFixed(2)}`, 440, rowY, { align: 'right', width: 95 });
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor(DARK)
+            .text(purchase.product_name || "—", 60, rowY, { width: 250 });
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor(MUTED)
+            .text(purchase.product_category || "—", 330, rowY);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor(DARK)
+            .text(`€${parseFloat(purchase.price).toFixed(2)}`, 440, rowY, {
+              align: "right",
+              width: 95,
+            });
 
-          doc.moveTo(50, rowY + 26).lineTo(545, rowY + 26)
-            .strokeColor('#e2e8f0').lineWidth(1).stroke();
+          doc
+            .moveTo(50, rowY + 26)
+            .lineTo(545, rowY + 26)
+            .strokeColor("#e2e8f0")
+            .lineWidth(1)
+            .stroke();
 
           // Total
           const totalY = rowY + 45;
           doc.rect(350, totalY, 195, 42).fill(DARK);
-          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
-            .text('TOTAL', 365, totalY + 15);
-          doc.font('Helvetica-Bold').fontSize(16).fillColor('#22d3ee')
-            .text(`€${parseFloat(purchase.price).toFixed(2)}`, 400, totalY + 11,
-                  { align: 'right', width: 135 });
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor("#94a3b8")
+            .text("TOTAL", 365, totalY + 15);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(16)
+            .fillColor("#22d3ee")
+            .text(
+              `€${parseFloat(purchase.price).toFixed(2)}`,
+              400,
+              totalY + 11,
+              { align: "right", width: 135 },
+            );
 
-          // Rodapé
-          doc.font('Helvetica').fontSize(8).fillColor(MUTED)
-            .text('Obrigado pela tua preferência! Para suporte, contacta-nos no Discord.',
-                  50, 770, { align: 'center', width: 495 });
-          doc.font('Helvetica').fontSize(7).fillColor('#94a3b8')
-            .text(`© ${new Date().getFullYear()} Santos Resources. Todos os direitos reservados.`,
-                  50, 785, { align: 'center', width: 495 });
+          // Rodapé dinâmico (sempre em baixo da última página)
+          const footerY = doc.page.height - 90;
+          doc
+            .font("Helvetica")
+            .fontSize(8)
+            .fillColor(MUTED)
+            .text(
+              "Obrigado pela tua preferência! Para suporte, contacta-nos no Discord.",
+              50,
+              footerY,
+              { align: "center", width: 495 },
+            );
+
+          doc
+            .font("Helvetica")
+            .fontSize(7)
+            .fillColor("#94a3b8")
+            .text(
+              `© ${new Date().getFullYear()} Santos Resources. Todos os direitos reservados.`,
+              50,
+              footerY + 15,
+              { align: "center", width: 495 },
+            );
 
           doc.end();
-
         } catch (err) {
-          console.error('❌ Erro ao gerar fatura:', err);
+          console.error("❌ Erro ao gerar fatura:", err);
           if (!res.headersSent) {
-            res.status(500).send('Erro ao gerar a fatura.');
+            res.status(500).send("Erro ao gerar a fatura.");
           } else {
-            try { res.end(); } catch (_) {}
+            try {
+              res.end();
+            } catch (_) {}
           }
         }
       });
 
-      // ──────────────────────────────────────────
-      // FATURA AGRUPADA (por order_id) — NOVA
-      // ──────────────────────────────────────────
-      app.get('/api/invoice/order/:orderId', async (req, res) => {
-        if (!req.session.user) return res.status(401).send('Não autorizado.');
-        if (!PDFDocument) return res.status(500).send('Sistema de faturas indisponível.');
+      // ══════════════════════════════════════════
+      // FATURA AGRUPADA (por order_id)
+      // ══════════════════════════════════════════
+      app.get("/api/invoice/order/:orderId", async (req, res) => {
+        if (!req.session.user) return res.status(401).send("Não autorizado.");
+        if (!PDFDocument)
+          return res.status(500).send("Sistema de faturas indisponível.");
 
         try {
           const { orderId } = req.params;
@@ -1914,11 +2629,11 @@ async function getApp() {
                OR COALESCE(NULLIF(p.order_id, ''), 'legacy-' || p.id::text) = $1
              )
              ORDER BY p.id ASC`,
-            [orderId]
+            [orderId],
           );
 
           if (result.rows.length === 0) {
-            return res.status(404).send('Pedido não encontrado.');
+            return res.status(404).send("Pedido não encontrado.");
           }
 
           const first = result.rows[0];
@@ -1929,121 +2644,184 @@ async function getApp() {
 
           if (!isAdmin) {
             const dbCheck = await pool.query(
-              'SELECT is_admin FROM users WHERE discord_id = $1',
-              [req.session.user.id]
+              "SELECT is_admin FROM users WHERE discord_id = $1",
+              [req.session.user.id],
             );
             if (dbCheck.rows[0]?.is_admin === 1) isAdmin = true;
           }
 
           if (!isOwner && !isAdmin) {
-            return res.status(403).send('Sem permissão para acessar esta fatura.');
+            return res
+              .status(403)
+              .send("Sem permissão para acessar esta fatura.");
           }
 
-          const doc = new PDFDocument({ margin: 50, size: 'A4' });
+          const doc = new PDFDocument({ margin: 50, size: "A4" });
 
-          res.setHeader('Content-Type', 'application/pdf');
+          const fileNameBase = String(orderId).startsWith("legacy-")
+            ? String(orderId).replace("legacy-", "")
+            : String(orderId).slice(0, 8);
+          const safeName = String(fileNameBase).replace(/[^a-zA-Z0-9-]/g, "");
+
+          res.setHeader("Content-Type", "application/pdf");
           res.setHeader(
-            'Content-Disposition',
-            `inline; filename="fatura-${String(orderId).slice(0, 8)}.pdf"`
+            "Content-Disposition",
+            `inline; filename="fatura-sr-${safeName}.pdf"`,
           );
           doc.pipe(res);
 
-          const DARK = '#0f172a';
-          const MUTED = '#64748b';
-          const LIGHT = '#f8fafc';
-          const ACCENT = '#22d3ee';
+          const DARK = "#0f172a";
+          const MUTED = "#64748b";
+          const LIGHT = "#f8fafc";
+          const ACCENT = "#22d3ee";
 
           // Cabeçalho
           doc.rect(0, 0, 595.28, 130).fill(DARK);
-          doc.font('Helvetica-Bold').fontSize(24).fillColor('#ffffff')
-            .text('Santos Resources', 50, 45);
-          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
-            .text('Soluções de alta performance para MTA e Discord', 50, 78);
-          doc.font('Helvetica-Bold').fontSize(18).fillColor('#ffffff')
-            .text('FATURA', 400, 50, { align: 'right', width: 145 });
-          doc.font('Helvetica').fontSize(11).fillColor('#94a3b8')
-            .text(`#${String(orderId).slice(0, 8).toUpperCase()}`, 400, 78, {
-              align: 'right',
-              width: 145
-            });
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(24)
+            .fillColor("#ffffff")
+            .text("Santos Resources", 50, 45);
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor("#94a3b8")
+            .text("Soluções de alta performance para MTA e Discord", 50, 78);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(18)
+            .fillColor("#ffffff")
+            .text("FATURA", 400, 50, { align: "right", width: 145 });
 
           // Cliente / Data
           const infoY = 165;
-          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text('CLIENTE', 50, infoY);
-          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK).text('DATA', 350, infoY);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor(DARK)
+            .text("CLIENTE", 50, infoY);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor(DARK)
+            .text("DATA", 350, infoY);
 
-          doc.moveTo(50, infoY + 18)
+          doc
+            .moveTo(50, infoY + 18)
             .lineTo(545, infoY + 18)
-            .strokeColor('#e2e8f0')
+            .strokeColor("#e2e8f0")
             .lineWidth(1)
             .stroke();
 
-          doc.font('Helvetica-Bold').fontSize(11).fillColor(DARK)
-            .text(first.username || 'N/A', 50, infoY + 28);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(11)
+            .fillColor(DARK)
+            .text(first.username || "N/A", 50, infoY + 28);
 
-          doc.font('Helvetica').fontSize(9).fillColor(MUTED)
+          doc
+            .font("Helvetica")
+            .fontSize(9)
+            .fillColor(MUTED)
             .text(`Discord ID: ${first.user_discord_id}`, 50, infoY + 46);
 
-          const dateStr = new Date(first.purchased_at).toLocaleString('pt-PT', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+          const dateStr = new Date(first.purchased_at).toLocaleString("pt-PT", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
           });
 
-          doc.font('Helvetica').fontSize(10).fillColor(DARK)
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor(DARK)
             .text(dateStr, 350, infoY + 28);
 
-          const statusText = first.status === 'completed' ? 'PAGO'
-                           : first.status === 'pending'   ? 'PENDENTE'
-                           : 'CANCELADO';
+          const statusText =
+            first.status === "completed"
+              ? "PAGO"
+              : first.status === "pending"
+                ? "PENDENTE"
+                : "CANCELADO";
 
-          const statusColor = first.status === 'completed' ? '#10b981'
-                            : first.status === 'pending'   ? '#f59e0b'
-                            : '#ef4444';
+          const statusColor =
+            first.status === "completed"
+              ? "#10b981"
+              : first.status === "pending"
+                ? "#f59e0b"
+                : "#ef4444";
 
-          doc.font('Helvetica-Bold').fontSize(10).fillColor(statusColor)
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor(statusColor)
             .text(statusText, 350, infoY + 46);
 
           // Tabela de itens
+          const PAGE_BOTTOM = 730;
           let tableY = 265;
 
-          doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
-            .text('DETALHES DO PEDIDO', 50, tableY);
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor(DARK)
+            .text("DETALHES DO PEDIDO", 50, tableY);
 
           tableY += 20;
 
           doc.rect(50, tableY, 495, 24).fill(LIGHT);
-          doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK)
-            .text('DESCRIÇÃO', 60, tableY + 8)
-            .text('CATEGORIA', 340, tableY + 8)
-            .text('VALOR', 460, tableY + 8, { align: 'right', width: 75 });
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(9)
+            .fillColor(DARK)
+            .text("DESCRIÇÃO", 60, tableY + 8)
+            .text("CATEGORIA", 340, tableY + 8)
+            .text("VALOR", 460, tableY + 8, { align: "right", width: 75 });
 
           tableY += 24;
           let total = 0;
 
           for (const item of items) {
+            // Paginação: cria nova página se estiver a chegar ao fundo
+            if (tableY + 40 > PAGE_BOTTOM) {
+              doc.addPage();
+              tableY = 60;
+            }
+
             const price = parseFloat(item.price);
             total += price;
 
-            doc.font('Helvetica').fontSize(10).fillColor(DARK)
-              .text(item.product_name || '—', 60, tableY + 8, { width: 270 });
+            doc
+              .font("Helvetica")
+              .fontSize(10)
+              .fillColor(DARK)
+              .text(item.product_name || "—", 60, tableY + 8, { width: 270 });
 
-            doc.font('Helvetica').fontSize(9).fillColor(MUTED)
-              .text(item.product_category || '—', 340, tableY + 8, { width: 100 });
+            doc
+              .font("Helvetica")
+              .fontSize(9)
+              .fillColor(MUTED)
+              .text(item.product_category || "—", 340, tableY + 8, {
+                width: 100,
+              });
 
-            doc.font('Helvetica-Bold').fontSize(10).fillColor(DARK)
+            doc
+              .font("Helvetica-Bold")
+              .fontSize(10)
+              .fillColor(DARK)
               .text(`€${price.toFixed(2)}`, 460, tableY + 8, {
-                align: 'right',
-                width: 75
+                align: "right",
+                width: 75,
               });
 
             tableY += 26;
 
-            doc.moveTo(50, tableY)
+            doc
+              .moveTo(50, tableY)
               .lineTo(545, tableY)
-              .strokeColor('#f1f5f9')
+              .strokeColor("#f1f5f9")
               .lineWidth(1)
               .stroke();
 
@@ -2053,53 +2831,78 @@ async function getApp() {
           // Total
           tableY += 10;
 
-          doc.rect(350, tableY, 195, 45).fill(DARK);
-          doc.font('Helvetica').fontSize(10).fillColor('#94a3b8')
-            .text('TOTAL', 365, tableY + 15);
+          if (tableY + 60 > PAGE_BOTTOM) {
+            doc.addPage();
+            tableY = 60;
+          }
 
-          doc.font('Helvetica-Bold').fontSize(18).fillColor(ACCENT)
+          doc.rect(350, tableY, 195, 45).fill(DARK);
+          doc
+            .font("Helvetica")
+            .fontSize(10)
+            .fillColor("#94a3b8")
+            .text("TOTAL", 365, tableY + 15);
+
+          doc
+            .font("Helvetica-Bold")
+            .fontSize(18)
+            .fillColor(ACCENT)
             .text(`€${total.toFixed(2)}`, 400, tableY + 11, {
-              align: 'right',
-              width: 135
+              align: "right",
+              width: 135,
             });
 
-          // Rodapé
-          doc.font('Helvetica').fontSize(8).fillColor(MUTED)
+          // Rodapé dinâmico
+          const footerY = doc.page.height - 90;
+          doc
+            .font("Helvetica")
+            .fontSize(8)
+            .fillColor(MUTED)
             .text(
-              'Obrigado pela tua preferência! Para suporte, contacta-nos no Discord.',
+              "Obrigado pela tua preferência! Para suporte, contacta-nos no Discord.",
               50,
-              770,
-              { align: 'center', width: 495 }
+              footerY,
+              { align: "center", width: 495 },
             );
 
-          doc.font('Helvetica').fontSize(7).fillColor('#94a3b8')
+          doc
+            .font("Helvetica")
+            .fontSize(7)
+            .fillColor("#94a3b8")
             .text(
               `© ${new Date().getFullYear()} Santos Resources. Todos os direitos reservados.`,
               50,
-              785,
-              { align: 'center', width: 495 }
+              footerY + 15,
+              { align: "center", width: 495 },
             );
 
           doc.end();
         } catch (err) {
-          console.error('❌ Erro ao gerar fatura agrupada:', err);
+          console.error("❌ Erro ao gerar fatura agrupada:", err);
           if (!res.headersSent) {
-            res.status(500).send('Erro ao gerar a fatura.');
+            res.status(500).send("Erro ao gerar a fatura.");
           } else {
-            try { res.end(); } catch (_) {}
+            try {
+              res.end();
+            } catch (_) {}
           }
         }
       });
 
       app.use((req, res) => {
         console.warn(`⚠️  404 - ${req.method} ${req.originalUrl}`);
-        res.status(404).render('404', {
+        res.status(404).render("404", {
           requestedPath: req.originalUrl,
-          siteSettings: res.locals.siteSettings || { site_name: 'Santos Resources', discord_link: 'https://discord.gg/8GyNS5vRgt', logo_url: '', maintenance_mode: 0 }
+          siteSettings: res.locals.siteSettings || {
+            site_name: "Santos Resources",
+            discord_link: "https://discord.gg/8GyNS5vRgt",
+            logo_url: "",
+            maintenance_mode: 0,
+          },
         });
       });
 
-      console.log('🚀 Santos Resources configurado e a aguardar pedidos.');
+      console.log("🚀 Santos Resources configurado e a aguardar pedidos.");
       return app;
     })();
   }
