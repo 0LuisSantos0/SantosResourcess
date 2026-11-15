@@ -1700,13 +1700,44 @@ async function getApp() {
           const accessToken = await getPaypalAccessToken(mode);
           const headers = { Authorization: `Bearer ${accessToken}` };
           const apiBase = getPaypalApiBase(mode);
-          let orderResult = await axios.get(
+          const orderResult = await axios.get(
             `${apiBase}/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}`,
             { headers, timeout: 20000 },
           );
+          const paypalOrder = orderResult.data;
+          const purchaseUnit = paypalOrder.purchase_units?.[0];
+          const orderAmountCents = Math.round(
+            Number(purchaseUnit?.amount?.value) * 100,
+          );
+          const orderReferenceMatches = [
+            purchaseUnit?.custom_id,
+            purchaseUnit?.reference_id,
+          ].includes(transaction.internal_order_id);
+          const orderMatches =
+            paypalOrder.id === paypalOrderId &&
+            orderReferenceMatches &&
+            purchaseUnit?.amount?.currency_code === transaction.currency &&
+            orderAmountCents === Number(transaction.amount_cents) &&
+            ["APPROVED", "COMPLETED"].includes(paypalOrder.status);
 
-          if (orderResult.data?.status === "APPROVED") {
-            orderResult = await axios.post(
+          if (!orderMatches) {
+            console.error("Os dados do pedido PayPal não correspondem à transação local.", {
+              orderIdMatches: paypalOrder.id === paypalOrderId,
+              orderReferenceMatches,
+              currencyMatches:
+                purchaseUnit?.amount?.currency_code === transaction.currency,
+              amountMatches:
+                orderAmountCents === Number(transaction.amount_cents),
+              status: paypalOrder.status,
+            });
+            return res.status(400).json({
+              error: "Os dados do pagamento não correspondem ao pedido.",
+            });
+          }
+
+          let completedOrder = paypalOrder;
+          if (paypalOrder.status === "APPROVED") {
+            const captureResult = await axios.post(
               `${apiBase}/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}/capture`,
               {},
               {
@@ -1720,30 +1751,21 @@ async function getApp() {
                 timeout: 20000,
               },
             );
-          } else if (orderResult.data?.status !== "COMPLETED") {
-            return res.status(409).json({
-              error: "O pagamento ainda não foi aprovado no PayPal.",
-            });
+            completedOrder = captureResult.data;
           }
 
-          const paypalOrder = orderResult.data;
-          const purchaseUnit = paypalOrder.purchase_units?.[0];
-          const orderAmountCents = Math.round(
-            Number(purchaseUnit?.amount?.value) * 100,
-          );
           if (
-            paypalOrder.id !== paypalOrderId ||
-            purchaseUnit?.custom_id !== transaction.internal_order_id ||
-            purchaseUnit?.amount?.currency_code !== transaction.currency ||
-            orderAmountCents !== Number(transaction.amount_cents) ||
-            paypalOrder.status !== "COMPLETED"
+            completedOrder.id !== paypalOrderId ||
+            completedOrder.status !== "COMPLETED"
           ) {
             return res.status(400).json({
-              error: "Os dados do pagamento não correspondem ao pedido.",
+              error: "O PayPal não confirmou a conclusão do pagamento.",
             });
           }
 
-          capture = purchaseUnit.payments?.captures?.find(
+          const completedPurchaseUnit =
+            completedOrder.purchase_units?.[0] || purchaseUnit;
+          capture = completedPurchaseUnit.payments?.captures?.find(
             (item) => item.status === "COMPLETED",
           );
           if (!capture?.id) {
