@@ -82,6 +82,65 @@ const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
 
+function isValidPaypalLink(value) {
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      ["paypal.com", "www.paypal.com", "paypal.me"].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getPaypalMode(value) {
+  return value === "live" ? "live" : "sandbox";
+}
+
+function getPaypalCredentials(mode) {
+  const prefix = mode === "live" ? "PAYPAL_LIVE" : "PAYPAL_SANDBOX";
+  return {
+    clientId: process.env[`${prefix}_CLIENT_ID`]?.trim(),
+    clientSecret: process.env[`${prefix}_CLIENT_SECRET`]?.trim(),
+  };
+}
+
+function getPaypalApiBase(mode) {
+  return mode === "live"
+    ? "https://api-m.paypal.com"
+    : "https://api-m.sandbox.paypal.com";
+}
+
+async function getPaypalAccessToken(mode) {
+  const credentials = getPaypalCredentials(mode);
+  if (!credentials.clientId || !credentials.clientSecret) {
+    const error = new Error("Credenciais PayPal não configuradas.");
+    error.code = "PAYPAL_NOT_CONFIGURED";
+    throw error;
+  }
+
+  const response = await axios.post(
+    `${getPaypalApiBase(mode)}/v1/oauth2/token`,
+    "grant_type=client_credentials",
+    {
+      auth: {
+        username: credentials.clientId,
+        password: credentials.clientSecret,
+      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      timeout: 15000,
+    },
+  );
+  const accessToken = response.data?.access_token;
+  if (typeof accessToken !== "string" || accessToken.length === 0) {
+    throw new Error("O PayPal não devolveu um token de acesso válido.");
+  }
+  return accessToken;
+}
+
 async function logActivity(req, action) {
   try {
     if (req.session.user) {
@@ -115,7 +174,7 @@ async function getWebhookAvatarUrl(webhookUrl) {
   }
 }
 
-async function sendPurchaseWebhook(user, cartItems) {
+async function sendPurchaseWebhook(user, cartItems, paymentMethod) {
   try {
     const result = await pool.query(
       "SELECT discord_webhook_url FROM settings WHERE id = 1",
@@ -131,17 +190,19 @@ async function sendPurchaseWebhook(user, cartItems) {
 
     const avatarUrl = await getWebhookAvatarUrl(webhookUrl);
 
+    const getLineTotal = (item) =>
+      Number.isFinite(item.lineTotal)
+        ? item.lineTotal
+        : item.price * item.quantity;
     const itemsList = cartItems
       .map(
         (item) =>
-          `• **${item.name}** x${item.quantity} — €${(item.price * item.quantity).toFixed(2)}`,
+          `• **${item.name}** x${item.quantity} — €${getLineTotal(item).toFixed(2)}`,
       )
       .join("\n");
 
-    const total = cartItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
+    const total = cartItems.reduce((sum, item) => sum + getLineTotal(item), 0);
+    const paymentConfirmed = paymentMethod === "PayPal";
 
     const payload = {
       username: "Compras Pendentes",
@@ -149,8 +210,9 @@ async function sendPurchaseWebhook(user, cartItems) {
       embeds: [
         {
           title: "🛒 Novo Pedido de Compra!",
-          description:
-            "Um novo pedido foi registado e aguarda pagamento/confirmação.",
+          description: paymentConfirmed
+            ? "Pagamento PayPal capturado. O pedido aguarda aprovação do administrador."
+            : "Um novo pedido foi registado e aguarda pagamento/confirmação.",
           color: 0x22d3ee,
           fields: [
             {
@@ -164,7 +226,13 @@ async function sendPurchaseWebhook(user, cartItems) {
               value: `**€${total.toFixed(2)}**`,
               inline: true,
             },
-            { name: "📊 Estado", value: "⏳ Pendente", inline: true },
+            {
+              name: "📊 Estado",
+              value: paymentConfirmed
+                ? "💳 Pagamento confirmado • aprovação pendente"
+                : "⏳ Pendente",
+              inline: true,
+            },
           ],
           footer: { text: "Santos Resources • " },
           timestamp: new Date().toISOString(),
@@ -381,10 +449,18 @@ async function getApp() {
               site_name: "Santos Resources",
               discord_link: "https://discord.gg/8GyNS5vRgt",
               logo_url: "",
+              paypal_link: "",
+              paypal_mode: "sandbox",
               maintenance_mode: 0,
             };
           }
           res.locals.siteSettings = settings;
+          res.locals.paypalMode = getPaypalMode(settings.paypal_mode);
+          const paypalCredentials = getPaypalCredentials(res.locals.paypalMode);
+          res.locals.paypalClientId =
+            paypalCredentials.clientId && paypalCredentials.clientSecret
+              ? paypalCredentials.clientId
+              : "";
           next();
         } catch (err) {
           console.error("⚠️ Erro ao carregar configurações:", err);
@@ -392,8 +468,12 @@ async function getApp() {
             site_name: "Santos Resources",
             discord_link: "https://discord.gg/8GyNS5vRgt",
             logo_url: "",
+            paypal_link: "",
+            paypal_mode: "sandbox",
             maintenance_mode: 0,
           };
+          res.locals.paypalMode = "sandbox";
+          res.locals.paypalClientId = "";
           next();
         }
       });
@@ -1357,6 +1437,469 @@ async function getApp() {
         }
       });
 
+      app.post("/api/paypal/create-order", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
+
+        const mode = getPaypalMode(res.locals.siteSettings?.paypal_mode);
+        const credentials = getPaypalCredentials(mode);
+        if (!credentials.clientId || !credentials.clientSecret) {
+          return res.status(503).json({
+            error: "O PayPal não está configurado para este ambiente.",
+          });
+        }
+
+        try {
+          const userResult = await pool.query(
+            "SELECT cart FROM users WHERE discord_id = $1",
+            [req.session.user.id],
+          );
+          const cart = userResult.rows[0]?.cart || [];
+          if (!Array.isArray(cart) || cart.length === 0) {
+            return res.status(400).json({ error: "Carrinho vazio" });
+          }
+
+          const requestedQuantities = new Map();
+          for (const item of cart) {
+            const productId = Number(item?.id);
+            const quantity = Number(item?.quantity ?? 1);
+            if (
+              !Number.isSafeInteger(productId) ||
+              productId <= 0 ||
+              productId > 2147483647 ||
+              !Number.isSafeInteger(quantity) ||
+              quantity <= 0
+            ) {
+              return res.status(400).json({ error: "Carrinho inválido" });
+            }
+            const newQuantity =
+              (requestedQuantities.get(productId) || 0) + quantity;
+            if (!Number.isSafeInteger(newQuantity)) {
+              return res.status(400).json({ error: "Quantidade inválida" });
+            }
+            requestedQuantities.set(productId, newQuantity);
+          }
+
+          const productIds = [...requestedQuantities.keys()];
+          const productsResult = await pool.query(
+            "SELECT id, name, price, category FROM products WHERE id = ANY($1::int[]) AND is_active = 1",
+            [productIds],
+          );
+          if (productsResult.rows.length !== productIds.length) {
+            return res
+              .status(400)
+              .json({ error: "Um ou mais produtos já não estão disponíveis" });
+          }
+
+          const productsById = new Map(
+            productsResult.rows.map((product) => [product.id, product]),
+          );
+          let subtotalCents = 0;
+          const items = [];
+          for (const productId of productIds) {
+            const product = productsById.get(productId);
+            const unitPriceCents = Math.round(Number(product.price) * 100);
+            const quantity = requestedQuantities.get(productId);
+            if (
+              !Number.isSafeInteger(unitPriceCents) ||
+              unitPriceCents < 0 ||
+              !Number.isSafeInteger(unitPriceCents * quantity)
+            ) {
+              return res.status(400).json({
+                error: "Preço ou quantidade de produto inválidos.",
+              });
+            }
+            const lineTotalCents = unitPriceCents * quantity;
+            subtotalCents += lineTotalCents;
+            items.push({
+              productId,
+              name: product.name,
+              category: product.category,
+              quantity,
+              unitPriceCents,
+              lineTotalCents,
+            });
+          }
+
+          if (!Number.isSafeInteger(subtotalCents) || subtotalCents <= 0) {
+            return res.status(400).json({
+              error: "O total deve ser superior a zero para pagar com PayPal.",
+            });
+          }
+
+          let discountPercentage = 0;
+          const couponCode = req.session.coupon?.code;
+          if (couponCode) {
+            const discountResult = await pool.query(
+              "SELECT percentage FROM discounts WHERE code = $1 AND is_active = 1",
+              [String(couponCode).toUpperCase()],
+            );
+            const percentage = Number(discountResult.rows[0]?.percentage);
+            if (
+              discountResult.rows.length === 0 ||
+              !Number.isInteger(percentage) ||
+              percentage < 0 ||
+              percentage > 100
+            ) {
+              return res.status(400).json({
+                error: "O cupão já não é válido. Remove-o e tenta novamente.",
+              });
+            }
+            discountPercentage = percentage;
+          }
+
+          const discountCents = Math.round(
+            subtotalCents * (discountPercentage / 100),
+          );
+          const totalCents = subtotalCents - discountCents;
+          if (totalCents <= 0) {
+            return res.status(400).json({
+              error: "O total deve ser superior a zero para pagar com PayPal.",
+            });
+          }
+
+          let remainingDiscountCents = discountCents;
+          const itemsSnapshot = items.map((item, index) => {
+            const allocatedDiscountCents =
+              index === items.length - 1
+                ? remainingDiscountCents
+                : Math.min(
+                    remainingDiscountCents,
+                    Math.round(
+                      discountCents *
+                        (item.lineTotalCents / subtotalCents),
+                    ),
+                  );
+            remainingDiscountCents -= allocatedDiscountCents;
+            return {
+              ...item,
+              paidCents: item.lineTotalCents - allocatedDiscountCents,
+            };
+          });
+
+          const internalOrderId = randomUUID();
+          const accessToken = await getPaypalAccessToken(mode);
+          const description = itemsSnapshot
+            .map((item) => item.name)
+            .join(", ")
+            .slice(0, 120);
+          const paypalOrderResult = await axios.post(
+            `${getPaypalApiBase(mode)}/v2/checkout/orders`,
+            {
+              intent: "CAPTURE",
+              purchase_units: [
+                {
+                  reference_id: internalOrderId,
+                  custom_id: internalOrderId,
+                  invoice_id: internalOrderId,
+                  description: description || "Santos Resources",
+                  amount: {
+                    currency_code: "EUR",
+                    value: (totalCents / 100).toFixed(2),
+                  },
+                },
+              ],
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+                "PayPal-Request-Id": internalOrderId,
+              },
+              timeout: 20000,
+            },
+          );
+
+          const paypalOrderId = paypalOrderResult.data?.id;
+          if (!paypalOrderId) {
+            return res
+              .status(502)
+              .json({ error: "O PayPal não devolveu um ID de pedido válido." });
+          }
+
+          const captureRequestId = randomUUID();
+          await pool.query(
+            `INSERT INTO paypal_transactions
+              (paypal_order_id, internal_order_id, user_discord_id, amount_cents, currency, mode, capture_request_id, items_snapshot)
+             VALUES ($1, $2, $3, $4, 'EUR', $5, $6, $7)`,
+            [
+              paypalOrderId,
+              internalOrderId,
+              req.session.user.id,
+              totalCents,
+              mode,
+              captureRequestId,
+              JSON.stringify(itemsSnapshot),
+            ],
+          );
+
+          return res.json({
+            id: paypalOrderId,
+            amount: (totalCents / 100).toFixed(2),
+            currency: "EUR",
+          });
+        } catch (err) {
+          console.error(
+            "Erro ao criar pedido PayPal:",
+            err.response?.status || err.message,
+          );
+          return res.status(err.response ? 502 : 500).json({
+            error: "Não foi possível criar o pedido PayPal.",
+          });
+        }
+      });
+
+      app.post("/api/paypal/capture-order", async (req, res) => {
+        if (!req.session.user)
+          return res.status(401).json({ error: "Não logado" });
+
+        const paypalOrderId = req.body?.orderID;
+        if (
+          typeof paypalOrderId !== "string" ||
+          !/^[A-Za-z0-9-]{1,64}$/.test(paypalOrderId)
+        ) {
+          return res.status(400).json({ error: "ID de pedido PayPal inválido." });
+        }
+
+        let transactionResult;
+        try {
+          transactionResult = await pool.query(
+            "SELECT * FROM paypal_transactions WHERE paypal_order_id = $1 AND user_discord_id = $2",
+            [paypalOrderId, req.session.user.id],
+          );
+        } catch (err) {
+          console.error("Erro ao consultar pedido PayPal:", err.message);
+          return res
+            .status(500)
+            .json({ error: "Não foi possível consultar o pedido PayPal." });
+        }
+
+        const transaction = transactionResult.rows[0];
+        if (!transaction) {
+          return res.status(404).json({ error: "Pedido PayPal não encontrado." });
+        }
+        if (transaction.status === "captured") {
+          return res.json({
+            success: true,
+            orderId: transaction.internal_order_id,
+            message:
+              "Pagamento confirmado. O pedido aguarda aprovação do administrador.",
+          });
+        }
+
+        const mode = getPaypalMode(transaction.mode);
+        const credentials = getPaypalCredentials(mode);
+        if (!credentials.clientId || !credentials.clientSecret) {
+          return res.status(503).json({
+            error: "As credenciais PayPal deste ambiente não estão configuradas.",
+          });
+        }
+
+        let capture;
+        try {
+          const accessToken = await getPaypalAccessToken(mode);
+          const headers = { Authorization: `Bearer ${accessToken}` };
+          const apiBase = getPaypalApiBase(mode);
+          let orderResult = await axios.get(
+            `${apiBase}/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}`,
+            { headers, timeout: 20000 },
+          );
+
+          if (orderResult.data?.status === "APPROVED") {
+            orderResult = await axios.post(
+              `${apiBase}/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}/capture`,
+              {},
+              {
+                headers: {
+                  ...headers,
+                  "Content-Type": "application/json",
+                  "PayPal-Request-Id":
+                    transaction.capture_request_id ||
+                    transaction.internal_order_id,
+                },
+                timeout: 20000,
+              },
+            );
+          } else if (orderResult.data?.status !== "COMPLETED") {
+            return res.status(409).json({
+              error: "O pagamento ainda não foi aprovado no PayPal.",
+            });
+          }
+
+          const paypalOrder = orderResult.data;
+          const purchaseUnit = paypalOrder.purchase_units?.[0];
+          const orderAmountCents = Math.round(
+            Number(purchaseUnit?.amount?.value) * 100,
+          );
+          if (
+            paypalOrder.id !== paypalOrderId ||
+            purchaseUnit?.custom_id !== transaction.internal_order_id ||
+            purchaseUnit?.amount?.currency_code !== transaction.currency ||
+            orderAmountCents !== Number(transaction.amount_cents) ||
+            paypalOrder.status !== "COMPLETED"
+          ) {
+            return res.status(400).json({
+              error: "Os dados do pagamento não correspondem ao pedido.",
+            });
+          }
+
+          capture = purchaseUnit.payments?.captures?.find(
+            (item) => item.status === "COMPLETED",
+          );
+          if (!capture?.id) {
+            return res.status(400).json({
+              error: "O PayPal ainda não confirmou a captura do pagamento.",
+            });
+          }
+          const captureAmountCents = Math.round(
+            Number(capture.amount?.value) * 100,
+          );
+          if (
+            capture.amount?.currency_code !== transaction.currency ||
+            captureAmountCents !== Number(transaction.amount_cents)
+          ) {
+            return res.status(400).json({
+              error: "O valor capturado não corresponde ao pedido.",
+            });
+          }
+        } catch (err) {
+          console.error(
+            "Erro ao capturar pagamento PayPal:",
+            err.response?.status || err.message,
+          );
+          return res.status(502).json({
+            error: "Não foi possível confirmar o pagamento no PayPal.",
+          });
+        }
+
+        let capturedItems = [];
+        let cartCleared = false;
+        let alreadyCaptured = false;
+        let dbClient;
+        try {
+          dbClient = await pool.connect();
+          await dbClient.query("BEGIN");
+          const lockedResult = await dbClient.query(
+            "SELECT * FROM paypal_transactions WHERE paypal_order_id = $1 AND user_discord_id = $2 FOR UPDATE",
+            [paypalOrderId, req.session.user.id],
+          );
+          const lockedTransaction = lockedResult.rows[0];
+          if (!lockedTransaction) {
+            throw new Error("Pedido PayPal não encontrado durante a captura.");
+          }
+
+          if (lockedTransaction.status === "captured") {
+            alreadyCaptured = true;
+          } else {
+            capturedItems = Array.isArray(lockedTransaction.items_snapshot)
+              ? lockedTransaction.items_snapshot
+              : JSON.parse(lockedTransaction.items_snapshot);
+
+            for (const item of capturedItems) {
+              await dbClient.query(
+                `INSERT INTO purchases
+                  (user_discord_id, product_id, product_name, product_category, price, quantity, status, order_id, payment_method, payment_reference)
+                 VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, 'PayPal', $8)`,
+                [
+                  lockedTransaction.user_discord_id,
+                  item.productId,
+                  item.name,
+                  item.category,
+                  item.paidCents / 100,
+                  item.quantity,
+                  lockedTransaction.internal_order_id,
+                  capture.id,
+                ],
+              );
+            }
+
+            const userCartResult = await dbClient.query(
+              "SELECT cart FROM users WHERE discord_id = $1 FOR UPDATE",
+              [req.session.user.id],
+            );
+            const currentCart = userCartResult.rows[0]?.cart || [];
+            const normalizeCart = (items) => {
+              const quantities = new Map();
+              if (!Array.isArray(items)) return [];
+              for (const item of items) {
+                const productId = Number(item?.productId ?? item?.id);
+                const quantity = Number(item?.quantity ?? 1);
+                if (
+                  Number.isSafeInteger(productId) &&
+                  Number.isSafeInteger(quantity) &&
+                  quantity > 0
+                ) {
+                  quantities.set(
+                    productId,
+                    (quantities.get(productId) || 0) + quantity,
+                  );
+                }
+              }
+              return [...quantities.entries()].sort((a, b) => a[0] - b[0]);
+            };
+            const cartMatches =
+              JSON.stringify(normalizeCart(currentCart)) ===
+              JSON.stringify(normalizeCart(capturedItems));
+            if (cartMatches) {
+              await dbClient.query(
+                "UPDATE users SET cart = $1 WHERE discord_id = $2",
+                ["[]", req.session.user.id],
+              );
+              cartCleared = true;
+            }
+
+            await dbClient.query(
+              `UPDATE paypal_transactions
+               SET status = 'captured', capture_id = $1, captured_at = CURRENT_TIMESTAMP
+               WHERE paypal_order_id = $2`,
+              [capture.id, paypalOrderId],
+            );
+          }
+          await dbClient.query("COMMIT");
+        } catch (err) {
+          if (dbClient) {
+            try {
+              await dbClient.query("ROLLBACK");
+            } catch (rollbackError) {
+              console.error(
+                "Erro ao reverter transação da captura PayPal:",
+                rollbackError.message,
+              );
+            }
+          }
+          console.error("Erro ao registar captura PayPal:", err.message);
+          return res.status(500).json({
+            error:
+              "O pagamento foi capturado, mas não foi possível registar o pedido. Contacta o suporte com o ID PayPal.",
+            paypalOrderId,
+          });
+        } finally {
+          if (dbClient) dbClient.release();
+        }
+
+        if (!alreadyCaptured && cartCleared) req.session.coupon = null;
+        if (!alreadyCaptured) {
+          await sendPurchaseWebhook(
+            req.session.user,
+            capturedItems.map((item) => ({
+              id: item.productId,
+              name: item.name,
+              quantity: item.quantity,
+              lineTotal: item.paidCents / 100,
+              category: item.category,
+            })),
+            "PayPal",
+          );
+        }
+
+        return res.json({
+          success: true,
+          orderId: transaction.internal_order_id,
+          message:
+            "Pagamento confirmado. O pedido aguarda aprovação do administrador.",
+        });
+      });
+
       // ══════════════════════════════════════════
       // CHECKOUT (regista como PENDENTE)
       // ══════════════════════════════════════════
@@ -1373,6 +1916,14 @@ async function getApp() {
 
           if (cart.length === 0)
             return res.status(400).json({ error: "Carrinho vazio" });
+
+          const settingsResult = await pool.query(
+            "SELECT paypal_link FROM settings WHERE id = 1",
+          );
+          const configuredPaypalLink = settingsResult.rows[0]?.paypal_link;
+          const paypalLink = isValidPaypalLink(configuredPaypalLink)
+            ? configuredPaypalLink
+            : null;
 
           const orderId = randomUUID();
 
@@ -1427,8 +1978,11 @@ async function getApp() {
             orderId,
             autoApproved: allFree,
             paymentOnSite: !hasNonMtaItems && !allFree,
+            paypalLink: allFree ? null : paypalLink,
             message: allFree
               ? "Pedido concluído automaticamente (produtos grátis já estão na tua Área Cliente)!"
+              : paypalLink
+                ? "Pedido registado! Conclui o pagamento através do PayPal."
               : hasNonMtaItems
                 ? "Pedido registado! Abre Ticket no Discord para pagar."
                 : "Pedido registado! O admin irá processar o pagamento e aprovar.",
@@ -2113,6 +2667,8 @@ async function getApp() {
             maintenance_mode: 0,
             discord_webhook_url: "",
             discord_purchase_webhook_url: "",
+            paypal_link: "",
+            paypal_mode: "sandbox",
           };
 
           res.render("admin/settings", {
@@ -2131,6 +2687,8 @@ async function getApp() {
               maintenance_mode: 0,
               discord_webhook_url: "",
               discord_purchase_webhook_url: "",
+              paypal_link: "",
+              paypal_mode: "sandbox",
             },
             activeTab: "settings",
             error: "Erro ao carregar configurações",
@@ -2148,9 +2706,23 @@ async function getApp() {
             maintenance_mode,
             discord_webhook_url,
             discord_purchase_webhook_url,
+            paypal_link,
+            paypal_mode,
           } = req.body;
           const mm =
             maintenance_mode === "on" || maintenance_mode === "1" ? 1 : 0;
+          const paypalLink = (paypal_link || "").trim();
+          if (paypal_mode !== "sandbox" && paypal_mode !== "live") {
+            return res.status(400).send("Modo PayPal inválido.");
+          }
+
+          if (paypalLink && !isValidPaypalLink(paypalLink)) {
+            return res
+              .status(400)
+              .send(
+                'Link PayPal inválido. Usa um endereço HTTPS de paypal.com ou paypal.me. <a href="/admin/settings">Voltar às configurações</a>',
+              );
+          }
 
           await pool.query(
             `UPDATE settings
@@ -2159,7 +2731,9 @@ async function getApp() {
                 logo_url = $3,
                 maintenance_mode = $4,
                 discord_webhook_url = $5,
-                discord_purchase_webhook_url = $6
+                discord_purchase_webhook_url = $6,
+                paypal_link = $7,
+                paypal_mode = $8
             WHERE id = 1`,
             [
               site_name,
@@ -2168,6 +2742,8 @@ async function getApp() {
               mm,
               discord_webhook_url || null,
               discord_purchase_webhook_url || null,
+              paypalLink || null,
+              paypal_mode,
             ],
           );
           await logActivity(
@@ -2219,7 +2795,7 @@ async function getApp() {
       app.post("/admin/purchases/approve/:id", isAdmin, async (req, res) => {
         try {
           const result = await pool.query(
-            "SELECT product_name, product_category, user_discord_id, price FROM purchases WHERE id = $1",
+            "SELECT product_name, product_category, user_discord_id, price, payment_method FROM purchases WHERE id = $1",
             [req.params.id],
           );
           const purchase = result.rows[0];
@@ -2318,7 +2894,7 @@ async function getApp() {
                   avatar: user.avatar,
                 },
                 purchase,
-                "Discord Ticket",
+                purchase.payment_method || "Discord Ticket",
               );
             }
           } else {

@@ -55,6 +55,50 @@
               <label class="form-label fw-bold">Link do Discord (Convite)</label>
               <input type="url" name="discord_link" class="form-control bg-light border-0" value="<%= settings.discord_link %>" required>
             </div>
+            <div class="mb-4 p-3 rounded-3" style="background: #eff6ff; border: 1px solid #bfdbfe;">
+              <label class="form-label fw-bold mb-2" style="color: #1e40af;">
+                <i class="fa-brands fa-paypal me-2"></i> Link manual do PayPal (opcional)
+              </label>
+              <input
+                type="url"
+                name="paypal_link"
+                class="form-control bg-white border-0"
+                placeholder="https://paypal.me/teu-nome"
+                value="<%= settings.paypal_link || '' %>"
+              >
+              <div class="form-text small mt-2" style="color: #1d4ed8;">
+                Link de pagamento manual alternativo. Os Smart Buttons não usam este link para escolher o destinatário: a conta que recebe é a conta associada às credenciais PayPal configuradas no servidor.
+              </div>
+              <% if (settings.paypal_link) { %>
+                <div class="mt-2">
+                  <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> PayPal configurado</span>
+                </div>
+              <% } %>
+              <hr>
+              <label for="paypal_mode" class="form-label fw-bold mb-2" style="color: #1e40af;">
+                Ambiente dos Smart Buttons PayPal
+              </label>
+              <select id="paypal_mode" name="paypal_mode" class="form-select bg-white border-0">
+                <option value="sandbox" <%= settings.paypal_mode !== 'live' ? 'selected' : '' %>>Sandbox (testes)</option>
+                <option value="live" <%= settings.paypal_mode === 'live' ? 'selected' : '' %>>Live (pagamentos reais)</option>
+              </select>
+              <div class="form-text small mt-2" style="color: #1d4ed8;">
+                Configura as credenciais na plataforma de alojamento:
+                <strong>PAYPAL_<%= settings.paypal_mode === 'live' ? 'LIVE' : 'SANDBOX' %>_CLIENT_ID</strong>
+                e
+                <strong>PAYPAL_<%= settings.paypal_mode === 'live' ? 'LIVE' : 'SANDBOX' %>_CLIENT_SECRET</strong>.
+                O Client ID/Secret determina a conta recebedora. Nunca coloques o Secret no navegador ou no código.
+              </div>
+              <% if (paypalClientId) { %>
+                <div class="mt-2">
+                  <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Credenciais do ambiente configuradas</span>
+                </div>
+              <% } else { %>
+                <div class="alert alert-warning small mt-3 mb-0">
+                  As credenciais deste ambiente ainda não estão configuradas. Os Smart Buttons só aparecem depois de definires o Client ID e o Client Secret no alojamento.
+                </div>
+              <% } %>
+            </div>
             <!-- 🔥 NOVO CAMPO: LOGO URL -->
             <div class="mb-3">
               <label class="form-label fw-bold">Logótipo / Favicon (URL da Imagem)</label>

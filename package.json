@@ -10,6 +10,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
     "@supabase/supabase-js": "^2.117.2",
     "axios": "^1.6.0",
     "connect-pg-simple": "^10.0.0",

@@ -65,7 +65,9 @@
                     <th>Cliente</th>
                     <th>Produto</th>
                     <th>Categoria</th>
-                    <th class="text-center">Preço</th>
+                    <th class="text-center">Qtd.</th>
+                    <th class="text-center">Total (€)</th>
+                    <th class="text-center">Pagamento</th>
                     <th class="text-center">Estado</th>
                     <th class="text-center">Data</th>
                     <th class="text-end pe-4">Ações</th>
@@ -73,7 +75,7 @@
                 </thead>
                 <tbody>
                   <% if (purchases.length === 0) { %>
-                    <tr><td colspan="8" class="text-center text-muted py-4">Sem pedidos registados.</td></tr>
+                    <tr><td colspan="10" class="text-center text-muted py-4">Sem pedidos registados.</td></tr>
                   <% } else { %>
                     <% purchases.forEach(p => { %>
                       <tr>
@@ -83,7 +85,18 @@
                         </td>
                         <td class="fw-semibold"><%= p.product_name %></td>
                         <td><span class="badge bg-info text-dark"><%= p.product_category || '—' %></span></td>
+                        <td class="text-center"><%= p.quantity || 1 %></td>
                         <td class="text-center fw-bold">€<%= parseFloat(p.price).toFixed(2) %></td>
+                        <td class="text-center">
+                          <% if (p.payment_method === 'PayPal') { %>
+                            <span class="badge bg-primary rounded-pill">PayPal capturado</span>
+                            <% if (p.payment_reference) { %>
+                              <small class="d-block text-muted text-break"><%= p.payment_reference %></small>
+                            <% } %>
+                          <% } else { %>
+                            <span class="text-muted">—</span>
+                          <% } %>
+                        </td>
                         <td class="text-center">
                           <% if (p.status === 'completed') { %>
                             <span class="badge bg-success rounded-pill px-3">Aprovado</span>

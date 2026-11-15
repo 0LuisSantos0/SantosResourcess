@@ -24,7 +24,8 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         site_name TEXT,
         discord_link TEXT,
-        logo_url TEXT
+        logo_url TEXT,
+        paypal_mode TEXT DEFAULT 'sandbox'
       );
     `);
 
@@ -98,9 +99,33 @@ const initDB = async () => {
         product_name TEXT NOT NULL,
         product_category TEXT,
         price REAL NOT NULL DEFAULT 0.00,
+        quantity INTEGER DEFAULT 1,
         status TEXT DEFAULT 'completed',
+        payment_method TEXT,
+        payment_reference TEXT,
         purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS paypal_transactions (
+        paypal_order_id TEXT PRIMARY KEY,
+        internal_order_id TEXT NOT NULL UNIQUE,
+        user_discord_id TEXT NOT NULL,
+        amount_cents BIGINT NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'EUR',
+        mode TEXT NOT NULL,
+        capture_request_id TEXT,
+        items_snapshot JSONB NOT NULL,
+        status TEXT NOT NULL DEFAULT 'created',
+        capture_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        captured_at TIMESTAMP
+      );
+    `);
+
+    await pool.query(`
+      ALTER TABLE paypal_transactions ADD COLUMN IF NOT EXISTS capture_request_id TEXT;
     `);
 
     await pool.query(`
@@ -137,6 +162,26 @@ const initDB = async () => {
 
     await pool.query(`
       ALTER TABLE settings ADD COLUMN IF NOT EXISTS discord_purchase_webhook_url TEXT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS paypal_link TEXT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE settings ADD COLUMN IF NOT EXISTS paypal_mode TEXT DEFAULT 'sandbox';
+    `);
+
+    await pool.query(`
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+    `);
+
+    await pool.query(`
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS payment_method TEXT;
+    `);
+
+    await pool.query(`
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS payment_reference TEXT;
     `);
 
     await pool.query(`
