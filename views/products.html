@@ -745,10 +745,14 @@
 
         <!-- Botão Pagamento -->
         <div class="mt-3">
-          <% if (paypalClientId) { %>
-          <div id="paypal-button-container" class="mb-2"></div>
+          <% if (siteSettings.paypal_link) { %>
+          <button type="button" onclick="processarPagamento(true)" class="btn btn-warning w-100 rounded-pill fw-bold mb-2">
+            <i class="fa-brands fa-paypal me-2"></i> Pagar com PayPal
+          </button>
           <% } %>
+          <% if (!siteSettings.paypal_link) { %>
           <button onclick="processarPagamento()" class="btn btn-success w-100 rounded-pill fw-bold btn-glow"><i class="fa-brands fa-discord me-2"></i> Processar Pagamento</button>
+          <% } %>
         </div>
       </div>
     </div>
@@ -821,9 +825,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <% if (paypalClientId) { %>
-  <script src="https://www.paypal.com/sdk/js?client-id=<%= encodeURIComponent(paypalClientId) %>&amp;currency=EUR&amp;intent=capture"></script>
-  <% } %>
   <script>AOS.init({ duration: 800, once: true });</script>
 
   <script>
@@ -862,7 +863,7 @@
       }
     }
 
-    async function processarPagamento() {
+    async function processarPagamento(usePaypalLink = false) {
       if (!cart || cart.length === 0) {
         const toastEl = document.getElementById('mtaAlertToast');
         if (toastEl) {
@@ -879,14 +880,18 @@
       // 🔥 Só abre o Discord se houver produtos NÃO-MTA (Site / Discord Bot)
       const hasNonMtaItems = cart.some(item => item.category !== 'MTA');
 
-      const paypalConfigured = <%= (siteSettings.paypal_link || paypalClientId) ? "true" : "false" %>;
+      const paypalConfigured = <%= siteSettings.paypal_link ? "true" : "false" %>;
       if (!allFree && hasNonMtaItems && !paypalConfigured) {
         const discordUrl = '<%= siteSettings.discord_link || "https://discord.gg/8GyNS5vRgt" %>';
         window.open(discordUrl, '_blank');
       }
 
       try {
-        const response = await fetch('/api/checkout', { method: 'POST' });
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usePaypalLink }),
+        });
         const data = await response.json();
 
         if (!response.ok) {
@@ -904,6 +909,14 @@
           bsOffcanvas.hide();
         }
 
+        if (usePaypalLink && !data.autoApproved) {
+          if (!data.paypalLink) {
+            throw new Error('O link pessoal do PayPal não está disponível.');
+          }
+          window.location.assign(data.paypalLink);
+          return;
+        }
+
         // 🔥 Ajusta o modal dinamicamente (grátis / pagamento no site / Discord)
         updateCheckoutModal(data);
 
@@ -914,7 +927,7 @@
 
       } catch (err) {
         console.error(err);
-        alert('Erro ao comunicar com o servidor.');
+        alert(err.message || 'Erro ao comunicar com o servidor.');
       }
     }
 
@@ -1374,89 +1387,5 @@
       initAll();
     })();
   </script>
-  <% if (paypalClientId) { %>
-  <script>
-    (function () {
-      const container = document.getElementById("paypal-button-container");
-      if (!container || !window.paypal) return;
-
-      window.paypal.Buttons({
-        async createOrder() {
-          const response = await fetch("/api/paypal/create-order", {
-            method: "POST",
-          });
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || "Erro ao criar pagamento.");
-          return data.id;
-        },
-        async onApprove(data) {
-          try {
-            const response = await fetch("/api/paypal/capture-order", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ orderID: data.orderID }),
-            });
-            const result = await response.json();
-            if (!response.ok) {
-              const supportId = result.paypalOrderId
-                ? ` Referência PayPal: ${result.paypalOrderId}.`
-                : "";
-              throw new Error((result.error || "Erro ao confirmar pagamento.") + supportId);
-            }
-
-            cart = [];
-            appliedCoupon = null;
-            updateCartUI();
-            const couponInput = document.getElementById("couponInput");
-            if (couponInput) {
-              couponInput.value = "";
-              couponInput.disabled = false;
-            }
-            document.getElementById("applyCouponBtn")?.classList.remove("d-none");
-            document.getElementById("removeCouponBtn")?.classList.add("d-none");
-            document.getElementById("couponFeedback").textContent = "";
-            container.classList.add("d-none");
-
-            const title = document.querySelector("#checkoutSuccessModal h3");
-            const description = document.querySelector(
-              "#checkoutSuccessModal .text-light.opacity-75.small",
-            );
-            const step = document.getElementById("checkoutStep1");
-            if (title) title.textContent = "Pagamento recebido!";
-            if (description) {
-              description.textContent =
-                "O pagamento foi capturado. O pedido aguarda verificação e aprovação do administrador.";
-            }
-            if (step) {
-              step.innerHTML = `
-                <i class="fa-brands fa-paypal" style="font-size:1.6rem; color:#003087; margin-top:2px;"></i>
-                <div>
-                  <div class="fw-bold small">Pagamento confirmado</div>
-                  <div class="text-muted small">O administrador irá verificar o pagamento e aprovar o pedido.</div>
-                </div>`;
-            }
-            document.getElementById("paypalCheckoutButton")?.classList.add("d-none");
-
-            const cartDrawer = document.getElementById("cartDrawer");
-            const offcanvas = cartDrawer
-              ? bootstrap.Offcanvas.getInstance(cartDrawer)
-              : null;
-            if (offcanvas) offcanvas.hide();
-            new bootstrap.Modal(
-              document.getElementById("checkoutSuccessModal"),
-            ).show();
-          } catch (error) {
-            console.error("Erro ao capturar pagamento PayPal:", error);
-            alert(error.message || "Não foi possível confirmar o pagamento.");
-          }
-        },
-        onError(error) {
-          console.error("Erro nos Smart Buttons PayPal:", error);
-          alert(error.message || "Não foi possível iniciar o pagamento PayPal.");
-        },
-      }).render(container);
-    })();
-  </script>
-  <% } %>
 </body>
 </html>

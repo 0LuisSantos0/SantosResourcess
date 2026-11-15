@@ -93,6 +93,8 @@
                             <% if (p.payment_reference) { %>
                               <small class="d-block text-muted text-break"><%= p.payment_reference %></small>
                             <% } %>
+                          <% } else if (p.payment_method === 'PayPal (link)') { %>
+                            <span class="badge bg-warning text-dark rounded-pill">PayPal — confirmar</span>
                           <% } else { %>
                             <span class="text-muted">—</span>
                           <% } %>

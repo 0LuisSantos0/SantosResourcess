@@ -1947,17 +1947,25 @@ async function getApp() {
             ? configuredPaypalLink
             : null;
 
-          const orderId = randomUUID();
-
           const allFree = cart.every((item) => parseFloat(item.price) <= 0);
+          const usePaypalLink = req.body?.usePaypalLink === true;
+          if (usePaypalLink && !allFree && !paypalLink) {
+            return res.status(503).json({
+              error:
+                "O link pessoal do PayPal não está configurado. Atualiza as configurações e tenta novamente.",
+            });
+          }
+
+          const orderId = randomUUID();
 
           for (const item of cart) {
             const isFree = parseFloat(item.price) <= 0;
             const status = isFree ? "completed" : "pending";
 
             await pool.query(
-              `INSERT INTO purchases (user_discord_id, product_id, product_name, product_category, price, status, order_id)
-              VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              `INSERT INTO purchases
+                (user_discord_id, product_id, product_name, product_category, price, status, order_id, payment_method)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
               [
                 req.session.user.id,
                 item.id,
@@ -1966,6 +1974,7 @@ async function getApp() {
                 item.price,
                 status,
                 orderId,
+                usePaypalLink && !isFree ? "PayPal (link)" : null,
               ],
             );
 
@@ -2729,14 +2738,10 @@ async function getApp() {
             discord_webhook_url,
             discord_purchase_webhook_url,
             paypal_link,
-            paypal_mode,
           } = req.body;
           const mm =
             maintenance_mode === "on" || maintenance_mode === "1" ? 1 : 0;
           const paypalLink = (paypal_link || "").trim();
-          if (paypal_mode !== "sandbox" && paypal_mode !== "live") {
-            return res.status(400).send("Modo PayPal inválido.");
-          }
 
           if (paypalLink && !isValidPaypalLink(paypalLink)) {
             return res
@@ -2754,8 +2759,7 @@ async function getApp() {
                 maintenance_mode = $4,
                 discord_webhook_url = $5,
                 discord_purchase_webhook_url = $6,
-                paypal_link = $7,
-                paypal_mode = $8
+                paypal_link = $7
             WHERE id = 1`,
             [
               site_name,
@@ -2765,7 +2769,6 @@ async function getApp() {
               discord_webhook_url || null,
               discord_purchase_webhook_url || null,
               paypalLink || null,
-              paypal_mode,
             ],
           );
           await logActivity(
